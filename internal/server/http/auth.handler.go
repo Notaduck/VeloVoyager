@@ -18,24 +18,11 @@ type AuthRequest struct {
 	LastName  string `json:"last_name"`
 }
 
-// AUTHENTICATION
-func supaClient() *supa.Client {
-
-	supabaseUrl := "https://aryooqhdgtuhynbydyvf.supabase.co"
-	supabaseKey := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFyeW9vcWhkZ3R1aHluYnlkeXZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTk4NjM3NzAsImV4cCI6MjAxNTQzOTc3MH0.P7Gai2hPcVZf4VCpW4WmVQ53Q48z2kz_2gmhqG2UTb4"
-	supwbaseJwtSecret := "s5HfybBeOaiwd4QFaYVoHOG83wKaWqAm7kxzHUi74LzwhSMsM66milvjKGiFHf4d6WjAwj0O5Kxa/mCnlwgghQ=="
-
-	_ = supwbaseJwtSecret
-
-	return supa.CreateClient(supabaseUrl, supabaseKey)
-
-}
-
 func (s *APIServer) supaClient() *supa.Client {
 
-	supabaseUrl := "https://aryooqhdgtuhynbydyvf.supabase.co"
-	supabaseKey := "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFyeW9vcWhkZ3R1aHluYnlkeXZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE2OTk4NjM3NzAsImV4cCI6MjAxNTQzOTc3MH0.P7Gai2hPcVZf4VCpW4WmVQ53Q48z2kz_2gmhqG2UTb4"
-	supwbaseJwtSecret := "s5HfybBeOaiwd4QFaYVoHOG83wKaWqAm7kxzHUi74LzwhSMsM66milvjKGiFHf4d6WjAwj0O5Kxa/mCnlwgghQ=="
+	supabaseUrl := s.config.SupabaseUrl
+	supabaseKey := s.config.SupabaseKey
+	supwbaseJwtSecret := s.config.SupwbaseJwtSecret
 
 	_ = supwbaseJwtSecret
 
@@ -153,7 +140,7 @@ func (s *APIServer) AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		fmt.Println(ctx)
 
-		user, err := supaClient().Auth.User(ctx, token)
+		user, err := s.supaClient().Auth.User(ctx, token)
 
 		if err != nil {
 			slog.Info("failed  login atempt", slog.String("token", token), slog.String("err", err.Error()))

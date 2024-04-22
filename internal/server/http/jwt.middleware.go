@@ -42,36 +42,59 @@ type AMR struct {
 }
 
 // AuthMiddleware checks if the user is authenticated
-func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func AuthMiddleware(apiServer *APIServer) func(http.HandlerFunc) http.HandlerFunc {
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			fmt.Println("Checking authentication")
+			ctx := r.Context()
+			token := r.Header.Get("x-jwt-token")
+			if token == "" {
+				permissionDenied(w)
+				return
+			}
 
-		fmt.Println("Checking authentication")
-		// Assume context.Background() is your starting context, but in real use, you should use r.Context() to get the request's existing context.
-		ctx := r.Context()
-		// var traceId string = fmt.Sprint(ctx.Value(TraceIdFromContext))
+			user, err := apiServer.supaClient().Auth.User(ctx, token)
+			if err != nil {
+				permissionDenied(w)
+				return
+			}
 
-		token := r.Header.Get("x-jwt-token")
-
-		if token == "" {
-			permissionDenied(w)
-			return
+			ctx = context.WithValue(ctx, UserFromContext, user)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		}
-
-		user, err := supaClient().Auth.User(ctx, token)
-
-		if err != nil {
-			// slog.Info("Failed login attempt", "token", token, "error", err.Error(), slog.String("trace_id", traceId))
-			permissionDenied(w)
-			return
-		}
-
-		// Store the user in the context
-		ctx = context.WithValue(ctx, UserFromContext, user)
-
-		// Pass the context with the user to the next handler
-		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }
+
+// func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
+// 	return func(w http.ResponseWriter, r *http.Request) {
+
+// 		fmt.Println("Checking authentication")
+// 		// Assume context.Background() is your starting context, but in real use, you should use r.Context() to get the request's existing context.
+// 		ctx := r.Context()
+// 		// var traceId string = fmt.Sprint(ctx.Value(TraceIdFromContext))
+
+// 		token := r.Header.Get("x-jwt-token")
+
+// 		if token == "" {
+// 			permissionDenied(w)
+// 			return
+// 		}
+
+// 		user, err := supaClient().auth.User(ctx, token)
+
+// 		if err != nil {
+// 			// slog.Info("Failed login attempt", "token", token, "error", err.Error(), slog.String("trace_id", traceId))
+// 			permissionDenied(w)
+// 			return
+// 		}
+
+// 		// Store the user in the context
+// 		ctx = context.WithValue(ctx, UserFromContext, user)
+
+// 		// Pass the context with the user to the next handler
+// 		next.ServeHTTP(w, r.WithContext(ctx))
+// 	}
+// }
 
 func RetrieveUserFromContext(ctx context.Context) supabase.User {
 	var user supabase.User
