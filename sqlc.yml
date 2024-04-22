@@ -11,6 +11,6 @@ sql:
     schema: "misc/migrations" # will refer a directory
     gen:
       go:
-        package: "storage"
+        package: "repositories"
         sql_package: "pgx/v5"
-        out: "./internal/storage"
+        out: "./internal/repositories"

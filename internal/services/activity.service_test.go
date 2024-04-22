@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/notaduck/backend/internal/storage"
+	"github.com/notaduck/backend/internal/repositories"
 	"github.com/notaduck/backend/misc/testhelpers"
 	"github.com/stretchr/testify/suite"
 )
@@ -16,7 +16,7 @@ import (
 type ActivityServiceTestSuite struct {
 	suite.Suite
 	pgContainer *testhelpers.PostgresContainer
-	queries     *storage.Queries
+	queries     *repositories.Queries
 	ctx         context.Context
 }
 
@@ -37,7 +37,7 @@ func (s *ActivityServiceTestSuite) SetupSuite() {
 		panic(fmt.Sprint("failed to connect to database: %w", err))
 	}
 
-	queries := storage.New(db)
+	queries := repositories.New(db)
 
 	s.queries = queries
 

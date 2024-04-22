@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/notaduck/backend/internal/repositories"
 	"github.com/notaduck/backend/internal/storage"
 )
 
@@ -36,18 +36,18 @@ type ActivityService interface {
 }
 
 type ActivityServiceImp struct {
-	storage *storage.Queries
+	repo repositories.ActivityRepository
 }
 
-func NewActivityService(storage *storage.Queries) *ActivityServiceImp {
+func NewActivityService(repo repositories.ActivityRepository) *ActivityServiceImp {
 	return &ActivityServiceImp{
-		storage: storage,
+		repo: repo,
 	}
 }
 
 func (s *ActivityServiceImp) GetSingleActivityById(ctx context.Context, activityId int32, userId []byte) (*Activity, error) {
 
-	activityEntity, err := s.storage.GetActivityAndRecords(ctx, activityId)
+	activityEntity, err := s.repo.GetActivityAndRecords(ctx, activityId)
 
 	if err != nil {
 		slog.Error("failed to retrieve activity", "activityId", activityId, "error", err)
@@ -82,11 +82,12 @@ func (s *ActivityServiceImp) GetSingleActivityById(ctx context.Context, activity
 		TotalTime:    activityEntity.TotalTimeChar,
 	}
 
-	records, err := s.storage.GetRecords(ctx, pgtype.Int4{Valid: true, Int32: activity.ID})
+	//TODO: Need to rewrite the query for GetActivityAndRecords to include records
+	// records, err := s.repo.GetRecords(ctx, pgtype.Int4{Valid: true, Int32: activity.ID})
 
-	for _, record := range records {
-		activity.Records = append(activity.Records, Record{ID: record.ID, Coordinates: Point{X: record.Position.P.X, Y: record.Position.P.Y}})
-	}
+	// for _, record := range records {
+	// 	activity.Records = append(activity.Records, Record{ID: record.ID, Coordinates: Point{X: record.Position.P.X, Y: record.Position.P.Y}})
+	// }
 
 	return &activity, nil
 }

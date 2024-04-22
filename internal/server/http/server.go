@@ -9,8 +9,8 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/notaduck/backend/internal/config"
+	"github.com/notaduck/backend/internal/repositories"
 	service "github.com/notaduck/backend/internal/services"
-	"github.com/notaduck/backend/internal/storage"
 )
 
 const (
@@ -20,7 +20,7 @@ const (
 
 type APIServer struct {
 	listenAddr      string
-	storage         *storage.Queries
+	storage         *repositories.Queries
 	activityService *service.ActivityServiceImp
 	config          *config.Config
 }
@@ -53,11 +53,15 @@ func NewAPIServer(options ...func(*APIServer)) *APIServer {
 			panic(fmt.Sprint("failed to connect to database: %w", err))
 		}
 
-		queries := storage.New(db)
+		queries := repositories.New(db)
 
 		server.storage = queries
 
 	}
+
+	activityRepo := repositories.NewActivityRepository(server.storage)
+	activityService := service.NewActivityService(activityRepo)
+	server.activityService = activityService
 
 	return server
 }
@@ -68,7 +72,7 @@ func WithConfig(config *config.Config) func(*APIServer) {
 	}
 }
 
-func WithDbQueries(q *storage.Queries) func(*APIServer) {
+func WithDbQueries(q *repositories.Queries) func(*APIServer) {
 	return func(s *APIServer) {
 		s.storage = q
 	}

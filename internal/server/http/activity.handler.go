@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
-	"github.com/notaduck/backend/internal/storage"
+	"github.com/notaduck/backend/internal/repositories"
 	"github.com/tormoder/fit"
 )
 
@@ -95,12 +95,12 @@ func (s *APIServer) handlePostActivity(w http.ResponseWriter, r *http.Request) e
 		var maxSpeed uint16
 		// var startTime time.Time = activity.Records[0].Timestamp
 		// var endTime time.Time = activity.Records[len(activity.Records-1)].Timestamp
-		var records []storage.CreateRecordsParams
+		var records []repositories.CreateRecordsParams
 
 		for index, record := range activity.Records {
 			if !(record.PositionLat.Invalid() && record.PositionLong.Invalid()) {
 
-				newRecord := storage.CreateRecordsParams{
+				newRecord := repositories.CreateRecordsParams{
 					TimeStamp:        pgtype.Timestamptz{Time: record.Timestamp, Valid: true},
 					Position:         pgtype.Point{P: pgtype.Vec2{X: float64(record.PositionLong.Degrees()), Y: float64(record.PositionLat.Degrees())}, Valid: true},
 					Altitude:         pgtype.Int4{Int32: int32(record.Altitude), Valid: true},
@@ -204,7 +204,7 @@ func (s *APIServer) handlePostActivity(w http.ResponseWriter, r *http.Request) e
 
 		}
 
-		activityResult, err := s.storage.CreateActivity(r.Context(), storage.CreateActivityParams{
+		activityResult, err := s.storage.CreateActivity(r.Context(), repositories.CreateActivityParams{
 			Distance:     numericDistance,
 			UserID:       myUUID,
 			TotalTime:    totalRideTime,
