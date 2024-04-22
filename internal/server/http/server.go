@@ -27,28 +27,45 @@ type APIServer struct {
 
 func NewAPIServer(options ...func(*APIServer)) *APIServer {
 
-	cfg := config.NewConfig()
-	ctx := context.Background()
-
-	db, err := pgxpool.New(ctx, cfg.DbConnectionString)
-
-	if err != nil {
-		panic(fmt.Sprint("failed to connect to database: %w", err))
-	}
-
-	queries := storage.New(db)
-
 	server := &APIServer{
-		listenAddr:      "127.0.0.1:3000",
-		storage:         queries,
-		activityService: service.NewActivityService(queries),
+		listenAddr: "127.0.0.1:3000",
+		// storage:         queries,
+		// activityService: service.NewActivityService(queries),
 	}
 
 	for _, option := range options {
 		option(server)
 	}
 
+	if server.config == nil {
+
+		cfg := config.NewConfig()
+		server.config = cfg
+
+	}
+
+	if server.storage == nil {
+		ctx := context.Background()
+
+		db, err := pgxpool.New(ctx, server.config.DbConnectionString)
+
+		if err != nil {
+			panic(fmt.Sprint("failed to connect to database: %w", err))
+		}
+
+		queries := storage.New(db)
+
+		server.storage = queries
+
+	}
+
 	return server
+}
+
+func WithConfig(config *config.Config) func(*APIServer) {
+	return func(s *APIServer) {
+		s.config = config
+	}
 }
 
 func WithDbQueries(q *storage.Queries) func(*APIServer) {
@@ -69,11 +86,11 @@ func (s *APIServer) Run() {
 	router := http.NewServeMux()
 
 	publicChain := []middleware{
-		LoggingMiddleware, // Just an example, add more as needed
+		LoggingMiddleware,
 	}
 
 	protectedChain := []middleware{
-		AuthMiddleware,
+		AuthMiddleware(s),
 		LoggingMiddleware,
 	}
 

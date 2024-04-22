@@ -9,6 +9,9 @@ import (
 type Config struct {
 	ServerPort         string `mapstructure:"SERVER_PORT"`
 	DbConnectionString string `mapstructure:"DB_CONNECTION_STRING"`
+	SupabaseUrl        string `mapstructure:"SUPABASE_URL"`
+	SupabaseKey        string `mapstructure:"SUPABASE_KEY"`
+	SupwbaseJwtSecret  string `mapstructure:"SUPABASE_JWT_SECRET"`
 }
 
 func NewConfig() *Config {
