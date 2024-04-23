@@ -130,6 +130,16 @@ func AuthHandler(f apiFunc) http.HandlerFunc {
 // }
 // }
 
+func (s *APIServer) GetUserFromContext(r http.Request) string {
+
+	userId, ok := r.Context().Value(UserFromContext).(string)
+	if !ok {
+		slog.Error("userId is not a string")
+	}
+
+	return userId
+}
+
 func (s *APIServer) AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 

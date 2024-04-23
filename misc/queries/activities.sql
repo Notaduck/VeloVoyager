@@ -4,11 +4,14 @@ WHERE id = $1 LIMIT 1;
 
 
 -- name: GetActivityAndRecords :one
-SELECT  *,
+SELECT  a.*,
         TO_CHAR(elapsed_time, 'HH24:MI:SS') as elapsed_time_char,
-        TO_CHAR(total_time, 'HH24:MI:SS') as total_time_char
-FROM activities 
-WHERE activities.id = $1;
+        TO_CHAR(total_time, 'HH24:MI:SS') as total_time_char,
+        JSON_AGG(r) as records
+        -- sqlc.embed(r) as records
+FROM activities a
+    JOIN records r ON a.id = r.activity_id
+    WHERE activities.id = $1;
 
 -- name: GetActivities :many
 SELECT * FROM activities;

@@ -76,18 +76,6 @@ func (s *ActivityServiceTestSuite) TestActivityServiceReturnsAnActivity() {
 	s.Greater(len(activity.Records), 0)
 }
 
-// func (s *ActivityServiceTestSuite) TestActivityServiceFailsIfPersonIdIsInvalid() {
-
-// 	userId := []byte("invalid_person_id")
-
-// 	activityService := NewActivityService(s.queries)
-
-// 	_, err := activityService.GetSingleActivityById(s.ctx, 1, userId)
-
-// 	s.Error(err)
-
-// }
-
 func TestActivityServiceTestSuite(t *testing.T) {
 	suite.Run(t, new(ActivityServiceTestSuite))
 }

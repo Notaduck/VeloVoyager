@@ -124,11 +124,14 @@ func (q *Queries) GetActivity(ctx context.Context, id int32) (Activity, error) {
 }
 
 const getActivityAndRecords = `-- name: GetActivityAndRecords :one
-SELECT  id, created_at, user_id, distance, activity_name, avg_speed, max_speed, elapsed_time, total_time,
+SELECT  a.id, a.created_at, a.user_id, a.distance, a.activity_name, a.avg_speed, a.max_speed, a.elapsed_time, a.total_time,
         TO_CHAR(elapsed_time, 'HH24:MI:SS') as elapsed_time_char,
-        TO_CHAR(total_time, 'HH24:MI:SS') as total_time_char
-FROM activities 
-WHERE activities.id = $1
+        TO_CHAR(total_time, 'HH24:MI:SS') as total_time_char,
+        JSON_AGG(r) as records
+        -- sqlc.embed(r) as records
+FROM activities a
+    JOIN records r ON a.id = r.activity_id
+    WHERE activities.id = $1
 `
 
 type GetActivityAndRecordsRow struct {
@@ -143,6 +146,7 @@ type GetActivityAndRecordsRow struct {
 	TotalTime       pgtype.Time
 	ElapsedTimeChar string
 	TotalTimeChar   string
+	Records         []byte
 }
 
 func (q *Queries) GetActivityAndRecords(ctx context.Context, id int32) (GetActivityAndRecordsRow, error) {
@@ -160,6 +164,7 @@ func (q *Queries) GetActivityAndRecords(ctx context.Context, id int32) (GetActiv
 		&i.TotalTime,
 		&i.ElapsedTimeChar,
 		&i.TotalTimeChar,
+		&i.Records,
 	)
 	return i, err
 }
