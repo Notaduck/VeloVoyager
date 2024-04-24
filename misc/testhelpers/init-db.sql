@@ -46,6 +46,7 @@ CREATE TABLE auth.users (
 	CONSTRAINT users_pkey PRIMARY KEY (id)
 );
 
+
 INSERT INTO auth.users (
     instance_id, 
     id, 
@@ -610,3 +611,30 @@ INSERT INTO public.records (time_stamp,"position",altitude,heart_rate,cadence,di
 	 (NULL,'(12.54695794545114,55.637315986678004)',2499,170,255,306188,9596,10,255,2499,1),
 	 (NULL,'(12.546840934082866,55.637255972251296)',2499,170,255,307147,9635,10,255,2499,1),
 	 (NULL,'(12.546727946028113,55.63719796948135)',2504,171,255,308136,9679,10,255,2504,1);
+
+CREATE VIEW activity_with_records_view AS 
+SELECT 
+    a.id,
+    a.created_at,
+    a.user_id,
+    a.distance,
+    a.activity_name,
+    a.avg_speed,
+    a.max_speed,
+    a.elapsed_time,
+    a.total_time,
+    TO_CHAR(a.elapsed_time, 'HH24:MI:SS') AS elapsed_time_char,
+    TO_CHAR(a.total_time, 'HH24:MI:SS') AS total_time_char,
+    JSON_AGG(r.*) AS records
+FROM activities a
+JOIN records r ON r.activity_id = a.id
+GROUP BY 
+    a.id, 
+    a.created_at,
+    a.user_id,
+    a.distance,
+    a.activity_name,
+    a.avg_speed,
+    a.max_speed,
+    a.elapsed_time,
+    a.total_time;

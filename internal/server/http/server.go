@@ -20,7 +20,7 @@ const (
 
 type APIServer struct {
 	listenAddr      string
-	storage         *repositories.Queries
+	queries         *repositories.Queries
 	activityService *service.ActivityServiceImp
 	config          *config.Config
 }
@@ -41,10 +41,10 @@ func NewAPIServer(options ...func(*APIServer)) *APIServer {
 
 		cfg := config.NewConfig()
 		server.config = cfg
-
+		slog.Info("Config initialized", "config", server.config)
 	}
 
-	if server.storage == nil {
+	if server.queries == nil {
 		ctx := context.Background()
 
 		db, err := pgxpool.New(ctx, server.config.DbConnectionString)
@@ -53,13 +53,18 @@ func NewAPIServer(options ...func(*APIServer)) *APIServer {
 			panic(fmt.Sprint("failed to connect to database: %w", err))
 		}
 
+		if err := db.Ping(ctx); err != nil {
+			slog.Info("config", "values", server.config)
+			slog.Error("Failed to ping database", "error", err, slog.String("connectionString", server.config.DbConnectionString))
+			panic("could not ping the database")
+		}
+
 		queries := repositories.New(db)
 
-		server.storage = queries
-
+		server.queries = queries
 	}
 
-	activityRepo := repositories.NewActivityRepository(server.storage)
+	activityRepo := repositories.NewActivityRepository(server.queries)
 	activityService := service.NewActivityService(activityRepo)
 	server.activityService = activityService
 
@@ -74,7 +79,7 @@ func WithConfig(config *config.Config) func(*APIServer) {
 
 func WithDbQueries(q *repositories.Queries) func(*APIServer) {
 	return func(s *APIServer) {
-		s.storage = q
+		s.queries = q
 	}
 }
 
@@ -105,7 +110,11 @@ func (s *APIServer) Run() {
 	router.HandleFunc("/login", buildChain(makeHTTPHandleFunc(s.handleLogin), publicChain...))
 
 	slog.Info("api is listening on", "port", s.listenAddr)
-	http.ListenAndServe(s.listenAddr, router)
+	err := http.ListenAndServe(s.listenAddr, router)
+	if err != nil {
+		panic(err)
+
+	}
 }
 
 func (s *APIServer) testRoute(w http.ResponseWriter, r *http.Request) error {

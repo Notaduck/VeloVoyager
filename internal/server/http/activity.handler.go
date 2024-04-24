@@ -27,7 +27,6 @@ func (s *APIServer) handleGetActivity(w http.ResponseWriter, r *http.Request) er
 		slog.Error("failed to fina an activity", "no activity found for", err.Error())
 
 		return WriteJSON(w, http.StatusBadRequest, ApiError{Error: "no activity was found."})
-		// return WriteJSON(w, http.StatusBadRequest, err.Error())
 
 	}
 
@@ -45,9 +44,9 @@ func (s *APIServer) handlePostActivity(w http.ResponseWriter, r *http.Request) e
 
 	files := r.MultipartForm.File["files"]
 
-	userId := s.GetUserFromContext(*r)
+	user := RetrieveUserFromContext(r.Context())
 
-	activityDetails, err := s.activityService.CreateActivities(r.Context(), files, userId)
+	activityDetails, err := s.activityService.CreateActivities(r.Context(), files, user.ID)
 
 	if err != nil {
 		WriteJSON(w, http.StatusBadRequest, ApiError{err.Error()})

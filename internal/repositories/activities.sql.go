@@ -102,39 +102,15 @@ func (q *Queries) GetActivities(ctx context.Context) ([]Activity, error) {
 }
 
 const getActivity = `-- name: GetActivity :one
-SELECT id, created_at, user_id, distance, activity_name, avg_speed, max_speed, elapsed_time, total_time FROM activities 
+SELECT 
+    a.id, a.created_at, a.user_id, a.distance, a.activity_name, a.avg_speed, a.max_speed, a.elapsed_time, a.total_time,
+    TO_CHAR(elapsed_time, 'HH24:MI:SS') as elapsed_time_char,
+    TO_CHAR(total_time, 'HH24:MI:SS') as total_time_char
+FROM activities a
 WHERE id = $1 LIMIT 1
 `
 
-func (q *Queries) GetActivity(ctx context.Context, id int32) (Activity, error) {
-	row := q.db.QueryRow(ctx, getActivity, id)
-	var i Activity
-	err := row.Scan(
-		&i.ID,
-		&i.CreatedAt,
-		&i.UserID,
-		&i.Distance,
-		&i.ActivityName,
-		&i.AvgSpeed,
-		&i.MaxSpeed,
-		&i.ElapsedTime,
-		&i.TotalTime,
-	)
-	return i, err
-}
-
-const getActivityAndRecords = `-- name: GetActivityAndRecords :one
-SELECT  a.id, a.created_at, a.user_id, a.distance, a.activity_name, a.avg_speed, a.max_speed, a.elapsed_time, a.total_time,
-        TO_CHAR(elapsed_time, 'HH24:MI:SS') as elapsed_time_char,
-        TO_CHAR(total_time, 'HH24:MI:SS') as total_time_char,
-        JSON_AGG(r) as records
-        -- sqlc.embed(r) as records
-FROM activities a
-    JOIN records r ON a.id = r.activity_id
-    WHERE activities.id = $1
-`
-
-type GetActivityAndRecordsRow struct {
+type GetActivityRow struct {
 	ID              int32
 	CreatedAt       pgtype.Timestamptz
 	UserID          pgtype.UUID
@@ -146,12 +122,36 @@ type GetActivityAndRecordsRow struct {
 	TotalTime       pgtype.Time
 	ElapsedTimeChar string
 	TotalTimeChar   string
-	Records         []byte
 }
 
-func (q *Queries) GetActivityAndRecords(ctx context.Context, id int32) (GetActivityAndRecordsRow, error) {
-	row := q.db.QueryRow(ctx, getActivityAndRecords, id)
-	var i GetActivityAndRecordsRow
+func (q *Queries) GetActivity(ctx context.Context, id int32) (GetActivityRow, error) {
+	row := q.db.QueryRow(ctx, getActivity, id)
+	var i GetActivityRow
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UserID,
+		&i.Distance,
+		&i.ActivityName,
+		&i.AvgSpeed,
+		&i.MaxSpeed,
+		&i.ElapsedTime,
+		&i.TotalTime,
+		&i.ElapsedTimeChar,
+		&i.TotalTimeChar,
+	)
+	return i, err
+}
+
+const activity_with_records_view = `-- name: activity_with_records_view :one
+SELECT id, created_at, user_id, distance, activity_name, avg_speed, max_speed, elapsed_time, total_time, elapsed_time_char, total_time_char, records
+FROM activity_with_records_view
+WHERE id = $1
+`
+
+func (q *Queries) activity_with_records_view(ctx context.Context, id int32) (ActivityWithRecordsView, error) {
+	row := q.db.QueryRow(ctx, activity_with_records_view, id)
+	var i ActivityWithRecordsView
 	err := row.Scan(
 		&i.ID,
 		&i.CreatedAt,

@@ -57,16 +57,14 @@ func (s *ActivityRepositoryTestSuite) TestCreateActivity() {
 		return
 	}
 
-	// Create pgtype.UUID
 	UUID := pgtype.UUID{
-		Bytes: u, // uuid.Parse returns a UUID, which is an array of 16 bytes
+		Bytes: u,
 		Valid: true,
 	}
 
 	params := CreateActivityParams{
 		UserID: UUID,
-
-		/* Set parameters needed for creating an activity */}
+	}
 
 	activity, err := repo.CreateActivity(s.ctx, params)
 

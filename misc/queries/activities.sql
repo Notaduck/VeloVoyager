@@ -1,21 +1,18 @@
 -- name: GetActivity :one
-SELECT * FROM activities 
-WHERE id = $1 LIMIT 1;
-
-
--- name: GetActivityAndRecords :one
-SELECT  a.*,
-        TO_CHAR(elapsed_time, 'HH24:MI:SS') as elapsed_time_char,
-        TO_CHAR(total_time, 'HH24:MI:SS') as total_time_char,
-        JSON_AGG(r) as records
-        -- sqlc.embed(r) as records
+SELECT 
+    a.*,
+    TO_CHAR(elapsed_time, 'HH24:MI:SS') as elapsed_time_char,
+    TO_CHAR(total_time, 'HH24:MI:SS') as total_time_char
 FROM activities a
-    JOIN records r ON a.id = r.activity_id
-    WHERE activities.id = $1;
+WHERE id = $1 LIMIT 1;
 
 -- name: GetActivities :many
 SELECT * FROM activities;
 
+-- name: activity_with_records_view :one
+SELECT *
+FROM activity_with_records_view
+WHERE id = $1;
 
 -- name: CreateActivity :one
 INSERT INTO activities (

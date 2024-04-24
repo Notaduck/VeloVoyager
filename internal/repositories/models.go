@@ -20,6 +20,21 @@ type Activity struct {
 	TotalTime    pgtype.Time
 }
 
+type ActivityWithRecordsView struct {
+	ID              int32
+	CreatedAt       pgtype.Timestamptz
+	UserID          pgtype.UUID
+	Distance        pgtype.Numeric
+	ActivityName    string
+	AvgSpeed        pgtype.Numeric
+	MaxSpeed        pgtype.Numeric
+	ElapsedTime     pgtype.Time
+	TotalTime       pgtype.Time
+	ElapsedTimeChar string
+	TotalTimeChar   string
+	Records         []Record
+}
+
 type Record struct {
 	ID               int32
 	TimeStamp        pgtype.Timestamptz

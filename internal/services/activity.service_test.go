@@ -45,7 +45,6 @@ func (s *ActivityServiceTestSuite) SetupSuite() {
 
 func (s *ActivityServiceTestSuite) TearDownSuite() {
 
-	// s.pgContainer.Terminate(s.ctx)
 	if err := s.pgContainer.Terminate(s.ctx); err != nil {
 		log.Fatalf("error terminating postgres container: %s", err)
 	}
@@ -55,7 +54,8 @@ func (s *ActivityServiceTestSuite) TestActivityServiceReturnsAnActivity() {
 
 	userId := []byte("04961e85-8280-4fb3-80d4-a5072bcec9b1")
 
-	activityService := NewActivityService(s.queries)
+	activityRepo := repositories.NewActivityRepository(s.queries)
+	activityService := NewActivityService(activityRepo)
 
 	activity, err := activityService.GetSingleActivityById(s.ctx, 1, userId)
 

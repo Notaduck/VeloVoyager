@@ -52,20 +52,12 @@ func NewActivityService(repo repositories.ActivityRepository) *ActivityServiceIm
 }
 
 func (s *ActivityServiceImp) GetSingleActivityById(ctx context.Context, activityId int32, userId []byte) (*Activity, error) {
-	//TODO: https://stackoverflow.com/questions/77017426/nested-slice-of-struct-type-in-sqlc-postgres-and-golang
 	activityEntity, err := s.repo.GetActivityAndRecords(ctx, activityId)
 
 	if err != nil {
 		slog.Error("failed to retrieve activity", "activityId", activityId, "error", err)
-		return nil, err // Properly handle the error by returning it.
+		return nil, err
 	}
-
-	// check if the user owns the activity
-	// if tmp2 != tmp {
-	// 	slog.Error("activity does not belong to the user")
-	// 	return nil, errors.New(fmt.Sprintf("activity %d does not belong to the user %s", activityEntity.ID, string(userId)))
-
-	// }
 
 	maxSpeed, err := activityEntity.MaxSpeed.Float64Value()
 	if err != nil {
@@ -88,12 +80,9 @@ func (s *ActivityServiceImp) GetSingleActivityById(ctx context.Context, activity
 		TotalTime:    activityEntity.TotalTimeChar,
 	}
 
-	//TODO: Need to rewrite the query for GetActivityAndRecords to include records
-	// records, err := s.repo.GetRecords(ctx, pgtype.Int4{Valid: true, Int32: activity.ID})
-
-	// for _, record := range records {
-	// 	activity.Records = append(activity.Records, Record{ID: record.ID, Coordinates: Point{X: record.Position.P.X, Y: record.Position.P.Y}})
-	// }
+	for _, record := range activityEntity.Records {
+		activity.Records = append(activity.Records, Record{ID: record.ID, Coordinates: Point{X: record.Position.P.X, Y: record.Position.P.Y}})
+	}
 
 	return &activity, nil
 }
@@ -131,14 +120,12 @@ func (s *ActivityServiceImp) CreateActivities(ctx context.Context, files []*mult
 		}
 
 		var distance float64
-		var totalElevationChange uint32 // Use a larger integer type to safely accumulate changes
+		var totalElevationChange uint32
 		var previousElevation uint16
-		var previousElevationSet bool // To check if previousElevation has been set
+		var previousElevationSet bool
 		var numberOfSpeed float64
 		var sumOfSpeed float64
 		var maxSpeed uint16
-		// var startTime time.Time = activity.Records[0].Timestamp
-		// var endTime time.Time = activity.Records[len(activity.Records-1)].Timestamp
 		var records []repositories.CreateRecordsParams
 
 		for index, record := range activity.Records {
