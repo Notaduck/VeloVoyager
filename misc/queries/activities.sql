@@ -9,7 +9,7 @@ WHERE id = $1 LIMIT 1;
 -- name: GetActivities :many
 SELECT * FROM activities;
 
--- name: activity_with_records_view :one
+-- name: GetActivityWithRecordsView :one
 SELECT *
 FROM activity_with_records_view
 WHERE id = $1;
@@ -32,4 +32,4 @@ INSERT INTO activities (
     $6,
     $7
 )
-RETURNING *;
+RETURNING id; 

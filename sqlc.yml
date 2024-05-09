@@ -11,11 +11,14 @@ sql:
     schema: "misc/migrations" # will refer to a directory.
     gen:
       go:
-        package: "repositories"
+        package: "db"
         sql_package: "pgx/v5"
-        out: "./internal/repositories"
+        out: "./internal/db"
         overrides:
           - column: "activity_with_records_view.records"
             go_type:
               type: "Record"
               slice: true
+          - go_type: "string" # Use string in Go
+            db_type: "uuid" # Corresponding PostgreSQL type
+

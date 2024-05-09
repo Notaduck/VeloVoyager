@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func (s *APIServer) handleGetActivity(w http.ResponseWriter, r *http.Request) error {
@@ -21,7 +22,7 @@ func (s *APIServer) handleGetActivity(w http.ResponseWriter, r *http.Request) er
 
 	user := RetrieveUserFromContext(r.Context())
 
-	activity, err := s.activityService.GetSingleActivityById(r.Context(), int32(activityID), []byte(user.ID))
+	activity, err := s.activityService.GetSingleActivityById(r.Context(), int32(activityID), user.ID)
 
 	if err != nil {
 		slog.Error("failed to fina an activity", "no activity found for", err.Error())
@@ -35,23 +36,41 @@ func (s *APIServer) handleGetActivity(w http.ResponseWriter, r *http.Request) er
 }
 
 func (s *APIServer) handlePostActivity(w http.ResponseWriter, r *http.Request) error {
-
-	err := r.ParseMultipartForm(10 << 20) // 10 MB limit for uploaded files
-
-	if err != nil {
-		return WriteJSON(w, http.StatusBadRequest, "Please select one or more .fit files to upload and try again! 📁🚀")
+	// First, ensure that the request's Content-Type is multipart/form-data.
+	if r.Header.Get("Content-Type") == "" || !strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+		return WriteJSON(w, http.StatusBadRequest, ApiError{"Content-Type must be multipart/form-data."})
 	}
 
+	// Parse the multipart form with a 10 MB limit for uploaded files.
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		return WriteJSON(w, http.StatusBadRequest, ApiError{"Error parsing multipart form: " + err.Error()})
+	}
+
+	// Ensure that MultipartForm is not nil before accessing its File map.
+	if r.MultipartForm == nil || r.MultipartForm.File == nil {
+		return WriteJSON(w, http.StatusBadRequest, ApiError{"No multipart form data received."})
+	}
+
+	// Check if files were included in the request.
 	files := r.MultipartForm.File["files"]
-
-	user := RetrieveUserFromContext(r.Context())
-
-	activityDetails, err := s.activityService.CreateActivities(r.Context(), files, user.ID)
-
-	if err != nil {
-		WriteJSON(w, http.StatusBadRequest, ApiError{err.Error()})
+	if files == nil || len(files) == 0 {
+		return WriteJSON(w, http.StatusBadRequest, ApiError{"Please select one or more .fit files to upload and try again! 📁🚀"})
 	}
 
-	return WriteJSON(w, http.StatusOK, activityDetails)
+	// Retrieve the user from the context.
+	user := RetrieveUserFromContext(r.Context())
+	if user == nil {
+		// Handle case where the user is not found in the context
+		return WriteJSON(w, http.StatusInternalServerError, ApiError{"User not found in the request context."})
+	}
 
+	// Process the uploaded files by calling your service layer.
+	activityDetails, err := s.activityService.CreateActivities(r.Context(), files, user.ID)
+	if err != nil {
+		// Properly pass on the error message to the client.
+		return WriteJSON(w, http.StatusInternalServerError, ApiError{Error: err.Error()})
+	}
+
+	// Send the successful response back to the client.
+	return WriteJSON(w, http.StatusOK, activityDetails)
 }
