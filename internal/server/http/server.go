@@ -9,8 +9,9 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/notaduck/backend/internal/config"
+	"github.com/notaduck/backend/internal/db"
+	"github.com/notaduck/backend/internal/repositories"
 	service "github.com/notaduck/backend/internal/services"
-	"github.com/notaduck/backend/internal/storage"
 )
 
 const (
@@ -20,8 +21,8 @@ const (
 
 type APIServer struct {
 	listenAddr      string
-	storage         *storage.Queries
-	activityService *service.ActivityServiceImp
+	queries         *db.Queries
+	activityService service.ActivityService
 	config          *config.Config
 }
 
@@ -29,8 +30,6 @@ func NewAPIServer(options ...func(*APIServer)) *APIServer {
 
 	server := &APIServer{
 		listenAddr: "127.0.0.1:3000",
-		// storage:         queries,
-		// activityService: service.NewActivityService(queries),
 	}
 
 	for _, option := range options {
@@ -41,23 +40,29 @@ func NewAPIServer(options ...func(*APIServer)) *APIServer {
 
 		cfg := config.NewConfig()
 		server.config = cfg
-
+		slog.Info("Config initialized", "config", server.config)
 	}
 
-	if server.storage == nil {
+	if server.queries == nil {
 		ctx := context.Background()
 
-		db, err := pgxpool.New(ctx, server.config.DbConnectionString)
+		pool, err := pgxpool.New(ctx, server.config.DbConnectionString)
 
 		if err != nil {
 			panic(fmt.Sprint("failed to connect to database: %w", err))
 		}
 
-		queries := storage.New(db)
+		if err := pool.Ping(ctx); err != nil {
+			panic("could not ping the database")
+		}
 
-		server.storage = queries
-
+		server.queries = db.New(pool)
 	}
+
+	activityRepo := repositories.NewActivityRepository(server.queries)
+	recordRepo := repositories.NewRecordRepository(server.queries)
+	activityService := service.NewActivityService(activityRepo, recordRepo)
+	server.activityService = activityService
 
 	return server
 }
@@ -68,9 +73,9 @@ func WithConfig(config *config.Config) func(*APIServer) {
 	}
 }
 
-func WithDbQueries(q *storage.Queries) func(*APIServer) {
+func WithDbQueries(q *db.Queries) func(*APIServer) {
 	return func(s *APIServer) {
-		s.storage = q
+		s.queries = q
 	}
 }
 
@@ -94,19 +99,18 @@ func (s *APIServer) Run() {
 		LoggingMiddleware,
 	}
 
-	router.HandleFunc("GET /activity", buildChain(makeHTTPHandleFunc(s.handleGetActivity), protectedChain...))
+	router.HandleFunc("GET /activity/", buildChain(makeHTTPHandleFunc(s.handleGetActivity), protectedChain...))
 	router.HandleFunc("POST /activity", buildChain(makeHTTPHandleFunc(s.handlePostActivity), protectedChain...))
 
 	router.HandleFunc("/register", buildChain(makeHTTPHandleFunc(s.handleRegistration), publicChain...))
 	router.HandleFunc("/login", buildChain(makeHTTPHandleFunc(s.handleLogin), publicChain...))
 
 	slog.Info("api is listening on", "port", s.listenAddr)
-	http.ListenAndServe(s.listenAddr, router)
-}
+	err := http.ListenAndServe(s.listenAddr, router)
+	if err != nil {
+		panic(err)
 
-func (s *APIServer) testRoute(w http.ResponseWriter, r *http.Request) error {
-	fmt.Print(r)
-	return WriteJSON(w, http.StatusOK, "Hello, World!")
+	}
 }
 
 type apiFunc func(http.ResponseWriter, *http.Request) error
@@ -138,10 +142,10 @@ func newResponseWriter(w http.ResponseWriter) *responseWriter {
 }
 
 // WriteHeader captures the status code and calls the original WriteHeader method.
-func (rw *responseWriter) WriteHeader(code int) {
-	rw.statusCode = code
-	rw.ResponseWriter.WriteHeader(code)
-}
+// func (rw *responseWriter) WriteHeader(code int) {
+// 	rw.statusCode = code
+// 	rw.ResponseWriter.WriteHeader(code)
+// }
 
 // buildChain builds the middlware chain recursively, functions are first class
 func buildChain(f http.HandlerFunc, m ...middleware) http.HandlerFunc {

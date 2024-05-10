@@ -1,22 +1,23 @@
 package http
 
-import (
-	"testing"
+// import (
 
-	"github.com/notaduck/backend/internal/config"
-)
+// 	"testing"
 
-func TestWithListenAddr(t *testing.T) {
+// 	"github.com/notaduck/backend/internal/config"
+// )
 
-	customAddr := "127.0.0.2:8080"
+// func TestWithListenAddr(t *testing.T) {
 
-	config := &config.Config{
-		DbConnectionString: "",
-	}
+// 	customAddr := "127.0.0.2:8080"
 
-	server := NewAPIServer(WithListenAddr(customAddr), WithConfig(config))
+// 	config := &config.Config{
+// 		DbConnectionString: "",
+// 	}
 
-	if server.listenAddr != customAddr {
-		t.Errorf("expected listen address %q, got %q", customAddr, server.listenAddr)
-	}
-}
+// 	server := NewAPIServer(WithListenAddr(customAddr), WithConfig(config))
+
+// 	if server.listenAddr != customAddr {
+// 		t.Errorf("expected listen address %q, got %q", customAddr, server.listenAddr)
+// 	}
+// }

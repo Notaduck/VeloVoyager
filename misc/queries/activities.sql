@@ -1,18 +1,18 @@
 -- name: GetActivity :one
-SELECT * FROM activities 
+SELECT 
+    a.*,
+    TO_CHAR(elapsed_time, 'HH24:MI:SS') as elapsed_time_char,
+    TO_CHAR(total_time, 'HH24:MI:SS') as total_time_char
+FROM activities a
 WHERE id = $1 LIMIT 1;
-
-
--- name: GetActivityAndRecords :one
-SELECT  *,
-        TO_CHAR(elapsed_time, 'HH24:MI:SS') as elapsed_time_char,
-        TO_CHAR(total_time, 'HH24:MI:SS') as total_time_char
-FROM activities 
-WHERE activities.id = $1;
 
 -- name: GetActivities :many
 SELECT * FROM activities;
 
+-- name: GetActivityWithRecordsView :one
+SELECT *
+FROM activity_with_records_view
+WHERE id = $1;
 
 -- name: CreateActivity :one
 INSERT INTO activities (
@@ -32,4 +32,4 @@ INSERT INTO activities (
     $6,
     $7
 )
-RETURNING *;
+RETURNING id; 

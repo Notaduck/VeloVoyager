@@ -93,48 +93,18 @@ func AuthHandler(f apiFunc) http.HandlerFunc {
 			requestID, _ := r.Context().Value("requestID").(string)
 			slog.Error("Request error", "id", requestID, "error", err.Error())
 
-			// Respond with error.
 			WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
 		}
 	}))
 
-	// Return the handler already wrapped with logging middleware.
 	return handlerWithLogging
 }
-
-// func AuthMiddleware(f apiFunc)  {
-// 	return func(w http.ResponseWriter, r *http.Request) error {
-// 		// JWT authentication logic here...
-// 		fmt.Println("calling JWT auth middleware")
-
-// 		// For simplicity, let's assume authentication passes or this is your actual auth logic
-// 		// If authentication fails, you can return an error here
-// 		// If it succeeds, call the original function `f`
-// 		return f(w, r)
-// 	}
-// return func(w http.ResponseWriter, r *http.Request) {
-// 	fmt.Println("calling JWT auth middleware")
-
-// 	ctx := context.Background()
-// 	ctx, _ = context.WithTimeout(ctx, 60000*time.Millisecond)
-// 	token := r.Header.Get("x-jwt-token")
-
-// 	user, err := supaClient().Auth.User(ctx, token)
-
-// 	if err != nil {
-// 		slog.Info("failed  login atempt", slog.String("token", token), err.Error())
-// 	}
-// 	_ = user
-
-// 	handlerFunc(w, r)
-// }
-// }
 
 func (s *APIServer) AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
 		ctx, cancel := context.WithTimeout(r.Context(), 60*time.Second)
-		defer cancel() // Ensure the cancel function is called to avoid leaking resources.
+		defer cancel()
 
 		token := r.Header.Get("Authorization")
 

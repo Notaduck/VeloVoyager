@@ -1,0 +1,30 @@
+version: "3"
+
+vars:
+  GOCMD: go
+
+tasks:
+  build:
+    desc: Build the Go project
+    cmds:
+      - "{{.GOCMD}} build -v ./..."
+  run:
+    desc: Build the Go project
+    cmds:
+      - "{{.GOCMD}} run -v ./..."
+
+  test:
+    desc: Run tests
+    cmds:
+      - "{{.GOCMD}} test ./..."
+
+  watch:
+    desc: Watch Go files and rerun build and test tasks
+    cmds:
+      - task: test
+      - task: run
+    sources:
+      - "**/*.go"
+    method: checksum
+    status:
+      - reflex -r '\.go$$' -s -- sh -c 'task test && task run'
