@@ -4,10 +4,10 @@ import "math"
 
 func Haversine(lat1, lon1, lat2, lon2 float64) float64 {
 	// Convert degrees to radians
-	lat1 = degToRad(lat1)
-	lon1 = degToRad(lon1)
-	lat2 = degToRad(lat2)
-	lon2 = degToRad(lon2)
+	lat1 = DegToRad(lat1)
+	lon1 = DegToRad(lon1)
+	lat2 = DegToRad(lat2)
+	lon2 = DegToRad(lon2)
 
 	// Haversine formula
 	dlat := lat2 - lat1

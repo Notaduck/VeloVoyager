@@ -224,6 +224,15 @@ func (s *activityService) processRecords(records []*fit.RecordMsg) ([]db.CreateR
 				lat1 := records[index-1].PositionLat.Degrees()
 				long1 := records[index-1].PositionLong.Degrees()
 
+				lat2Rad := record.PositionLat.Semicircles()
+				long2Rad := record.PositionLong.Semicircles()
+				lat1Rad := records[index-1].PositionLat.Semicircles()
+				long1Rad := records[index-1].PositionLong.Semicircles()
+
+				bearing := utils.CalculateBearing(float64(lat1Rad), float64(long1Rad), float64(lat2Rad), float64(long2Rad))
+
+				slog.Info("=> ", "%d", bearing)
+
 				if !math.IsNaN(lat1) && !math.IsNaN(long1) && !math.IsNaN(lat2) && !math.IsNaN(long2) {
 					distance += utils.Haversine(lat1, long1, lat2, long2)
 				}

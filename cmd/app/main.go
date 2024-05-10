@@ -17,10 +17,8 @@ func main() {
 
 	w := os.Stderr
 
-	// create a new logger
 	logger := slog.New(tint.NewHandler(w, nil))
 
-	// set global logger with custom options
 	slog.SetDefault(slog.New(
 		tint.NewHandler(w, &tint.Options{
 			Level:      slog.LevelDebug,
@@ -28,7 +26,6 @@ func main() {
 			AddSource:  true,
 		}),
 	))
-	// logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{AddSource: false}))
 
 	slog.SetDefault(logger)
 
