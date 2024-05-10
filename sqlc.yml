@@ -1,0 +1,24 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    # Queries refers to where our manually created queries are located.
+    # queries: "query.sql" # will refer to a file.
+    # or
+    queries: "misc/queries" # will refer to a directory.
+    # Schema refers to where our schema definitions are located.
+    # schema: "schema.sql" # will refer to a file.
+    # or
+    schema: "misc/migrations" # will refer to a directory.
+    gen:
+      go:
+        package: "db"
+        sql_package: "pgx/v5"
+        out: "./internal/db"
+        overrides:
+          - column: "activity_with_records_view.records"
+            go_type:
+              type: "Record"
+              slice: true
+          - go_type: "string" # Use string in Go
+            db_type: "uuid" # Corresponding PostgreSQL type
+
