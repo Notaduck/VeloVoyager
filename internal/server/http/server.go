@@ -99,7 +99,7 @@ func (s *APIServer) Run() {
 		LoggingMiddleware,
 	}
 
-	router.HandleFunc("GET /activity", buildChain(makeHTTPHandleFunc(s.handleGetActivity), protectedChain...))
+	router.HandleFunc("GET /activity/", buildChain(makeHTTPHandleFunc(s.handleGetActivity), protectedChain...))
 	router.HandleFunc("POST /activity", buildChain(makeHTTPHandleFunc(s.handlePostActivity), protectedChain...))
 
 	router.HandleFunc("/register", buildChain(makeHTTPHandleFunc(s.handleRegistration), publicChain...))
@@ -111,11 +111,6 @@ func (s *APIServer) Run() {
 		panic(err)
 
 	}
-}
-
-func (s *APIServer) testRoute(w http.ResponseWriter, r *http.Request) error {
-	fmt.Print(r)
-	return WriteJSON(w, http.StatusOK, "Hello, World!")
 }
 
 type apiFunc func(http.ResponseWriter, *http.Request) error

@@ -21,10 +21,10 @@ tasks:
   watch:
     desc: Watch Go files and rerun build and test tasks
     cmds:
-      - task: run
       - task: test
+      - task: run
     sources:
       - "**/*.go"
     method: checksum
     status:
-      - reflex -r '\.go$$' -s -- sh -c 'task run && task test'
+      - reflex -r '\.go$$' -s -- sh -c 'task test && task run'

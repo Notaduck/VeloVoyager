@@ -7,6 +7,7 @@ import (
 	"math"
 	"mime/multipart"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -69,17 +70,40 @@ func (s *activityService) GetSingleActivityById(ctx context.Context, activityId 
 }
 
 func (s *activityService) CreateActivities(ctx context.Context, files []*multipart.FileHeader, userId string) ([]*Activity, error) {
+
 	var activities []*Activity
 
-	// if len(files)
+	errorCh := make(chan error, len(files))
+	activityCh := make(chan *Activity, len(files))
+	var wg sync.WaitGroup
 
 	for _, fileHeader := range files {
-		activity, err := s.processFitFile(ctx, fileHeader, userId)
-		if err != nil {
-			return nil, err
-		}
+		wg.Add(1)
+		go func(fh *multipart.FileHeader) {
+			defer wg.Done()
+
+			activity, err := s.processFitFile(ctx, fh, userId)
+			if err != nil {
+				errorCh <- err
+				return
+			}
+			activityCh <- activity
+
+		}(fileHeader)
+	}
+
+	wg.Wait()
+	close(activityCh)
+	close(errorCh)
+
+	for activity := range activityCh {
 		activities = append(activities, activity)
 	}
+
+	if len(errorCh) > 0 {
+		return nil, <-errorCh
+	}
+
 	return activities, nil
 }
 
@@ -280,7 +304,7 @@ func convertRecords(recordEntities []db.Record) []Record {
 		records[i] = Record{
 			ID: record.ID,
 			Coordinates: Point{
-				X: record.Position.P.X, //
+				X: record.Position.P.X,
 				Y: record.Position.P.Y,
 			},
 		}
@@ -292,7 +316,6 @@ func convertNumericToFloat64(n pgtype.Numeric) float64 {
 	val, err := n.Float64Value()
 
 	if err != nil {
-		// handle error or log
 		return 0.0
 	}
 	return val.Float64
@@ -304,225 +327,6 @@ type ActivityStats struct {
 	ElapsedTime pgtype.Time
 	AvgSpeed    pgtype.Numeric
 	MaxSpeed    pgtype.Numeric
-}
-
-// func (s *activityService) CreateActivities(ctx context.Context, files []*multipart.FileHeader, userId string) ([]*Activity, error) {
-
-// 	var activities []*Activity
-
-// 	for _, fileHeader := range files {
-// 		// Open the file
-
-// 		file, err := fileHeader.Open()
-
-// 		if err != nil {
-// 			return nil, err
-
-// 		}
-
-// 		defer file.Close()
-
-// 		if filepath.Ext(fileHeader.Filename) != ".fit" {
-// 			return nil, fmt.Errorf("invalid file type. only .fit files are allowed")
-// 		}
-
-// 		fit, err := fit.Decode(file)
-
-// 		if err != nil {
-// 			return nil, err
-// 		}
-
-// 		activity, err := fit.Activity()
-// 		if err != nil {
-// 			return nil, err
-// 		}
-
-// 		var distance float64
-// 		var totalElevationChange uint32
-// 		var previousElevation uint16
-// 		var previousElevationSet bool
-// 		var numberOfSpeed float64
-// 		var sumOfSpeed float64
-// 		var maxSpeed uint16
-// 		var records []repositories.CreateRecordsParams
-
-// 		for index, record := range activity.Records {
-// 			if !(record.PositionLat.Invalid() && record.PositionLong.Invalid()) {
-
-// 				newRecord := repositories.CreateRecordsParams{
-// 					TimeStamp:        pgtype.Timestamptz{Time: record.Timestamp, Valid: true},
-// 					Position:         pgtype.Point{P: pgtype.Vec2{X: float64(record.PositionLong.Degrees()), Y: float64(record.PositionLat.Degrees())}, Valid: true},
-// 					Altitude:         pgtype.Int4{Int32: int32(record.Altitude), Valid: true},
-// 					HeartRate:        pgtype.Int2{Int16: int16(record.HeartRate), Valid: true},
-// 					Cadence:          pgtype.Int2{Int16: int16(record.Cadence), Valid: true},
-// 					Distance:         pgtype.Int4{Int32: int32(record.Distance), Valid: true},
-// 					Speed:            pgtype.Int4{Int32: int32(record.Speed), Valid: true},
-// 					Temperature:      pgtype.Int2{Int16: int16(record.Temperature), Valid: true},
-// 					GpsAccuracy:      pgtype.Int2{Int16: int16(record.GpsAccuracy), Valid: true},
-// 					EnhancedAltitude: pgtype.Int4{Int32: int32(record.EnhancedAltitude), Valid: true},
-// 					ActivityID:       pgtype.Int4{Int32: int32(0)},
-// 				}
-// 				records = append(records, newRecord)
-
-// 				if index != 0 {
-
-// 					speed := record.Speed
-// 					numberOfSpeed = numberOfSpeed + 1
-// 					sumOfSpeed = sumOfSpeed + float64(speed)
-
-// 					if maxSpeed < speed {
-// 						maxSpeed = speed
-// 					}
-
-// 					lat2 := record.PositionLat.Degrees()
-// 					long2 := record.PositionLong.Degrees()
-// 					lat1 := activity.Records[index-1].PositionLat.Degrees()
-// 					long1 := activity.Records[index-1].PositionLong.Degrees()
-
-// 					if !math.IsNaN(lat1) && !math.IsNaN(long1) && !math.IsNaN(lat2) && !math.IsNaN(long2) {
-// 						distance += haversine(lat1, long1, lat2, long2)
-// 					}
-
-// 					if previousElevationSet {
-// 						currentElevation := uint32(record.Altitude)
-// 						previousElevationUint32 := uint32(previousElevation)
-// 						if currentElevation > previousElevationUint32 {
-// 							elevationChange := currentElevation - previousElevationUint32
-// 							totalElevationChange += elevationChange
-// 						}
-// 					}
-
-// 					previousElevation = record.Altitude
-// 					previousElevationSet = true
-// 				} else if !previousElevationSet {
-// 					previousElevation = record.Altitude
-// 					previousElevationSet = true
-// 				}
-// 			}
-// 		}
-
-// 		avgSpeedMs := sumOfSpeed / numberOfSpeed
-// 		avgSpeedKmH := avgSpeedMs * 3.60 / 1000.00
-// 		maxSpeedKmH := float64(maxSpeed) * 3.60 / 1000.00
-
-// 		if err != nil {
-// 			slog.Error(err.Error())
-// 		}
-
-// 		var numericDistance pgtype.Numeric
-// 		err = numericDistance.Scan(fmt.Sprintf("%f", distance))
-
-// 		if err != nil {
-// 			slog.Error("Failed to set numeric value: %v", err)
-// 		}
-
-// 		totalRideTime := pgtype.Time{
-// 			Microseconds: int64(activity.Sessions[0].TotalElapsedTime * uint32(time.Microsecond)),
-// 			Valid:        true,
-// 		}
-
-// 		elapsedTime := pgtype.Time{
-// 			Microseconds: int64(activity.Sessions[0].TotalTimerTime * uint32(time.Microsecond)),
-// 			Valid:        true,
-// 		}
-
-// 		var avgSpeedKmHNumeric pgtype.Numeric
-
-// 		err = avgSpeedKmHNumeric.Scan(fmt.Sprintf("%.2f", avgSpeedKmH))
-
-// 		if err != nil {
-// 			return nil, err
-
-// 		}
-
-// 		var maxSpeedKmHNumeric pgtype.Numeric
-
-// 		err = maxSpeedKmHNumeric.Scan(fmt.Sprintf("%.2f", maxSpeedKmH))
-
-// 		if err != nil {
-// 			return nil, err
-
-// 		}
-
-// 		activityEntity, err := s.activityRepo.CreateActivity(ctx, repositories.CreateActivityParams{
-// 			Distance:     numericDistance,
-// 			UserID:       userId,
-// 			TotalTime:    totalRideTime,
-// 			ElapsedTime:  elapsedTime,
-// 			AvgSpeed:     avgSpeedKmHNumeric,
-// 			MaxSpeed:     maxSpeedKmHNumeric,
-// 			ActivityName: getActivityName(activity.Activity.LocalTimestamp),
-// 		})
-
-// 		for i, _ := range records {
-// 			records[i].ActivityID = pgtype.Int4{Int32: activityEntity.ID, Valid: true}
-// 		}
-
-// 		r, err := s.recordRepo.CreateRecords(ctx, records)
-
-// 		if err != nil {
-// 			return nil, err
-// 		}
-
-// 		_ = r
-
-// 		a, err := s.activityRepo.GetActivityAndRecords(ctx, activityEntity.ID)
-
-// 		distanceResult, err := pgtype.Numeric.Float64Value(a.Distance)
-
-// 		if err != nil {
-// 			return nil, err
-// 		}
-
-// 		avgSpeedResult, err := pgtype.Numeric.Float64Value(a.AvgSpeed)
-
-// 		if err != nil {
-// 			return nil, err
-// 		}
-
-// 		maxSpeedResult, err := pgtype.Numeric.Float64Value(a.MaxSpeed)
-
-// 		if err != nil {
-// 			return nil, err
-// 		}
-// 		var recordsToReturn []Record
-
-// 		for _, record := range a.Records {
-// 			recordsToReturn = append(recordsToReturn, Record{
-// 				ID: record.ID,
-// 				Coordinates: Point{
-// 					X: record.Position.P.X,
-// 					Y: record.Position.P.Y,
-// 				},
-// 			})
-// 		}
-
-// 		activityResult := Activity{
-// 			ID:           a.ID,
-// 			CreatedAt:    a.CreatedAt.Time,
-// 			Distance:     distanceResult.Float64,
-// 			ActivityName: a.ActivityName,
-// 			AvgSpeed:     avgSpeedResult.Float64,
-// 			MaxSpeed:     maxSpeedResult.Float64,
-// 			ElapsedTime:  formatTimeToHHMM(time.Duration(a.ElapsedTime.Microseconds)),
-// 			TotalTime:    formatTimeToHHMM(time.Duration(a.TotalTime.Microseconds)),
-// 			Records:      recordsToReturn,
-// 		}
-
-// 		activities = append(activities, &activityResult)
-
-// 	}
-
-// 	return activities, nil
-// }
-
-func formatTimeToHHMM(d time.Duration) string {
-	// Get total hours and remaining minutes
-	hours := int(d.Hours())
-	minutes := int(d.Minutes()) % 60
-
-	// Format to HH:MM
-	return fmt.Sprintf("%02d:%02d", hours, minutes)
 }
 
 func getActivityName(t time.Time) string {
