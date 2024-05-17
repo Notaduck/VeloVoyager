@@ -1,42 +1,52 @@
-import { Button } from '@/components/ui/button'
-import { Sheet, SheetTrigger, SheetContent } from '@/components/ui/sheet'
-import { createRootRoute, Link, Outlet } from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/router-devtools'
-import { useState, useEffect } from 'react'
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
+import {
+  createRootRouteWithContext,
+  Link,
+  Outlet,
+} from "@tanstack/react-router";
+import { TanStackRouterDevtools } from "@tanstack/router-devtools";
+import { useState, useEffect } from "react";
+import { SupabaseClient } from "@supabase/supabase-js";
 
-export const Route = createRootRoute({
+type RootRouterContext = {
+  supbase: SupabaseClient;
+};
+
+export const Route = createRootRouteWithContext<RootRouterContext>()({
   component: () => (
     <>
-    <Header/>
+      <Header />
       <Outlet />
       <TanStackRouterDevtools />
     </>
   ),
-})
+});
 
 function Header() {
-const [isScrolled, setIsScrolled] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 0);
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
     return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };  
+      window.removeEventListener("scroll", handleScroll);
+    };
   }, []);
-  return(
+  return (
     <header
       className={`flex transition-shadow  sticky top-0 items-center px-4 w-full h-20 shrink-0 md:px-6 bg-white ${
-        isScrolled ? 'shadow-md' : 'z-10'  }`}
+        isScrolled ? "shadow-md" : "z-10"
+      }`}
     >
       <Sheet>
         <SheetTrigger asChild>
           <Button className="lg:hidden" size="icon" variant="outline">
             {/* <MenuIcon className="w-6 h-6" /> */}
-            <BikeIcon/>
+            <BikeIcon />
             <span className="sr-only">Toggle navigation menu</span>
           </Button>
         </SheetTrigger>
@@ -46,16 +56,28 @@ const [isScrolled, setIsScrolled] = useState(false);
             <span className="sr-only">Acme Inc</span>
           </Link>
           <div className="grid gap-2 py-6">
-            <Link className="flex items-center py-2 w-full text-lg font-semibold" href="#">
+            <Link
+              className="flex items-center py-2 w-full text-lg font-semibold"
+              href="#"
+            >
               Home
             </Link>
-            <Link className="flex items-center py-2 w-full text-lg font-semibold" href="/login">
-             Login 
+            <Link
+              className="flex items-center py-2 w-full text-lg font-semibold"
+              href="/login"
+            >
+              Login
             </Link>
-            <Link className="flex items-center py-2 w-full text-lg font-semibold" href="#">
+            <Link
+              className="flex items-center py-2 w-full text-lg font-semibold"
+              href="#"
+            >
               Services
             </Link>
-            <Link className="flex items-center py-2 w-full text-lg font-semibold" href="#">
+            <Link
+              className="flex items-center py-2 w-full text-lg font-semibold"
+              href="#"
+            >
               Contact
             </Link>
           </div>
@@ -76,7 +98,7 @@ const [isScrolled, setIsScrolled] = useState(false);
           className="group inline-flex h-9 w-max items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900 focus:bg-gray-100 focus:text-gray-900 focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-gray-100/50 data-[state=open]:bg-gray-100/50 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:bg-gray-800 dark:focus:text-gray-50 dark:data-[active]:bg-gray-800/50 dark:data-[state=open]:bg-gray-800/50"
           href="http://localhost:5173/login"
         >
-         Login 
+          Login
         </Link>
         <Link
           className="group inline-flex h-9 w-max items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900 focus:bg-gray-100 focus:text-gray-900 focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-gray-100/50 data-[state=open]:bg-gray-100/50 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:bg-gray-800 dark:focus:text-gray-50 dark:data-[active]:bg-gray-800/50 dark:data-[state=open]:bg-gray-800/50"
@@ -92,7 +114,7 @@ const [isScrolled, setIsScrolled] = useState(false);
         </Link>
       </nav>
     </header>
-  )
+  );
 }
 
 function BikeIcon(props) {
@@ -114,7 +136,7 @@ function BikeIcon(props) {
       <circle cx="15" cy="5" r="1" />
       <path d="M12 17.5V14l-3-3 4-3 2 3h2" />
     </svg>
-  )
+  );
 }
 
 function MenuIcon(props) {
@@ -135,9 +157,8 @@ function MenuIcon(props) {
       <line x1="4" x2="20" y1="6" y2="6" />
       <line x1="4" x2="20" y1="18" y2="18" />
     </svg>
-  )
+  );
 }
-
 
 function MountainIcon(props) {
   return (
@@ -155,5 +176,5 @@ function MountainIcon(props) {
     >
       <path d="m8 3 4 8 5-5 5 15H2L8 3z" />
     </svg>
-  )
+  );
 }

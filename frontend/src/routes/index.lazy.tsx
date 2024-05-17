@@ -1,7 +1,7 @@
-import { Button } from '@/components/ui/button';
-import { createLazyFileRoute } from '@tanstack/react-router';
+import { Button } from "@/components/ui/button";
+import { createLazyFileRoute } from "@tanstack/react-router";
 
-export const Route = createLazyFileRoute('/')({
+export const Route = createLazyFileRoute("/")({
   component: Index,
 });
 
@@ -26,8 +26,9 @@ function Index() {
                       Track Your Cycling Activities
                     </h1>
                     <p className="max-w-[600px] text-gray-500 md:text-xl dark:text-gray-400">
-                      Easily upload data from your Garmin, Wahoo, or Bryton cycle computers and analyze your performance,
-                      routes, and more.
+                      Easily upload data from your Garmin, Wahoo, or Bryton
+                      cycle computers and analyze your performance, routes, and
+                      more.
                     </p>
                   </div>
                   <div className="flex flex-col gap-2 min-[400px]:flex-row">
@@ -55,10 +56,13 @@ function Index() {
                   <div className="inline-block px-3 py-1 text-sm bg-gray-100 rounded-lg dark:bg-gray-800">
                     Key Features
                   </div>
-                  <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">Unlock Your Cycling Potential</h2>
+                  <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
+                    Unlock Your Cycling Potential
+                  </h2>
                   <p className="max-w-[900px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
-                    Our platform provides advanced analytics, route planning, and social features to help you improve your
-                    cycling performance and connect with other riders.
+                    Our platform provides advanced analytics, route planning,
+                    and social features to help you improve your cycling
+                    performance and connect with other riders.
                   </p>
                 </div>
               </div>
@@ -74,9 +78,12 @@ function Index() {
                   <ul className="grid gap-6">
                     <li>
                       <div className="grid gap-1">
-                        <h3 className="text-xl font-bold">Advanced Analytics</h3>
+                        <h3 className="text-xl font-bold">
+                          Advanced Analytics
+                        </h3>
                         <p className="text-gray-500 dark:text-gray-400">
-                          Dive deep into your cycling data with detailed performance metrics and visualizations.
+                          Dive deep into your cycling data with detailed
+                          performance metrics and visualizations.
                         </p>
                       </div>
                     </li>
@@ -84,7 +91,8 @@ function Index() {
                       <div className="grid gap-1">
                         <h3 className="text-xl font-bold">Route Planning</h3>
                         <p className="text-gray-500 dark:text-gray-400">
-                          Discover new routes, plan your rides, and share your favorite routes with the community.
+                          Discover new routes, plan your rides, and share your
+                          favorite routes with the community.
                         </p>
                       </div>
                     </li>
@@ -92,7 +100,8 @@ function Index() {
                       <div className="grid gap-1">
                         <h3 className="text-xl font-bold">Social Features</h3>
                         <p className="text-gray-500 dark:text-gray-400">
-                          Connect with other cyclists, join groups, and compete in challenges to stay motivated.
+                          Connect with other cyclists, join groups, and compete
+                          in challenges to stay motivated.
                         </p>
                       </div>
                     </li>
@@ -104,9 +113,12 @@ function Index() {
           <section className="py-12 w-full h-screen md:py-24 lg:py-32 snap-start">
             <div className="container grid gap-6 items-center px-4 md:px-6 lg:grid-cols-2 lg:gap-10">
               <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">Elevate Your Cycling Experience</h2>
+                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">
+                  Elevate Your Cycling Experience
+                </h2>
                 <p className="max-w-[600px] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed dark:text-gray-400">
-                  Our platform provides the tools and insights you need to take your cycling to the next level.
+                  Our platform provides the tools and insights you need to take
+                  your cycling to the next level.
                 </p>
               </div>
               <div className="flex flex-col gap-2 min-[400px]:flex-row lg:justify-end">
@@ -127,7 +139,9 @@ function Index() {
           </section>
         </main>
         <footer className="flex flex-col gap-2 items-center px-4 py-6 w-full border-t sm:flex-row shrink-0 md:px-6">
-          <p className="text-xs text-gray-500 dark:text-gray-400">© 2024 Cycle Tracker. All rights reserved.</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            © 2024 Cycle Tracker. All rights reserved.
+          </p>
           <nav className="flex gap-4 sm:ml-auto sm:gap-6">
             <a className="text-xs hover:underline underline-offset-4" href="#">
               Terms of Service
