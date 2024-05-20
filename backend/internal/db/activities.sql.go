@@ -80,10 +80,11 @@ func (q *Queries) CreateActivity(ctx context.Context, arg CreateActivityParams) 
 
 const getActivities = `-- name: GetActivities :many
 SELECT id, created_at, user_id, distance, activity_name, avg_speed, max_speed, elapsed_time, total_time, weather_impact, headwind, longest_headwind, air_speed, temp FROM activities
+WHERE user_id = $1
 `
 
-func (q *Queries) GetActivities(ctx context.Context) ([]Activity, error) {
-	rows, err := q.db.Query(ctx, getActivities)
+func (q *Queries) GetActivities(ctx context.Context, userID string) ([]Activity, error) {
+	rows, err := q.db.Query(ctx, getActivities, userID)
 	if err != nil {
 		return nil, err
 	}

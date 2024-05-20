@@ -35,6 +35,20 @@ func (s *APIServer) handleGetActivity(w http.ResponseWriter, r *http.Request) er
 
 }
 
+func (s *APIServer) handleGetActivities(w http.ResponseWriter, r *http.Request) error {
+	user := RetrieveUserFromContext(r.Context())
+
+	activities, err := s.activityService.GetActivities(r.Context(), user.ID)
+
+	if err != nil {
+		slog.Error(err.Error())
+		return WriteJSON(w, http.StatusBadRequest, ApiError{Error: "no activity was found."})
+
+	}
+
+	return WriteJSON(w, http.StatusOK, activities)
+}
+
 func (s *APIServer) handlePostActivity(w http.ResponseWriter, r *http.Request) error {
 	// First, ensure that the request's Content-Type is multipart/form-data.
 	if r.Header.Get("Content-Type") == "" || !strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {

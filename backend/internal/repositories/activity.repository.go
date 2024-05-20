@@ -8,7 +8,7 @@ import (
 
 type ActivityRepository interface {
 	CreateActivity(ctx context.Context, params db.CreateActivityParams) (int32, error)
-	GetActivities(ctx context.Context) ([]db.Activity, error)
+	GetActivities(ctx context.Context, userId string) ([]db.Activity, error)
 	GetActivity(ctx context.Context, id int32) (db.GetActivityRow, error)
 	GetActivityAndRecords(ctx context.Context, id int32) (db.ActivityWithRecordsView, error)
 }
@@ -27,8 +27,8 @@ func (ar *activityRepository) CreateActivity(ctx context.Context, params db.Crea
 	return ar.Queries.CreateActivity(ctx, params)
 }
 
-func (ar *activityRepository) GetActivities(ctx context.Context) ([]db.Activity, error) {
-	return ar.Queries.GetActivities(ctx)
+func (ar *activityRepository) GetActivities(ctx context.Context, userId string) ([]db.Activity, error) {
+	return ar.Queries.GetActivities(ctx, userId)
 }
 
 func (ar *activityRepository) GetActivity(ctx context.Context, id int32) (db.GetActivityRow, error) {

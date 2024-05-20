@@ -7,7 +7,8 @@ FROM activities a
 WHERE id = $1 LIMIT 1;
 
 -- name: GetActivities :many
-SELECT * FROM activities;
+SELECT * FROM activities
+WHERE user_id = $1;
 
 -- name: GetActivityWithRecordsView :one
 SELECT *

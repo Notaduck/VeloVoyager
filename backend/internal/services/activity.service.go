@@ -42,6 +42,7 @@ type Record struct {
 
 type ActivityService interface {
 	GetSingleActivityById(ctx context.Context, activityId int32, userId string) (*Activity, error)
+	GetActivities(ctx context.Context, userId string) ([]db.Activity, error)
 	CreateActivities(ctx context.Context, files []*multipart.FileHeader, userID string) ([]*Activity, error)
 }
 
@@ -55,6 +56,20 @@ func NewActivityService(ar repositories.ActivityRepository, rr repositories.Reco
 		activityRepo: ar,
 		recordRepo:   rr,
 	}
+}
+
+func (s *activityService) GetActivities(ctx context.Context, userId string) ([]db.Activity, error) {
+
+	activities, err := s.activityRepo.GetActivities(ctx, userId)
+
+	if err != nil {
+		slog.Error("failed to retrieve activities", "error", err)
+		return nil, err
+	}
+
+	// activityDetails := convertActivityEntityToDomainModel(&activityEntity)
+
+	return activities, nil
 }
 
 func (s *activityService) GetSingleActivityById(ctx context.Context, activityId int32, userId string) (*Activity, error) {

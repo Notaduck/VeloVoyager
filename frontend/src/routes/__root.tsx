@@ -8,23 +8,40 @@ import {
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 import { useState, useEffect } from "react";
 import { SupabaseClient } from "@supabase/supabase-js";
+import { QueryClient } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { useAuth } from "@/hooks/useAuth";
 
-type RootRouterContext = {
-  supbase: SupabaseClient;
+type RouteConntext = {
+  supabase: SupabaseClient;
+  queryClient: QueryClient;
 };
 
-export const Route = createRootRouteWithContext<RootRouterContext>()({
-  component: () => (
+export const Route = createRootRouteWithContext<RouteConntext>()({
+  component: RootLayout,
+});
+
+function RootLayout() {
+  return (
     <>
       <Header />
       <Outlet />
       <TanStackRouterDevtools />
+      <ReactQueryDevtools initialIsOpen={false} />
     </>
-  ),
-});
+  );
+}
 
 function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
+
+  const { supabase } = Route.useRouteContext();
+
+  const { session, loading } = useAuth(supabase);
+
+  async function handleSignout() {
+    await supabase.auth.signOut();
+  }
 
   useEffect(() => {
     const handleScroll = () => {
@@ -83,35 +100,44 @@ function Header() {
           </div>
         </SheetContent>
       </Sheet>
-      <Link className="hidden mr-6 lg:flex" href="#">
+      <Link className="hidden mr-6 lg:flex" to="/">
         <MountainIcon className="w-6 h-6" />
         <span className="sr-only">Acme Inc</span>
       </Link>
       <nav className="hidden gap-6 ml-auto lg:flex">
         <Link
           className="group inline-flex h-9 w-max items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900 focus:bg-gray-100 focus:text-gray-900 focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-gray-100/50 data-[state=open]:bg-gray-100/50 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:bg-gray-800 dark:focus:text-gray-50 dark:data-[active]:bg-gray-800/50 dark:data-[state=open]:bg-gray-800/50"
-          href="#"
+          to="/dashboard"
         >
-          Home
+          Dashboard
         </Link>
-        <Link
+        {session ? (
+          <button
+            className="group inline-flex h-9 w-max items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900 focus:bg-gray-100 focus:text-gray-900 focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-gray-100/50 data-[state=open]:bg-gray-100/50 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:bg-gray-800 dark:focus:text-gray-50 dark:data-[active]:bg-gray-800/50 dark:data-[state=open]:bg-gray-800/50"
+            onClick={handleSignout}
+          >
+            Logout
+          </button>
+        ) : (
+          <Link
+            className="group inline-flex h-9 w-max items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900 focus:bg-gray-100 focus:text-gray-900 focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-gray-100/50 data-[state=open]:bg-gray-100/50 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:bg-gray-800 dark:focus:text-gray-50 dark:data-[active]:bg-gray-800/50 dark:data-[state=open]:bg-gray-800/50"
+            to="http://localhost:5173/login"
+          >
+            Login
+          </Link>
+        )}
+        {/* <Link
           className="group inline-flex h-9 w-max items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900 focus:bg-gray-100 focus:text-gray-900 focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-gray-100/50 data-[state=open]:bg-gray-100/50 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:bg-gray-800 dark:focus:text-gray-50 dark:data-[active]:bg-gray-800/50 dark:data-[state=open]:bg-gray-800/50"
-          href="http://localhost:5173/login"
-        >
-          Login
-        </Link>
-        <Link
-          className="group inline-flex h-9 w-max items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900 focus:bg-gray-100 focus:text-gray-900 focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-gray-100/50 data-[state=open]:bg-gray-100/50 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:bg-gray-800 dark:focus:text-gray-50 dark:data-[active]:bg-gray-800/50 dark:data-[state=open]:bg-gray-800/50"
-          href="#"
+          to="#"
         >
           Services
-        </Link>
-        <Link
+        </Link> */}
+        {/* <Link
           className="group inline-flex h-9 w-max items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900 focus:bg-gray-100 focus:text-gray-900 focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-gray-100/50 data-[state=open]:bg-gray-100/50 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:bg-gray-800 dark:focus:text-gray-50 dark:data-[active]:bg-gray-800/50 dark:data-[state=open]:bg-gray-800/50"
-          href="#"
+          to="#"
         >
           Contact
-        </Link>
+        </Link> */}
       </nav>
     </header>
   );
