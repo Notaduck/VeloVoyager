@@ -27,7 +27,6 @@ type APIServer struct {
 }
 
 func NewAPIServer(options ...func(*APIServer)) *APIServer {
-
 	server := &APIServer{
 		listenAddr: "127.0.0.1:3000",
 	}
@@ -37,7 +36,6 @@ func NewAPIServer(options ...func(*APIServer)) *APIServer {
 	}
 
 	if server.config == nil {
-
 		cfg := config.NewConfig()
 		server.config = cfg
 		slog.Info("Config initialized", "config", server.config)
@@ -47,9 +45,8 @@ func NewAPIServer(options ...func(*APIServer)) *APIServer {
 		ctx := context.Background()
 
 		pool, err := pgxpool.New(ctx, server.config.DbConnectionString)
-
 		if err != nil {
-			panic(fmt.Sprint("failed to connect to database: %w", err))
+			panic(fmt.Sprintf("failed to connect to database: %v", err))
 		}
 
 		if err := pool.Ping(ctx); err != nil {
@@ -86,24 +83,25 @@ func WithListenAddr(addr string) func(*APIServer) {
 }
 
 func (s *APIServer) Run() {
-
-	slog.Info("staring http server\n")
+	slog.Info("starting http server")
 	router := http.NewServeMux()
 
 	publicChain := []middleware{
+		CORSMiddleware,
 		LoggingMiddleware,
 	}
 
 	protectedChain := []middleware{
+		CORSMiddleware,
 		AuthMiddleware(s),
 		LoggingMiddleware,
 	}
 
-	router.HandleFunc("GET /activity", buildChain(makeHTTPHandleFunc(s.handleGetActivity), protectedChain...))
-	router.HandleFunc("GET /activities", buildChain(makeHTTPHandleFunc(s.handleGetActivities), protectedChain...))
-	router.HandleFunc("POST /activity", buildChain(makeHTTPHandleFunc(s.handlePostActivity), protectedChain...))
+	router.HandleFunc("/activity", buildChain(makeHTTPHandleFunc(s.handleGetActivity), protectedChain...))
+	router.HandleFunc("/activities", buildChain(makeHTTPHandleFunc(s.handleGetActivities), protectedChain...))
+	router.HandleFunc("/activity", buildChain(makeHTTPHandleFunc(s.handlePostActivity), protectedChain...))
 
-	router.HandleFunc("GET /weather", buildChain(makeHTTPHandleFunc(s.handlePOSTWeather), publicChain...))
+	router.HandleFunc("/weather", buildChain(makeHTTPHandleFunc(s.handlePOSTWeather), publicChain...))
 
 	router.HandleFunc("/register", buildChain(makeHTTPHandleFunc(s.handleRegistration), publicChain...))
 	router.HandleFunc("/login", buildChain(makeHTTPHandleFunc(s.handleLogin), publicChain...))
@@ -112,21 +110,16 @@ func (s *APIServer) Run() {
 	err := http.ListenAndServe(s.listenAddr, router)
 	if err != nil {
 		panic(err)
-
 	}
 }
 
 func (s *APIServer) handlePOSTWeather(w http.ResponseWriter, r *http.Request) error {
-
 	ws := service.NewWeatherService()
 	weather, err := ws.GetWeather()
-
 	if err != nil {
 		return err
 	}
-
 	return WriteJSON(w, http.StatusOK, weather)
-
 }
 
 type apiFunc func(http.ResponseWriter, *http.Request) error
@@ -137,6 +130,11 @@ type ApiError struct {
 
 func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodOptions {
+			enableCORS(&w)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
 		if err := f(w, r); err != nil {
 			WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
 		}
@@ -157,13 +155,7 @@ func newResponseWriter(w http.ResponseWriter) *responseWriter {
 	return &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 }
 
-// WriteHeader captures the status code and calls the original WriteHeader method.
-// func (rw *responseWriter) WriteHeader(code int) {
-// 	rw.statusCode = code
-// 	rw.ResponseWriter.WriteHeader(code)
-// }
-
-// buildChain builds the middlware chain recursively, functions are first class
+// buildChain builds the middleware chain recursively, functions are first class
 func buildChain(f http.HandlerFunc, m ...middleware) http.HandlerFunc {
 	// if our chain is done, use the original handlerfunc
 	if len(m) == 0 {
@@ -174,8 +166,29 @@ func buildChain(f http.HandlerFunc, m ...middleware) http.HandlerFunc {
 }
 
 func WriteJSON(w http.ResponseWriter, status int, v any) error {
-	w.Header().Add("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(status)
-
 	return json.NewEncoder(w).Encode(v)
+}
+
+func enableCORS(w *http.ResponseWriter) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+	(*w).Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+}
+
+func CORSMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		enableCORS(&w)
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		next(w, r)
+	}
+}
+
+type User struct {
+	ID int
 }

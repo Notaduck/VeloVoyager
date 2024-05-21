@@ -36,6 +36,7 @@ func (s *APIServer) handleGetActivity(w http.ResponseWriter, r *http.Request) er
 }
 
 func (s *APIServer) handleGetActivities(w http.ResponseWriter, r *http.Request) error {
+
 	user := RetrieveUserFromContext(r.Context())
 
 	activities, err := s.activityService.GetActivities(r.Context(), user.ID)
