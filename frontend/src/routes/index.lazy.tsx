@@ -124,7 +124,7 @@ function Index() {
               <div className="flex flex-col gap-2 min-[400px]:flex-row lg:justify-end">
                 <Link
                   className="inline-flex justify-center items-center px-8 h-10 text-sm font-medium text-gray-50 bg-gray-900 rounded-md shadow transition-colors hover:bg-gray-900/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-950 disabled:pointer-events-none disabled:opacity-50 dark:bg-gray-50 dark:text-gray-900 dark:hover:bg-gray-50/90 dark:focus-visible:ring-gray-300"
-                  to="/signup"
+                  to="/login"
                 >
                   Get Started
                 </Link>

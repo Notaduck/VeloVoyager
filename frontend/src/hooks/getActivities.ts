@@ -23,10 +23,6 @@ interface Activity {
   Temp: number;
 }
 
-interface Data {
-  json: Activity[];
-}
-
 type GetActivities = {
   jwtToken: string;
 };
