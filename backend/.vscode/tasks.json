@@ -1,0 +1,33 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build",
+            "type": "shell",
+            "command": "task build",
+            "group": "build",
+            "presentation": {
+                "reveal": "always"
+            },
+            "problemMatcher": "$go"
+        },
+        {
+            "label": "Run",
+            "type": "shell",
+            "command": "task run",
+            "group": "test",
+            "presentation": {
+                "reveal": "always"
+            }
+        },
+        {
+            "label": "Test",
+            "type": "shell",
+            "command": "task test",
+            "group": "test",
+            "presentation": {
+                "reveal": "always"
+            }
+        }
+    ]
+}
