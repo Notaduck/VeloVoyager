@@ -11,6 +11,7 @@ type ActivityRepository interface {
 	GetActivities(ctx context.Context, userId string) ([]db.GetActivitiesRow, error)
 	GetActivity(ctx context.Context, id int32) (db.GetActivityRow, error)
 	GetActivityAndRecords(ctx context.Context, id int32) (db.ActivityWithRecordsView, error)
+	GetActivityStats(ctx context.Context, userId string) (db.GetActivityStatsRow, error)
 }
 
 type activityRepository struct {
@@ -37,4 +38,8 @@ func (ar *activityRepository) GetActivity(ctx context.Context, id int32) (db.Get
 
 func (ar *activityRepository) GetActivityAndRecords(ctx context.Context, id int32) (db.ActivityWithRecordsView, error) {
 	return ar.Queries.GetActivityWithRecordsView(ctx, id)
+}
+
+func (ar *activityRepository) GetActivityStats(ctx context.Context, userId string) (db.GetActivityStatsRow, error) {
+	return ar.Queries.GetActivityStats(ctx, userId)
 }

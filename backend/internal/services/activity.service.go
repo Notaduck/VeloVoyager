@@ -311,6 +311,10 @@ func (s *activityService) processRecords(records []*fit.RecordMsg) ([]db.CreateR
 	return recordEntities, &stats, nil
 }
 
+// func (s *activityService) ActivityStats(ctx context.Context, userId string) (any, error)  {
+// 	stats :=s.activityRepo.GetActivityStats(ctx, userId)
+// }
+
 func convertActivityEntityToDomainModel(activityEntity *db.ActivityWithRecordsView) *Activity {
 
 	activity := &Activity{

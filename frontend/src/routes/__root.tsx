@@ -100,10 +100,13 @@ function Header() {
           </div>
         </SheetContent>
       </Sheet>
-      <Link className="hidden mr-6 lg:flex" to="/">
+      <Link
+        className="hidden gap-4 justify-center mr-6 align-middle lg:flex"
+        to="/"
+      >
         <MountainIcon className="w-6 h-6" />
         {/* <span className="sr-only">Acme Inc</span> */}
-        <span>Fitter</span>
+        <strong className="text-2xl">VeloVoyage</strong>
       </Link>
       <nav className="hidden gap-6 ml-auto lg:flex">
         <Link
@@ -122,7 +125,7 @@ function Header() {
         ) : (
           <Link
             className="group inline-flex h-9 w-max items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900 focus:bg-gray-100 focus:text-gray-900 focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-gray-100/50 data-[state=open]:bg-gray-100/50 dark:bg-gray-950 dark:hover:bg-gray-800 dark:hover:text-gray-50 dark:focus:bg-gray-800 dark:focus:text-gray-50 dark:data-[active]:bg-gray-800/50 dark:data-[state=open]:bg-gray-800/50"
-            to="http://localhost:5173/login"
+            to="/login"
           >
             Login
           </Link>
