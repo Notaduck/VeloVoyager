@@ -79,34 +79,42 @@ func (q *Queries) CreateActivity(ctx context.Context, arg CreateActivityParams) 
 }
 
 const getActivities = `-- name: GetActivities :many
-SELECT id, created_at, user_id, distance, activity_name, avg_speed, max_speed, elapsed_time, total_time, weather_impact, headwind, longest_headwind, air_speed, temp FROM activities
+SELECT 
+activity_name,
+activity_name,
+total_time,
+distance,
+    TO_CHAR(elapsed_time, 'HH24:MI:SS') as elapsed_time_char,
+    TO_CHAR(total_time, 'HH24:MI:SS') as total_time_char
+ FROM activities
 WHERE user_id = $1
 `
 
-func (q *Queries) GetActivities(ctx context.Context, userID string) ([]Activity, error) {
+type GetActivitiesRow struct {
+	ActivityName    string
+	ActivityName_2  string
+	TotalTime       pgtype.Time
+	Distance        pgtype.Numeric
+	ElapsedTimeChar string
+	TotalTimeChar   string
+}
+
+func (q *Queries) GetActivities(ctx context.Context, userID string) ([]GetActivitiesRow, error) {
 	rows, err := q.db.Query(ctx, getActivities, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Activity
+	var items []GetActivitiesRow
 	for rows.Next() {
-		var i Activity
+		var i GetActivitiesRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.CreatedAt,
-			&i.UserID,
-			&i.Distance,
 			&i.ActivityName,
-			&i.AvgSpeed,
-			&i.MaxSpeed,
-			&i.ElapsedTime,
+			&i.ActivityName_2,
 			&i.TotalTime,
-			&i.WeatherImpact,
-			&i.Headwind,
-			&i.LongestHeadwind,
-			&i.AirSpeed,
-			&i.Temp,
+			&i.Distance,
+			&i.ElapsedTimeChar,
+			&i.TotalTimeChar,
 		); err != nil {
 			return nil, err
 		}

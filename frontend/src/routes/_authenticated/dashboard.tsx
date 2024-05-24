@@ -1,75 +1,273 @@
-// import { postsQueryOptions } from "@/hooks/getActivities";
-// import { SupabaseClient } from "@supabase/supabase-js";
-// import { createFileRoute } from "@tanstack/react-router";
-
-// export const Route = createFileRoute("/_authenticated/dashboard")({
-//   component: Dashboard,
-//   loader: ({ context: { queryClient, supabase } }) => {
-//     const jwt = (supabase as SupabaseClient).auth
-//       .getSession()
-//       .then((session) => session.data.session?.access_token);
-//     return queryClient.ensureQueryData(postsQueryOptions(jwt));
-//   },
-// });
-
-// function Dashboard() {
-//   const data = Route.useLoaderData();
-//   console.log("data", data);
-//   return <div>Hello /_authenticated/dashboard!</div>;
-// }
+import { File, FileCheck2Icon, ListFilter } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
+import { postsQueryOptions } from "@/hooks/getActivities";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
+} from "@radix-ui/react-dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@radix-ui/react-tabs";
+import { SupabaseClient } from "@supabase/supabase-js";
 import { createFileRoute } from "@tanstack/react-router";
-import axios from "axios";
-import { useEffect, useState } from "react";
+import { Progress } from "@radix-ui/react-progress";
+import { Badge } from "@/components/ui/badge";
+import { FormProvider, useForm } from "react-hook-form";
+import {
+  FormControl,
+  FormItem,
+  FormField,
+  FormMessage,
+} from "@/components/ui/form";
+import { Dropzone } from "@/components/ui/dropzone";
+import { useUploadActivities } from "@/hooks/uploadActivity";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
+
+  loader: async ({ context: { queryClient, supabase } }) => {
+    const jwt = await (supabase as SupabaseClient).auth
+      .getSession()
+      .then((session) => session.data.session?.access_token);
+    console.log("jwt", jwt);
+    return {
+      activities: await queryClient.ensureQueryData(postsQueryOptions(jwt)),
+      authToken: jwt,
+    };
+  },
 });
 
-const fetchData = async () => {
-  try {
-    const response = await axios.get(`http://localhost:3000/activities`, {
-      headers: {
-        "x-jwt-token": "jwt_token",
-      },
-    });
-    console.log("Response Data:", response.data);
-    return response.data;
-  } catch (error) {
-    if (error.response) {
-      // The request was made and the server responded with a status code
-      console.log("Error Response Data:", error.response.data);
-      console.log("Error Response Status:", error.response.status);
-      console.log("Error Response Headers:", error.response.headers);
-    } else if (error.request) {
-      // The request was made but no response was received
-      console.log("Error Request:", error.request);
-    } else {
-      // Something happened in setting up the request that triggered an Error
-      console.log("Error Message:", error.message);
-    }
-    console.log("Error Config:", error.config);
-    return null;
-  }
-};
-
 function Dashboard() {
-  const [data, setData] = useState(null);
+  const { activities, authToken } = Route.useLoaderData();
+  const { mutate } = useUploadActivities();
+  console.log("authToken", authToken);
 
-  useEffect(() => {
-    const getData = async () => {
-      const result = await fetchData();
-      if (result) {
-        setData(result);
+  const defaultValues: { files: undefined | FileList } = {
+    files: undefined,
+  };
+
+  const methods = useForm({
+    defaultValues,
+    shouldFocusError: true,
+    shouldUnregister: false,
+    shouldUseNativeValidation: false,
+  });
+
+  function handleFormSubmit() {}
+
+  async function handleOnDrop(acceptedFiles: FileList | null) {
+    if (acceptedFiles && acceptedFiles.length > 0) {
+      const allowedTypes = [{ name: "file", types: ["application/fits"] }];
+
+      const fileType = allowedTypes.find((allowedType) =>
+        allowedType.types.find((type) => type === acceptedFiles[0].type)
+      );
+
+      if (!fileType) {
+        methods.setValue("files", undefined);
+        methods.setError("files", {
+          message: "File type is not valid",
+          type: "typeError",
+        });
+      } else {
+        methods.setValue("files", acceptedFiles);
+        methods.clearErrors("files");
+
+        console.log("handleOnDrop", authToken);
+
+        mutate({ files: acceptedFiles, jwtToken: authToken! }); // Call the upload function here
       }
-    };
-
-    getData();
-  }, []);
+    } else {
+      methods.setValue("files", undefined);
+      methods.setError("files", {
+        message: "File is required",
+        type: "typeError",
+      });
+    }
+  }
 
   return (
-    <div>
-      <h1>Hello /_authenticated/dashboard!</h1>
-      {data ? <pre>{JSON.stringify(data, null, 2)}</pre> : <p>Loading...</p>}
-    </div>
+    <main className="grid flex-1 gap-4 items-start p-4 sm:px-6 sm:py-0 md:gap-8 lg:grid-cols-1 xl:grid-cols-2">
+      <div className="grid auto-rows-max gap-4 items-start md:gap-8 lg:col-span-2">
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
+          <Card className="sm:col-span-2" x-chunk="dashboard-05-chunk-0">
+            <CardHeader className="pb-3">
+              <CardContent>
+                <FormProvider {...methods}>
+                  <form
+                    className="flex flex-col gap-2 justify-center items-center w-100"
+                    onSubmit={methods.handleSubmit(handleFormSubmit)}
+                    noValidate
+                    autoComplete="off"
+                  >
+                    <FormField
+                      control={methods.control}
+                      name="file"
+                      render={({ field }) => (
+                        <FormItem className="w-full">
+                          <FormControl>
+                            <Dropzone
+                              {...field}
+                              dropMessage="Drop files or click here"
+                              multiple
+                              handleOnDrop={handleOnDrop}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    {methods.watch("files") && (
+                      <div className="flex relative gap-3 justify-center items-center p-4">
+                        <FileCheck2Icon className="w-4 h-4" />
+                        <p className="text-sm font-medium">
+                          {/* {methods.watch("files")} */}
+                        </p>
+                      </div>
+                    )}
+                  </form>
+                </FormProvider>
+              </CardContent>
+              <CardTitle>Upload your activities here</CardTitle>
+            </CardHeader>
+            <CardFooter>{/* <Button>Create New Order</Button> */}</CardFooter>
+          </Card>
+          <Card x-chunk="dashboard-05-chunk-1">
+            <CardHeader className="pb-2">
+              <CardDescription>Kilomoters This Week</CardDescription>
+              <CardTitle className="text-4xl">88,21 km</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xs text-muted-foreground">
+                +25% from last week
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Progress value={25} aria-label="25% increase" />
+            </CardFooter>
+          </Card>
+          <Card x-chunk="dashboard-05-chunk-2">
+            <CardHeader className="pb-2">
+              <CardDescription>This Month</CardDescription>
+              <CardTitle className="text-4xl">$5,329</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xs text-muted-foreground">
+                +10% from last month
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Progress value={12} aria-label="12% increase" />
+            </CardFooter>
+          </Card>
+        </div>
+        <Tabs defaultValue="week">
+          <div className="flex items-center">
+            <TabsList>
+              <TabsTrigger value="week">Week</TabsTrigger>
+              <TabsTrigger value="month">Month</TabsTrigger>
+              <TabsTrigger value="year">Year</TabsTrigger>
+            </TabsList>
+            <div className="flex gap-2 items-center ml-auto">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1 h-7 text-sm"
+                  >
+                    <ListFilter className="h-3.5 w-3.5" />
+                    <span className="sr-only sm:not-sr-only">Filter</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Filter by</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuCheckboxItem checked>
+                    Fulfilled
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem>Declined</DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem>Refunded</DropdownMenuCheckboxItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button size="sm" variant="outline" className="gap-1 h-7 text-sm">
+                <File className="h-3.5 w-3.5" />
+                <span className="sr-only sm:not-sr-only">Export</span>
+              </Button>
+            </div>
+          </div>
+          <TabsContent value="week">
+            <Card x-chunk="dashboard-05-chunk-3">
+              <CardHeader className="px-7">
+                <CardTitle>Activities</CardTitle>
+                {/* <CardDescription>
+                  Recent orders from your store.
+                </CardDescription> */}
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Activity</TableHead>
+                      <TableHead className="hidden sm:table-cell">
+                        Title
+                      </TableHead>
+                      <TableHead className="hidden sm:table-cell">
+                        Time
+                      </TableHead>
+                      <TableHead className="hidden md:table-cell">
+                        Distance
+                      </TableHead>
+                      {/* <TableHead className="text-right">Amount</TableHead> */}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {activities?.map((activity) => (
+                      <TableRow className="bg-accent">
+                        <TableCell>
+                          <div className="font-medium">
+                            <Badge className="rounded-md">Ride</Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          {activity.ActivityName}
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          {activity.TotalTime.Microseconds}
+                          {/* <Badge className="text-xs" variant="secondary">
+                            Fulfilled
+                          </Badge> */}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {activity.Distance} (unit)
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </main>
   );
 }

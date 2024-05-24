@@ -10,7 +10,6 @@ import (
 func (s *APIServer) handleGetActivity(w http.ResponseWriter, r *http.Request) error {
 
 	q := r.URL.Query()
-
 	activityID, err := strconv.ParseInt(q.Get("activityId"), 10, 32)
 
 	if err != nil {

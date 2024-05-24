@@ -42,7 +42,7 @@ type Record struct {
 
 type ActivityService interface {
 	GetSingleActivityById(ctx context.Context, activityId int32, userId string) (*Activity, error)
-	GetActivities(ctx context.Context, userId string) ([]db.Activity, error)
+	GetActivities(ctx context.Context, userId string) ([]db.GetActivitiesRow, error)
 	CreateActivities(ctx context.Context, files []*multipart.FileHeader, userID string) ([]*Activity, error)
 }
 
@@ -58,7 +58,7 @@ func NewActivityService(ar repositories.ActivityRepository, rr repositories.Reco
 	}
 }
 
-func (s *activityService) GetActivities(ctx context.Context, userId string) ([]db.Activity, error) {
+func (s *activityService) GetActivities(ctx context.Context, userId string) ([]db.GetActivitiesRow, error) {
 
 	activities, err := s.activityRepo.GetActivities(ctx, userId)
 

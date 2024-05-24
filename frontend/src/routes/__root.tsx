@@ -102,7 +102,8 @@ function Header() {
       </Sheet>
       <Link className="hidden mr-6 lg:flex" to="/">
         <MountainIcon className="w-6 h-6" />
-        <span className="sr-only">Acme Inc</span>
+        {/* <span className="sr-only">Acme Inc</span> */}
+        <span>Fitter</span>
       </Link>
       <nav className="hidden gap-6 ml-auto lg:flex">
         <Link

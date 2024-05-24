@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"slices"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/notaduck/backend/internal/config"
@@ -87,27 +89,34 @@ func (s *APIServer) Run() {
 	router := http.NewServeMux()
 
 	publicChain := []middleware{
-		CORSMiddleware,
 		LoggingMiddleware,
 	}
 
 	protectedChain := []middleware{
-		CORSMiddleware,
 		AuthMiddleware(s),
 		LoggingMiddleware,
 	}
 
-	router.HandleFunc("/activity", buildChain(makeHTTPHandleFunc(s.handleGetActivity), protectedChain...))
-	router.HandleFunc("/activities", buildChain(makeHTTPHandleFunc(s.handleGetActivities), protectedChain...))
-	router.HandleFunc("/activity", buildChain(makeHTTPHandleFunc(s.handlePostActivity), protectedChain...))
+	// router.Handle("/activity", buildChain(makeHTTPHandleFunc(s.handleGetActivity), protectedChain...))
+	router.Handle("/activities", buildChain(makeHTTPHandleFunc(s.handleGetActivities), protectedChain...))
+	router.Handle("/activity", buildChain(makeHTTPHandleFunc(s.handlePostActivity), protectedChain...))
 
-	router.HandleFunc("/weather", buildChain(makeHTTPHandleFunc(s.handlePOSTWeather), publicChain...))
+	router.Handle("/weather", buildChain(makeHTTPHandleFunc(s.handlePOSTWeather), publicChain...))
 
-	router.HandleFunc("/register", buildChain(makeHTTPHandleFunc(s.handleRegistration), publicChain...))
-	router.HandleFunc("/login", buildChain(makeHTTPHandleFunc(s.handleLogin), publicChain...))
+	router.Handle("/register", buildChain(makeHTTPHandleFunc(s.handleRegistration), publicChain...))
+	router.Handle("/login", buildChain(makeHTTPHandleFunc(s.handleLogin), publicChain...))
+
+	// Handle OPTIONS requests for all routes
+	router.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodOptions {
+			handleOptions(w, r)
+		} else {
+			http.NotFound(w, r)
+		}
+	}))
 
 	slog.Info("api is listening on", "port", s.listenAddr)
-	err := http.ListenAndServe(s.listenAddr, router)
+	err := http.ListenAndServe(s.listenAddr, checkCORS(router))
 	if err != nil {
 		panic(err)
 	}
@@ -131,8 +140,7 @@ type ApiError struct {
 func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodOptions {
-			enableCORS(&w)
-			w.WriteHeader(http.StatusOK)
+			handleOptions(w, r)
 			return
 		}
 		if err := f(w, r); err != nil {
@@ -143,52 +151,66 @@ func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
 
 type middleware func(http.HandlerFunc) http.HandlerFunc
 
-// responseWriter is a custom http.ResponseWriter that captures the status code and optionally the response body.
 type responseWriter struct {
 	http.ResponseWriter
 	statusCode int
 }
 
-// newResponseWriter creates a new responseWriter instance.
 func newResponseWriter(w http.ResponseWriter) *responseWriter {
-	// Default the status code to 200, as if WriteHeader is not called explicitly, the status code is 200.
 	return &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 }
 
-// buildChain builds the middleware chain recursively, functions are first class
 func buildChain(f http.HandlerFunc, m ...middleware) http.HandlerFunc {
-	// if our chain is done, use the original handlerfunc
 	if len(m) == 0 {
 		return f
 	}
-	// otherwise nest the handlerfuncs
 	return m[0](buildChain(f, m[1:cap(m)]...))
 }
 
 func WriteJSON(w http.ResponseWriter, status int, v any) error {
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(status)
 	return json.NewEncoder(w).Encode(v)
 }
 
-func enableCORS(w *http.ResponseWriter) {
-	(*w).Header().Set("Access-Control-Allow-Origin", "*")
-	(*w).Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-	(*w).Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+var methodAllowlist = []string{"GET", "POST", "DELETE", "OPTIONS"}
+
+func isPreflight(r *http.Request) bool {
+	return r.Method == "OPTIONS" &&
+		r.Header.Get("Origin") != "" &&
+		r.Header.Get("Access-Control-Request-Method") != ""
 }
 
-func CORSMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		enableCORS(&w)
-		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		next(w, r)
+var originAllowlist = []string{
+	"http://127.0.0.1:5173",
+	"http://localhost:5173",
+}
+
+func handleOptions(w http.ResponseWriter, r *http.Request) {
+	origin := r.Header.Get("Origin")
+	if slices.Contains(originAllowlist, origin) {
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Methods", strings.Join(methodAllowlist, ", "))
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, x-jwt-token")
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
-type User struct {
-	ID int
+func checkCORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		if slices.Contains(originAllowlist, origin) {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Add("Vary", "Origin")
+			w.Header().Set("Access-Control-Allow-Methods", strings.Join(methodAllowlist, ", "))
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, x-jwt-token")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+			if r.Method == http.MethodOptions {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
 }

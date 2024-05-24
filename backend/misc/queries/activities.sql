@@ -7,7 +7,14 @@ FROM activities a
 WHERE id = $1 LIMIT 1;
 
 -- name: GetActivities :many
-SELECT * FROM activities
+SELECT 
+activity_name,
+activity_name,
+total_time,
+distance,
+    TO_CHAR(elapsed_time, 'HH24:MI:SS') as elapsed_time_char,
+    TO_CHAR(total_time, 'HH24:MI:SS') as total_time_char
+ FROM activities
 WHERE user_id = $1;
 
 -- name: GetActivityWithRecordsView :one
