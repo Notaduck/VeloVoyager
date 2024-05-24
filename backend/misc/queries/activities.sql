@@ -51,6 +51,7 @@ INSERT INTO activities (
     $11,
     $12
 )
+<<<<<<< HEAD
 RETURNING id; 
 
 -- name: GetActivityStats :one
@@ -78,3 +79,6 @@ SELECT
     NULLIF(SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE - INTERVAL '1 WEEK') THEN value ELSE 0 END), 0) * 100, 0) AS percentage_change_week
 FROM activities
 WHERE user_id = $1;
+=======
+RETURNING id; 
+>>>>>>> 18a65a7d86d3d862ead054a45196507020f46084

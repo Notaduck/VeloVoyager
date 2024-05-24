@@ -49,7 +49,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
       .then((session) => session.data.session?.access_token);
     console.log("jwt", jwt);
     return {
-      activities: await queryClient.ensureQueryData(postsQueryOptions(jwt)),
+      activities: await queryClient.ensureQueryData(postsQueryOptions(jwt!)),
       authToken: jwt,
     };
   },
@@ -120,7 +120,7 @@ function Dashboard() {
                   >
                     <FormField
                       control={methods.control}
-                      name="file"
+                      name="files"
                       render={({ field }) => (
                         <FormItem className="w-full">
                           <FormControl>
