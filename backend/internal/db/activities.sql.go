@@ -178,6 +178,56 @@ func (q *Queries) GetActivity(ctx context.Context, id int32) (GetActivityRow, er
 	return i, err
 }
 
+const getActivityStats = `-- name: GetActivityStats :one
+SELECT 
+    -- Current month total
+    SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM') THEN value ELSE 0 END) AS total_for_current_month,
+
+    -- Last month total
+    SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE - INTERVAL '1 MONTH', 'YYYY-MM') THEN value ELSE 0 END) AS total_for_last_month,
+
+    -- Current week total
+    SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE) THEN value ELSE 0 END) AS total_for_current_week,
+
+    -- Last week total
+    SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE - INTERVAL '1 WEEK') THEN value ELSE 0 END) AS total_for_last_week,
+
+    -- Percentage difference from last month
+    COALESCE((SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM') THEN value ELSE 0 END) -
+    SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE - INTERVAL '1 MONTH', 'YYYY-MM') THEN value ELSE 0 END)) / 
+    NULLIF(SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE - INTERVAL '1 MONTH', 'YYYY-MM') THEN value ELSE 0 END), 0) * 100, 0) AS percentage_change_month,
+
+    -- Percentage difference from last week
+    COALESCE((SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE) THEN value ELSE 0 END) -
+    SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE - INTERVAL '1 WEEK') THEN value ELSE 0 END)) / 
+    NULLIF(SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE - INTERVAL '1 WEEK') THEN value ELSE 0 END), 0) * 100, 0) AS percentage_change_week
+FROM activities
+WHERE user_id = $1
+`
+
+type GetActivityStatsRow struct {
+	TotalForCurrentMonth  int64
+	TotalForLastMonth     int64
+	TotalForCurrentWeek   int64
+	TotalForLastWeek      int64
+	PercentageChangeMonth interface{}
+	PercentageChangeWeek  interface{}
+}
+
+func (q *Queries) GetActivityStats(ctx context.Context, userID string) (GetActivityStatsRow, error) {
+	row := q.db.QueryRow(ctx, getActivityStats, userID)
+	var i GetActivityStatsRow
+	err := row.Scan(
+		&i.TotalForCurrentMonth,
+		&i.TotalForLastMonth,
+		&i.TotalForCurrentWeek,
+		&i.TotalForLastWeek,
+		&i.PercentageChangeMonth,
+		&i.PercentageChangeWeek,
+	)
+	return i, err
+}
+
 const getActivityWithRecordsView = `-- name: GetActivityWithRecordsView :one
 SELECT id, created_at, user_id, distance, activity_name, avg_speed, max_speed, elapsed_time, total_time, elapsed_time_char, total_time_char, records
 FROM activity_with_records_view

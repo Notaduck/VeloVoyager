@@ -100,10 +100,13 @@ function Header() {
           </div>
         </SheetContent>
       </Sheet>
-      <Link className="hidden mr-6 lg:flex" to="/">
+      <Link
+        className="hidden gap-4 justify-center mr-6 align-middle lg:flex"
+        to="/"
+      >
         <MountainIcon className="w-6 h-6" />
         {/* <span className="sr-only">Acme Inc</span> */}
-        <span>Fitter</span>
+        <strong className="text-2xl">VeloVoyage</strong>
       </Link>
       <nav className="hidden gap-6 ml-auto lg:flex">
         <Link
