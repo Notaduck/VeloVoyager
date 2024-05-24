@@ -37,5 +37,5 @@ CREATE TABLE records (
     -- device_index SMALLINT,
     -- enhanced_speed INTEGER,
     enhanced_altitude INTEGER,
-    activity_id INTEGER REFERENCES activities (id)
+    activity_id INTEGER REFERENCES activities (id) ON DELETE CASCADE
 );
