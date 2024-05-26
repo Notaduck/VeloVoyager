@@ -9,49 +9,49 @@ import (
 )
 
 type Activity struct {
-	ID              int32
-	CreatedAt       pgtype.Timestamptz
-	UserID          string
-	Distance        pgtype.Numeric
-	ActivityName    string
-	AvgSpeed        pgtype.Numeric
-	MaxSpeed        pgtype.Numeric
-	ElapsedTime     pgtype.Time
-	TotalTime       pgtype.Time
-	WeatherImpact   pgtype.Numeric
-	Headwind        int32
-	LongestHeadwind pgtype.Time
-	AirSpeed        pgtype.Numeric
-	Temp            pgtype.Numeric
+	ID              int32              `json:"id"`
+	CreatedAt       pgtype.Timestamptz `json:"createdAt"`
+	UserID          string             `json:"userId"`
+	Distance        pgtype.Numeric     `json:"distance"`
+	ActivityName    string             `json:"activityName"`
+	AvgSpeed        pgtype.Numeric     `json:"avgSpeed"`
+	MaxSpeed        pgtype.Numeric     `json:"maxSpeed"`
+	ElapsedTime     pgtype.Time        `json:"elapsedTime"`
+	TotalTime       pgtype.Time        `json:"totalTime"`
+	WeatherImpact   pgtype.Numeric     `json:"weatherImpact"`
+	Headwind        int32              `json:"headwind"`
+	LongestHeadwind pgtype.Time        `json:"longestHeadwind"`
+	AirSpeed        pgtype.Numeric     `json:"airSpeed"`
+	Temp            pgtype.Numeric     `json:"temp"`
 }
 
 type ActivityWithRecordsView struct {
-	ID              int32
-	CreatedAt       pgtype.Timestamptz
-	UserID          string
-	Distance        pgtype.Numeric
-	ActivityName    string
-	AvgSpeed        pgtype.Numeric
-	MaxSpeed        pgtype.Numeric
-	ElapsedTime     pgtype.Time
-	TotalTime       pgtype.Time
-	ElapsedTimeChar string
-	TotalTimeChar   string
-	Records         []Record
+	ID              int32              `json:"id"`
+	CreatedAt       pgtype.Timestamptz `json:"createdAt"`
+	UserID          string             `json:"userId"`
+	Distance        pgtype.Numeric     `json:"distance"`
+	ActivityName    string             `json:"activityName"`
+	AvgSpeed        pgtype.Numeric     `json:"avgSpeed"`
+	MaxSpeed        pgtype.Numeric     `json:"maxSpeed"`
+	ElapsedTime     pgtype.Time        `json:"elapsedTime"`
+	TotalTime       pgtype.Time        `json:"totalTime"`
+	ElapsedTimeChar string             `json:"elapsedTimeChar"`
+	TotalTimeChar   string             `json:"totalTimeChar"`
+	Records         []Record           `json:"records"`
 }
 
 type Record struct {
-	ID               int32
-	TimeStamp        pgtype.Timestamptz
-	Position         pgtype.Point
-	Altitude         pgtype.Int4
-	HeartRate        pgtype.Int2
-	Cadence          pgtype.Int2
-	Distance         pgtype.Int4
-	Speed            pgtype.Int4
-	Temperature      pgtype.Int2
-	GpsAccuracy      pgtype.Int2
-	EnhancedAltitude pgtype.Int4
-	ActivityID       pgtype.Int4
-	Bearing          float64
+	ID               int32              `json:"id"`
+	TimeStamp        pgtype.Timestamptz `json:"timeStamp"`
+	Position         pgtype.Point       `json:"position"`
+	Altitude         pgtype.Int4        `json:"altitude"`
+	HeartRate        pgtype.Int2        `json:"heartRate"`
+	Cadence          pgtype.Int2        `json:"cadence"`
+	Distance         pgtype.Int4        `json:"distance"`
+	Speed            pgtype.Int4        `json:"speed"`
+	Temperature      pgtype.Int2        `json:"temperature"`
+	GpsAccuracy      pgtype.Int2        `json:"gpsAccuracy"`
+	EnhancedAltitude pgtype.Int4        `json:"enhancedAltitude"`
+	ActivityID       pgtype.Int4        `json:"activityId"`
+	Bearing          float64            `json:"bearing"`
 }

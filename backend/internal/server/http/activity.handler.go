@@ -34,6 +34,22 @@ func (s *APIServer) handleGetActivity(w http.ResponseWriter, r *http.Request) er
 
 }
 
+func (s *APIServer) handleGetActivityStats(w http.ResponseWriter, r *http.Request) error {
+
+	user := RetrieveUserFromContext(r.Context())
+
+	stats, err := s.activityService.GetActivityStats(r.Context(), user.ID)
+
+	if err != nil {
+
+		slog.Error(err.Error())
+		return WriteJSON(w, http.StatusInternalServerError, ApiError{Error: "failed to generate stats"})
+	}
+
+	return WriteJSON(w, http.StatusOK, stats)
+
+}
+
 func (s *APIServer) handleGetActivities(w http.ResponseWriter, r *http.Request) error {
 
 	user := RetrieveUserFromContext(r.Context())
