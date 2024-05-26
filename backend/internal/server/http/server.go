@@ -100,6 +100,7 @@ func (s *APIServer) Run() {
 	// router.Handle("/activity", buildChain(makeHTTPHandleFunc(s.handleGetActivity), protectedChain...))
 	router.Handle("/activities", buildChain(makeHTTPHandleFunc(s.handleGetActivities), protectedChain...))
 	router.Handle("/activity", buildChain(makeHTTPHandleFunc(s.handlePostActivity), protectedChain...))
+	router.Handle("/stats", buildChain(makeHTTPHandleFunc(s.handleGetActivityStats), protectedChain...))
 
 	router.Handle("/weather", buildChain(makeHTTPHandleFunc(s.handlePOSTWeather), publicChain...))
 

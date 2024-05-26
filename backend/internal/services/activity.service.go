@@ -30,6 +30,18 @@ type Activity struct {
 	Records      []Record  `json:"records"`
 }
 
+// type ActivityStats struct {
+// 	ID           int32     `json:"id"`
+// 	CreatedAt    time.Time `json:"createdAt"`
+// 	Distance     float64   `json:"distance"`
+// 	ActivityName string    `json:"activityName"`
+// 	AvgSpeed     float64   `json:"avgSpeed"`
+// 	MaxSpeed     float64   `json:"maxSpeed"`
+// 	ElapsedTime  string    `json:"elapsedTime"`
+// 	TotalTime    string    `json:"totalTime"`
+// 	Records      []Record  `json:"records"`
+// }
+
 type Point struct {
 	X float64 `json:"x"`
 	Y float64 `json:"y"`
@@ -44,6 +56,7 @@ type ActivityService interface {
 	GetSingleActivityById(ctx context.Context, activityId int32, userId string) (*Activity, error)
 	GetActivities(ctx context.Context, userId string) ([]db.GetActivitiesRow, error)
 	CreateActivities(ctx context.Context, files []*multipart.FileHeader, userID string) ([]*Activity, error)
+	GetActivityStats(ctx context.Context, userID string) (*db.GetActivityStatsRow, error)
 }
 
 type activityService struct {
@@ -311,9 +324,17 @@ func (s *activityService) processRecords(records []*fit.RecordMsg) ([]db.CreateR
 	return recordEntities, &stats, nil
 }
 
-// func (s *activityService) ActivityStats(ctx context.Context, userId string) (any, error)  {
-// 	stats :=s.activityRepo.GetActivityStats(ctx, userId)
-// }
+func (s *activityService) GetActivityStats(ctx context.Context, userId string) (*db.GetActivityStatsRow, error) {
+	stats, err := s.activityRepo.GetActivityStats(ctx, userId)
+
+	if err != nil {
+		slog.Error("failed to get stats", slog.String("err", err.Error()))
+		return nil, err
+	}
+
+	return &stats, nil
+
+}
 
 func convertActivityEntityToDomainModel(activityEntity *db.ActivityWithRecordsView) *Activity {
 

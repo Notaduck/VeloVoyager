@@ -12,18 +12,18 @@ import (
 )
 
 type CreateRecordsParams struct {
-	TimeStamp        pgtype.Timestamptz
-	Position         pgtype.Point
-	Altitude         pgtype.Int4
-	HeartRate        pgtype.Int2
-	Cadence          pgtype.Int2
-	Distance         pgtype.Int4
-	Speed            pgtype.Int4
-	Temperature      pgtype.Int2
-	GpsAccuracy      pgtype.Int2
-	EnhancedAltitude pgtype.Int4
-	ActivityID       pgtype.Int4
-	Bearing          float64
+	TimeStamp        pgtype.Timestamptz `json:"timeStamp"`
+	Position         pgtype.Point       `json:"position"`
+	Altitude         pgtype.Int4        `json:"altitude"`
+	HeartRate        pgtype.Int2        `json:"heartRate"`
+	Cadence          pgtype.Int2        `json:"cadence"`
+	Distance         pgtype.Int4        `json:"distance"`
+	Speed            pgtype.Int4        `json:"speed"`
+	Temperature      pgtype.Int2        `json:"temperature"`
+	GpsAccuracy      pgtype.Int2        `json:"gpsAccuracy"`
+	EnhancedAltitude pgtype.Int4        `json:"enhancedAltitude"`
+	ActivityID       pgtype.Int4        `json:"activityId"`
+	Bearing          float64            `json:"bearing"`
 }
 
 const getRecords = `-- name: GetRecords :many
