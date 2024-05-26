@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { File, FileCheck2Icon, ListFilter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -184,10 +184,7 @@ function Dashboard() {
               </div>
             </CardContent>
             <CardFooter>
-              <Progress
-                value={stats?.percentageChangeWeek}
-                aria-label="25% increase"
-              />
+              <Progress value={weeklyProgress} />
             </CardFooter>
           </Card>
           <Card x-chunk="dashboard-05-chunk-2">
@@ -203,10 +200,7 @@ function Dashboard() {
               </div>
             </CardContent>
             <CardFooter>
-              <Progress
-                value={stats?.percentageChangeMonth}
-                aria-label="12% increase"
-              />
+              <Progress value={monthlyProgress} />
             </CardFooter>
           </Card>
         </div>
@@ -282,7 +276,7 @@ function Dashboard() {
                           {activity?.activityName}
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
-                          {activity.total_time_char}
+                          {activity.totalTimeChar}
                           {/* <Badge className="text-xs" variant="secondary">
                             Fulfilled
                           </Badge> */}
