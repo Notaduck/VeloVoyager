@@ -51,34 +51,40 @@ INSERT INTO activities (
     $11,
     $12
 )
-<<<<<<< HEAD
 RETURNING id; 
 
 -- name: GetActivityStats :one
 SELECT 
     -- Current month total
-    SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM') THEN value ELSE 0 END) AS total_for_current_month,
+    ROUND(SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM') THEN distance ELSE 0 END), 2) AS total_for_current_month,
 
     -- Last month total
-    SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE - INTERVAL '1 MONTH', 'YYYY-MM') THEN value ELSE 0 END) AS total_for_last_month,
+    ROUND(SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE - INTERVAL '1 MONTH', 'YYYY-MM') THEN distance ELSE 0 END), 2) AS total_for_last_month,
 
     -- Current week total
-    SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE) THEN value ELSE 0 END) AS total_for_current_week,
+    ROUND(SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE) THEN distance ELSE 0 END), 2) AS total_for_current_week,
 
     -- Last week total
-    SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE - INTERVAL '1 WEEK') THEN value ELSE 0 END) AS total_for_last_week,
+    ROUND(SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE - INTERVAL '1 WEEK') THEN distance ELSE 0 END), 2) AS total_for_last_week,
 
     -- Percentage difference from last month
-    COALESCE((SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM') THEN value ELSE 0 END) -
-    SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE - INTERVAL '1 MONTH', 'YYYY-MM') THEN value ELSE 0 END)) / 
-    NULLIF(SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE - INTERVAL '1 MONTH', 'YYYY-MM') THEN value ELSE 0 END), 0) * 100, 0) AS percentage_change_month,
+    ROUND(
+        COALESCE(
+            (SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM') THEN distance ELSE 0 END) -
+            SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE - INTERVAL '1 MONTH', 'YYYY-MM') THEN distance ELSE 0 END)) / 
+            NULLIF(SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE - INTERVAL '1 MONTH', 'YYYY-MM') THEN distance ELSE 0 END), 0) * 100, 
+            0
+        ), 2
+    ) AS percentage_change_month,
 
     -- Percentage difference from last week
-    COALESCE((SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE) THEN value ELSE 0 END) -
-    SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE - INTERVAL '1 WEEK') THEN value ELSE 0 END)) / 
-    NULLIF(SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE - INTERVAL '1 WEEK') THEN value ELSE 0 END), 0) * 100, 0) AS percentage_change_week
+    ROUND(
+        COALESCE(
+            (SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE) THEN distance ELSE 0 END) -
+            SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE - INTERVAL '1 WEEK') THEN distance ELSE 0 END)) / 
+            NULLIF(SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE - INTERVAL '1 WEEK') THEN distance ELSE 0 END), 0) * 100, 
+            0
+        ), 2
+    ) AS percentage_change_week
 FROM activities
 WHERE user_id = $1;
-=======
-RETURNING id; 
->>>>>>> 18a65a7d86d3d862ead054a45196507020f46084

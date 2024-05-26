@@ -14,6 +14,8 @@ sql:
         package: "db"
         sql_package: "pgx/v5"
         out: "./internal/db"
+        emit_json_tags: true
+        json_tags_case_style: camel
         overrides:
           - column: "activity_with_records_view.records"
             go_type:
