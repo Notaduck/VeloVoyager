@@ -9,5 +9,9 @@ export const Route = createFileRoute("/_authenticated")({
     if (!session) {
       throw redirect({ to: "/login" });
     }
+
+    return {
+      accessToken: session.access_token,
+    };
   },
 });

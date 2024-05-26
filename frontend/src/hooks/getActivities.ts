@@ -1,26 +1,18 @@
 import { queryOptions, useQuery } from "@tanstack/react-query";
 import axios from "axios";
 
-interface Time {
+interface TotalTime {
   Microseconds: number;
   Valid: boolean;
 }
 
 interface Activity {
-  ID: number;
-  CreatedAt: string;
-  UserID: string;
-  Distance: number;
-  ActivityName: string;
-  AvgSpeed: number;
-  MaxSpeed: number;
-  ElapsedTime: Time;
-  TotalTime: Time;
-  WeatherImpact: number;
-  Headwind: number;
-  LongestHeadwind: Time;
-  AirSpeed: number;
-  Temp: number;
+  activityName: string;
+  activityName2: string;
+  totalTime: TotalTime;
+  distance: number;
+  elapsedTimeChar: string;
+  totalTimeChar: string;
 }
 
 type GetActivities = {

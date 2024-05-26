@@ -7,6 +7,9 @@ import { routeTree } from "./routeTree.gen";
 import { createClient } from "@supabase/supabase-js";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+import "./globals.css";
+import "./index.css";
+
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_API_KEY

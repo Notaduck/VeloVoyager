@@ -1,3 +1,4 @@
+import { useLayoutEffect, useState } from "react";
 import { File, FileCheck2Icon, ListFilter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +17,7 @@ import {
   TableBody,
   TableCell,
 } from "@/components/ui/table";
-import { postsQueryOptions } from "@/hooks/getActivities";
+import { postsQueryOptions, useGetActivities } from "@/hooks/getActivities";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -28,7 +29,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@radix-ui/react-tabs";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { createFileRoute } from "@tanstack/react-router";
-import { Progress } from "@radix-ui/react-progress";
 import { Badge } from "@/components/ui/badge";
 import { FormProvider, useForm } from "react-hook-form";
 import {
@@ -39,6 +39,8 @@ import {
 } from "@/components/ui/form";
 import { Dropzone } from "@/components/ui/dropzone";
 import { useUploadActivities } from "@/hooks/uploadActivity";
+import { useGetStats } from "@/hooks/getStats";
+import { Progress } from "@/components/ui/progress";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
@@ -56,9 +58,18 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 function Dashboard() {
-  const { activities, authToken } = Route.useLoaderData();
+  const [weeklyProgress, setWeeklyProgress] = useState<number>(0);
+  const [monthlyProgress, setMonthlyProgress] = useState<number>(0);
+
+  const { authToken } = Route.useLoaderData();
+  const { accessToken } = Route.useRouteContext();
+
+  const { data: activities } = useGetActivities({ jwtToken: accessToken });
+  const { data: stats, status: statsStatus } = useGetStats({
+    jwtToken: accessToken,
+  });
+
   const { mutate } = useUploadActivities();
-  console.log("authToken", authToken);
 
   const defaultValues: { files: undefined | FileList } = {
     files: undefined,
@@ -103,6 +114,16 @@ function Dashboard() {
       });
     }
   }
+
+  useLayoutEffect(() => {
+    const timer = setTimeout(() => {
+      if (statsStatus === "success") {
+        setWeeklyProgress(stats?.percentageChangeWeek);
+        setMonthlyProgress(stats?.percentageChangeMonth);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [stats]);
 
   return (
     <main className="grid flex-1 gap-4 items-start p-4 sm:px-6 sm:py-0 md:gap-8 lg:grid-cols-1 xl:grid-cols-2">
@@ -153,29 +174,33 @@ function Dashboard() {
           <Card x-chunk="dashboard-05-chunk-1">
             <CardHeader className="pb-2">
               <CardDescription>Kilomoters This Week</CardDescription>
-              <CardTitle className="text-4xl">88,21 km</CardTitle>
+              <CardTitle className="text-4xl">
+                {stats?.totalForCurrentWeek} Km
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-xs text-muted-foreground">
-                +25% from last week
+                {stats?.percentageChangeWeek}% from last week
               </div>
             </CardContent>
             <CardFooter>
-              <Progress value={25} aria-label="25% increase" />
+              <Progress value={weeklyProgress} />
             </CardFooter>
           </Card>
           <Card x-chunk="dashboard-05-chunk-2">
             <CardHeader className="pb-2">
               <CardDescription>This Month</CardDescription>
-              <CardTitle className="text-4xl">$5,329</CardTitle>
+              <CardTitle className="text-4xl">
+                {stats?.totalForCurrentMonth} km
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-xs text-muted-foreground">
-                +10% from last month
+                {stats?.percentageChangeMonth}% from last month
               </div>
             </CardContent>
             <CardFooter>
-              <Progress value={12} aria-label="12% increase" />
+              <Progress value={monthlyProgress} />
             </CardFooter>
           </Card>
         </div>
@@ -248,16 +273,16 @@ function Dashboard() {
                           </div>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
-                          {activity.ActivityName}
+                          {activity?.activityName}
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
-                          {activity.TotalTime.Microseconds}
+                          {activity.totalTimeChar}
                           {/* <Badge className="text-xs" variant="secondary">
                             Fulfilled
                           </Badge> */}
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
-                          {activity.Distance} (unit)
+                          {activity.distance} (unit)
                         </TableCell>
                       </TableRow>
                     ))}
