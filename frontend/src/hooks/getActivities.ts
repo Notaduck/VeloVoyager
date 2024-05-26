@@ -7,29 +7,11 @@ interface TotalTime {
 }
 
 interface Activity {
-<<<<<<< HEAD
   activityName: string;
-  activityName2: string;
   totalTime: TotalTime;
   distance: number;
   elapsedTimeChar: string;
   totalTimeChar: string;
-=======
-  ID: number;
-  CreatedAt: string;
-  UserID: string;
-  Distance: number;
-  ActivityName: string;
-  AvgSpeed: number;
-  MaxSpeed: number;
-  ElapsedTime: Time;
-  TotalTime: Time;
-  WeatherImpact: number;
-  Headwind: number;
-  LongestHeadwind: Time;
-  AirSpeed: number;
-  Temp: number;
->>>>>>> caef5286ebb4c5b51a10005f72a14ccc33a580f0
 }
 
 type GetActivities = {
