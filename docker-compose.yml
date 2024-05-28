@@ -1,0 +1,45 @@
+version: '3.9'
+
+services:
+  frontend:
+    build: 
+      context: ./frontend 
+      args : 
+        - VITE_SUPABASE_URL=https://aryooqhdgtuhynbydyvf.supabase.co
+        - VITE_SUPABASE_API_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFyeW9vcWhkZ3R1aHluYnlkeXZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTM3NzI0NjAsImV4cCI6MjAyOTM0ODQ2MH0.-KcSC7c65jGBUUJNDqjgZDpRNvEnwUhBvUzfRwVtHBA
+    container_name: frontend
+    ports:
+      - "80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`frontend.localhost`)"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+
+  backend:
+    build: ./backend
+    container_name: backend
+    ports:
+      - 3000:3000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`backend.localhost`)"
+      - "traefik.http.services.backend.loadbalancer.server.port=3000"
+
+
+
+  traefik:
+    image: traefik:v3.0.1
+    container_name: traefik
+    ports:
+      - "80:80"
+      - "3000:3000"
+      - "8080:8080" # Dashboard
+    command:
+      - "--api.insecure=true" # Enable Traefik dashboard
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+      - "--log.level=DEBUG"
+      - "--log.filePath=/logs/traefik.log"    
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - ./logs/:/logs/
