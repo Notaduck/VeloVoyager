@@ -1,0 +1,43 @@
+version: "3"
+
+vars:
+  GOCMD: go
+  NPMCMD: npm # Assuming npm for frontend, change as necessary
+
+tasks:
+  build-backend:
+    desc: "Build the Go project in the backend directory"
+    cmds:
+      - "cd backend && {{.GOCMD}} build -v ./..."
+
+  run-backend:
+    desc: "Run the Go project in the backend directory"
+    cmds:
+      - "cd backend && {{.GOCMD}} run -v ./..."
+
+  test-backend:
+    desc: "Run tests in the backend directory"
+    cmds:
+      - "cd backend && {{.GOCMD}} test ./..."
+
+  build-frontend:
+    desc: "Build the frontend project"
+    cmds:
+      - "cd frontend && {{.NPMCMD}} install && {{.NPMCMD}} run build" # Adjust if not using npm
+
+  run-frontend:
+    desc: "Run the frontend project"
+    cmds:
+      - "cd frontend && {{.NPMCMD}} run dev" # Adjust if not using npm
+
+  start-all:
+    desc: "Start both backend and frontend"
+    cmds:
+      - "go-task watch-backend &"
+      - "go-task run-frontend"
+
+  watch-backend:
+    desc: "Watch Go files in the backend and rerun tasks"
+    cmds:
+      - "cd backend && reflex -r '\\.go$' -s -- sh -c 'go-task test-backend && go-task build-backend && go-task run-backend'"
+# Add a watch task for frontend if needed, using your frontend technology's watch capabilities
