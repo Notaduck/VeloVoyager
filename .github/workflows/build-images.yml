@@ -44,8 +44,7 @@ jobs:
         run: go test ./...
 
   backend-build:
-    needs: [filter, backend-test]
-    if: needs.filter.outputs.backend == 'true'
+    needs: [backend-test]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
