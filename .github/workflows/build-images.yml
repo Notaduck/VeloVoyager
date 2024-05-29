@@ -10,7 +10,22 @@ on:
   workflow_dispatch:
 
 jobs:
-  backend:
+  backend-test:
+      runs-on: ubuntu-latest
+
+      steps:
+        - uses: actions/checkout@v4
+        - name: Setup Go
+          uses: actions/setup-go@v5
+          with:
+            go-version: '1.21.x'
+        - name: Install dependencies
+          run: go get .
+        - name: Test with the Go CLI
+          run: go test ./backend/**
+
+
+  backend-build:
     if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, 'backend/')
     runs-on: ubuntu-latest
     steps:
@@ -35,7 +50,7 @@ jobs:
           docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${IMAGE_TAG}
           docker tag ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${IMAGE_TAG} ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:latest
-  frontend:
+  frontend-build:
     if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, 'frontend/')
     runs-on: ubuntu-latest
     steps:
