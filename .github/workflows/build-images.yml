@@ -93,4 +93,4 @@ jobs:
           docker build -t ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${IMAGE_TAG} -f frontend/Dockerfile .
           docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${IMAGE_TAG}
           docker tag ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${IMAGE_TAG} ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:latest
-          docker push ${{ secrets.DOCKER_USERNAME
+          docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:latest
