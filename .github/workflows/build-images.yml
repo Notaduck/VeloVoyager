@@ -1,4 +1,4 @@
-name: Build Docker Images
+name: CI/CD Pipeline: Test and Build Docker Images
 
 on:
   push:
@@ -10,7 +10,25 @@ on:
   workflow_dispatch:
 
 jobs:
+  filter:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Filter paths
+        id: filter
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+
   backend-test:
+    if: needs.filter.outputs.backend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -21,16 +39,14 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.22.x'
-      - name: ls
-        run: ls -al
       - name: Install dependencies
         run: go mod download
       - name: Test with the Go CLI
         run: go test ./...
 
   backend-build:
-    needs: backend-test
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, 'backend/')
+    needs: [filter, backend-test]
+    if: needs.filter.outputs.backend == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -49,14 +65,14 @@ jobs:
         env:
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          ls -al 
           docker build -t ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${IMAGE_TAG} -f backend/Dockerfile .
           docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${IMAGE_TAG}
           docker tag ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${IMAGE_TAG} ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:latest
 
   frontend-build:
-    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, 'frontend/')
+    needs: filter
+    if: needs.filter.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
