@@ -1,4 +1,4 @@
-name: CI/CD Pipeline: Test and Build Docker Images
+name: CI/CD Pipeline - Test and Build Docker Images
 
 on:
   push:
