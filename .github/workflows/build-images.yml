@@ -12,17 +12,19 @@ on:
 jobs:
   backend-test:
     runs-on: ubuntu-latest
-
+    defaults:
+      run:
+        working-directory: ./backend
     steps:
       - uses: actions/checkout@v4
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21.x'
+          go-version: '1.22.x'
       - name: Install dependencies
-        run: go get ./backend
+        run: go get .
       - name: Test with the Go CLI
-        run: go test ./backend/...
+        run: go test ./...
 
   backend-build:
     needs: backend-test
