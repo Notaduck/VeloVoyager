@@ -21,6 +21,8 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.22.x'
+      - name: ls
+        run: ls -al
       - name: Install dependencies
         run: go get .
       - name: Test with the Go CLI
