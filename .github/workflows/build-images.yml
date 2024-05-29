@@ -27,6 +27,7 @@ jobs:
               - 'frontend/**'
 
   backend-test:
+    needs: [filter]
     if: needs.filter.outputs.backend == 'true'
     runs-on: ubuntu-latest
     defaults:
