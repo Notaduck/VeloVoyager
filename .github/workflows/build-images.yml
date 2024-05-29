@@ -8,7 +8,7 @@ on:
       - 'backend/**'
       - 'frontend/**'
   workflow_dispatch:
-      
+
 jobs:
   backend:
     if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, 'backend/')
@@ -30,11 +30,11 @@ jobs:
         env:
           IMAGE_TAG: ${{ github.sha }}
         run: |
+          ls -al 
           docker build -t ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${IMAGE_TAG} -f backend/Dockerfile .
           docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${IMAGE_TAG}
           docker tag ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${IMAGE_TAG} ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:latest
-
   frontend:
     if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, 'frontend/')
     runs-on: ubuntu-latest
