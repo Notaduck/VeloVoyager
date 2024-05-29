@@ -44,18 +44,18 @@ RETURNING id
 `
 
 type CreateActivityParams struct {
-	UserID          string
-	Distance        pgtype.Numeric
-	ActivityName    string
-	AvgSpeed        pgtype.Numeric
-	MaxSpeed        pgtype.Numeric
-	ElapsedTime     pgtype.Time
-	TotalTime       pgtype.Time
-	WeatherImpact   pgtype.Numeric
-	Headwind        int32
-	LongestHeadwind pgtype.Time
-	AirSpeed        pgtype.Numeric
-	Temp            pgtype.Numeric
+	UserID          string         `json:"userId"`
+	Distance        pgtype.Numeric `json:"distance"`
+	ActivityName    string         `json:"activityName"`
+	AvgSpeed        pgtype.Numeric `json:"avgSpeed"`
+	MaxSpeed        pgtype.Numeric `json:"maxSpeed"`
+	ElapsedTime     pgtype.Time    `json:"elapsedTime"`
+	TotalTime       pgtype.Time    `json:"totalTime"`
+	WeatherImpact   pgtype.Numeric `json:"weatherImpact"`
+	Headwind        int32          `json:"headwind"`
+	LongestHeadwind pgtype.Time    `json:"longestHeadwind"`
+	AirSpeed        pgtype.Numeric `json:"airSpeed"`
+	Temp            pgtype.Numeric `json:"temp"`
 }
 
 func (q *Queries) CreateActivity(ctx context.Context, arg CreateActivityParams) (int32, error) {
@@ -91,12 +91,12 @@ WHERE user_id = $1
 `
 
 type GetActivitiesRow struct {
-	ActivityName    string
-	ActivityName_2  string
-	TotalTime       pgtype.Time
-	Distance        pgtype.Numeric
-	ElapsedTimeChar string
-	TotalTimeChar   string
+	ActivityName    string         `json:"activityName"`
+	ActivityName_2  string         `json:"activityName2"`
+	TotalTime       pgtype.Time    `json:"totalTime"`
+	Distance        pgtype.Numeric `json:"distance"`
+	ElapsedTimeChar string         `json:"elapsedTimeChar"`
+	TotalTimeChar   string         `json:"totalTimeChar"`
 }
 
 func (q *Queries) GetActivities(ctx context.Context, userID string) ([]GetActivitiesRow, error) {
@@ -136,22 +136,22 @@ WHERE id = $1 LIMIT 1
 `
 
 type GetActivityRow struct {
-	ID              int32
-	CreatedAt       pgtype.Timestamptz
-	UserID          string
-	Distance        pgtype.Numeric
-	ActivityName    string
-	AvgSpeed        pgtype.Numeric
-	MaxSpeed        pgtype.Numeric
-	ElapsedTime     pgtype.Time
-	TotalTime       pgtype.Time
-	WeatherImpact   pgtype.Numeric
-	Headwind        int32
-	LongestHeadwind pgtype.Time
-	AirSpeed        pgtype.Numeric
-	Temp            pgtype.Numeric
-	ElapsedTimeChar string
-	TotalTimeChar   string
+	ID              int32              `json:"id"`
+	CreatedAt       pgtype.Timestamptz `json:"createdAt"`
+	UserID          string             `json:"userId"`
+	Distance        pgtype.Numeric     `json:"distance"`
+	ActivityName    string             `json:"activityName"`
+	AvgSpeed        pgtype.Numeric     `json:"avgSpeed"`
+	MaxSpeed        pgtype.Numeric     `json:"maxSpeed"`
+	ElapsedTime     pgtype.Time        `json:"elapsedTime"`
+	TotalTime       pgtype.Time        `json:"totalTime"`
+	WeatherImpact   pgtype.Numeric     `json:"weatherImpact"`
+	Headwind        int32              `json:"headwind"`
+	LongestHeadwind pgtype.Time        `json:"longestHeadwind"`
+	AirSpeed        pgtype.Numeric     `json:"airSpeed"`
+	Temp            pgtype.Numeric     `json:"temp"`
+	ElapsedTimeChar string             `json:"elapsedTimeChar"`
+	TotalTimeChar   string             `json:"totalTimeChar"`
 }
 
 func (q *Queries) GetActivity(ctx context.Context, id int32) (GetActivityRow, error) {
@@ -181,37 +181,47 @@ func (q *Queries) GetActivity(ctx context.Context, id int32) (GetActivityRow, er
 const getActivityStats = `-- name: GetActivityStats :one
 SELECT 
     -- Current month total
-    SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM') THEN value ELSE 0 END) AS total_for_current_month,
+    ROUND(SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM') THEN distance ELSE 0 END), 2) AS total_for_current_month,
 
     -- Last month total
-    SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE - INTERVAL '1 MONTH', 'YYYY-MM') THEN value ELSE 0 END) AS total_for_last_month,
+    ROUND(SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE - INTERVAL '1 MONTH', 'YYYY-MM') THEN distance ELSE 0 END), 2) AS total_for_last_month,
 
     -- Current week total
-    SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE) THEN value ELSE 0 END) AS total_for_current_week,
+    ROUND(SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE) THEN distance ELSE 0 END), 2) AS total_for_current_week,
 
     -- Last week total
-    SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE - INTERVAL '1 WEEK') THEN value ELSE 0 END) AS total_for_last_week,
+    ROUND(SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE - INTERVAL '1 WEEK') THEN distance ELSE 0 END), 2) AS total_for_last_week,
 
     -- Percentage difference from last month
-    COALESCE((SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM') THEN value ELSE 0 END) -
-    SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE - INTERVAL '1 MONTH', 'YYYY-MM') THEN value ELSE 0 END)) / 
-    NULLIF(SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE - INTERVAL '1 MONTH', 'YYYY-MM') THEN value ELSE 0 END), 0) * 100, 0) AS percentage_change_month,
+    ROUND(
+        COALESCE(
+            (SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM') THEN distance ELSE 0 END) -
+            SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE - INTERVAL '1 MONTH', 'YYYY-MM') THEN distance ELSE 0 END)) / 
+            NULLIF(SUM(CASE WHEN TO_CHAR(created_at, 'YYYY-MM') = TO_CHAR(CURRENT_DATE - INTERVAL '1 MONTH', 'YYYY-MM') THEN distance ELSE 0 END), 0) * 100, 
+            0
+        ), 2
+    ) AS percentage_change_month,
 
     -- Percentage difference from last week
-    COALESCE((SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE) THEN value ELSE 0 END) -
-    SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE - INTERVAL '1 WEEK') THEN value ELSE 0 END)) / 
-    NULLIF(SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE - INTERVAL '1 WEEK') THEN value ELSE 0 END), 0) * 100, 0) AS percentage_change_week
+    ROUND(
+        COALESCE(
+            (SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE) THEN distance ELSE 0 END) -
+            SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE - INTERVAL '1 WEEK') THEN distance ELSE 0 END)) / 
+            NULLIF(SUM(CASE WHEN DATE_TRUNC('week', created_at) = DATE_TRUNC('week', CURRENT_DATE - INTERVAL '1 WEEK') THEN distance ELSE 0 END), 0) * 100, 
+            0
+        ), 2
+    ) AS percentage_change_week
 FROM activities
 WHERE user_id = $1
 `
 
 type GetActivityStatsRow struct {
-	TotalForCurrentMonth  int64
-	TotalForLastMonth     int64
-	TotalForCurrentWeek   int64
-	TotalForLastWeek      int64
-	PercentageChangeMonth interface{}
-	PercentageChangeWeek  interface{}
+	TotalForCurrentMonth  pgtype.Numeric `json:"totalForCurrentMonth"`
+	TotalForLastMonth     pgtype.Numeric `json:"totalForLastMonth"`
+	TotalForCurrentWeek   pgtype.Numeric `json:"totalForCurrentWeek"`
+	TotalForLastWeek      pgtype.Numeric `json:"totalForLastWeek"`
+	PercentageChangeMonth pgtype.Numeric `json:"percentageChangeMonth"`
+	PercentageChangeWeek  pgtype.Numeric `json:"percentageChangeWeek"`
 }
 
 func (q *Queries) GetActivityStats(ctx context.Context, userID string) (GetActivityStatsRow, error) {
