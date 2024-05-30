@@ -39,11 +39,11 @@ jobs:
     environment: preview
     env:
       SERVER_PORT: production_environment
-      DB_CONNECTION_STRING: {{ secrets.DB_CONNECTION_STRING }}
-      SUPABASE_URL: {{ secrets.SUPABASE_URL }}
-      SUPABASE_API_KEY: {{ secrets.SUPABASE_KEY }}
-      SUPABASE_JWT_SECRET: {{ secrets.SUPABASE_JWT_SECRET }}  
-steps:
+      DB_CONNECTION_STRING: ${{ secrets.DB_CONNECTION_STRING }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_API_KEY: ${{ secrets.SUPABASE_KEY }}
+      SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}  
+    steps:
       - uses: actions/checkout@v4
       - name: Setup Go
         uses: actions/setup-go@v5
