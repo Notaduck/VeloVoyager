@@ -5,8 +5,8 @@ services:
     build: 
       context: ./frontend 
       args:
-        VITE_SUPABASE_URL: https://aryooqhdgtuhynbydyvf.supabase.co
-        VITE_SUPABASE_API_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFyeW9vcWhkZ3R1aHluYnlkeXZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTM3NzI0NjAsImV4cCI6MjAyOTM0ODQ2MH0.-KcSC7c65jGBUUJNDqjgZDpRNvEnwUhBvUzfRwVtHBA
+        VITE_SUPABASE_URL:$supabase_url
+        VITE_SUPABASE_API_KEY:$supabase_url
     ports:
       - "8080:8080"
     labels:
@@ -32,7 +32,7 @@ services:
   traefik:
     image: traefik:v3.0.1
     container_name: traefik
-    restart: always
+    # restart: always
     security_opt:
       - no-new-privileges:true
     command:
