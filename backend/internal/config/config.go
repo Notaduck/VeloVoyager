@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"os"
 
 	"github.com/spf13/viper"
 )
@@ -11,26 +12,36 @@ type Config struct {
 	DbConnectionString string `mapstructure:"DB_CONNECTION_STRING"`
 	SupabaseUrl        string `mapstructure:"SUPABASE_URL"`
 	SupabaseKey        string `mapstructure:"SUPABASE_KEY"`
-	SupwbaseJwtSecret  string `mapstructure:"SUPABASE_JWT_SECRET"`
+	SupabaseJwtSecret  string `mapstructure:"SUPABASE_JWT_SECRET"`
 }
 
 func NewConfig() *Config {
 	config := Config{}
-	viper.SetConfigFile(".env")
 
-	err := viper.ReadInConfig()
-	if err != nil {
-		log.Fatal("Can't find the file .env : ", err)
+	// Determine the environment
+	ENV := os.Getenv("ENV")
+
+	if ENV == "production" {
+		// In production, read directly from environment variables
+		config.ServerPort = os.Getenv("SERVER_PORT")
+		config.DbConnectionString = os.Getenv("DB_CONNECTION_STRING")
+		config.SupabaseUrl = os.Getenv("SUPABASE_URL")
+		config.SupabaseKey = os.Getenv("SUPABASE_KEY")
+		config.SupabaseJwtSecret = os.Getenv("SUPABASE_JWT_SECRET")
+	} else {
+		// In development, read from the .env file
+		viper.SetConfigFile(".env")
+
+		err := viper.ReadInConfig()
+		if err != nil {
+			log.Fatal("Can't find the file .env: ", err)
+		}
+
+		err = viper.Unmarshal(&config)
+		if err != nil {
+			log.Fatal("Environment can't be loaded: ", err)
+		}
 	}
-
-	err = viper.Unmarshal(&config)
-	if err != nil {
-		log.Fatal("Environment can't be loaded: ", err)
-	}
-
-	//  if env.AppEnv == "development" {
-	//   log.Println("The App is running in development env")
-	//  }
 
 	return &config
 }
