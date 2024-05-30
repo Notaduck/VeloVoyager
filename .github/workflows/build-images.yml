@@ -116,6 +116,8 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Debug IMAGE_TAG
+        run: echo "IMAGE_TAG=${{ needs.backend-build.outputs.backend_image_tag }}"
       - name: Push backend Docker image
         env:
           IMAGE_TAG: ${{ needs.backend-build.outputs.backend_image_tag }}
@@ -138,6 +140,8 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Debug IMAGE_TAG
+        run: echo "IMAGE_TAG=${{ needs.frontend-build.outputs.frontend_image_tag }}"
       - name: Push frontend Docker image
         env:
           IMAGE_TAG: ${{ needs.frontend-build.outputs.frontend_image_tag }}
