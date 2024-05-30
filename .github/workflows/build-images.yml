@@ -51,6 +51,9 @@ jobs:
     needs: [backend-test]
     if: needs.determine-changes.outputs.backend == 'true' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
     outputs:
       backend_image_tag: ${{ steps.build.outputs.image_tag }}
     steps:
