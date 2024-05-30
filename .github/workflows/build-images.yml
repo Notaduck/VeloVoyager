@@ -96,6 +96,9 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${IMAGE_TAG} .
+      - name: Set frontend image tag output
+        id: build
+        run: echo "frontend_image_tag=${{ github.sha }}" >> $GITHUB_ENV
 
   backend-push:
     needs: [backend-build]
