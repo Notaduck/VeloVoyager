@@ -24,6 +24,8 @@ secrets/
 go.work
 
 # Env files
+**/.env
+**/.env.*
 .env
 .env.*
 
