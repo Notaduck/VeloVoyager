@@ -184,11 +184,19 @@ func isPreflight(r *http.Request) bool {
 
 var originAllowlist = []string{
 	"http://127.0.0.1:5173",
+	"http://127.0.0.1:3000",
 	"http://localhost:5173",
+	"http://localhost:3000",
+	"http://frontend.localhost",
+	"http://frontend.localhost/",
+	"http://frontend.localhost:80/",
+	"http://frontend.localhost:80",
 }
 
 func handleOptions(w http.ResponseWriter, r *http.Request) {
 	origin := r.Header.Get("Origin")
+	slog.Info("CORS", "origin", origin)
+	fmt.Println("============>", origin)
 	if slices.Contains(originAllowlist, origin) {
 		w.Header().Set("Access-Control-Allow-Origin", origin)
 		w.Header().Set("Access-Control-Allow-Methods", strings.Join(methodAllowlist, ", "))
@@ -200,6 +208,9 @@ func handleOptions(w http.ResponseWriter, r *http.Request) {
 func checkCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
+
+		slog.Info("CORS", "origin", origin)
+		fmt.Println("============>", origin)
 		if slices.Contains(originAllowlist, origin) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Add("Vary", "Origin")
