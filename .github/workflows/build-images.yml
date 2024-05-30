@@ -31,7 +31,7 @@ jobs:
 
   backend-test:
     needs: [determine-changes]
-    if: needs.determine-changes.outputs.backend == 'true' || github.event_name == 'pull_request'
+    if: needs.determine-changes.outputs.backend == 'true' || github.event_name = 'workflow_dispatch'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -57,7 +57,6 @@ jobs:
 
   backend-build:
     needs: [backend-test]
-    if: needs.determine-changes.outputs.backend == 'true' || github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -78,7 +77,7 @@ jobs:
 
   frontend-build:
     needs: [determine-changes]
-    if: needs.determine-changes.outputs.frontend == 'true' || github.event_name == 'pull_request'
+    if: needs.determine-changes.outputs.frontend == 'true' || github.event_name = 'workflow_dispatch'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -101,7 +100,7 @@ jobs:
 
   backend-push:
     needs: [backend-build]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -123,7 +122,7 @@ jobs:
 
   frontend-push:
     needs: [frontend-build]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
