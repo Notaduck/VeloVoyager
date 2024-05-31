@@ -72,7 +72,6 @@ jobs:
               id: set_image_tag
               run: echo "image_tag=${GITHUB_SHA}" >> $GITHUB_OUTPUT
             - name: Build backend Docker image
-              id: build_backend
               run: |
                   docker build -t ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${{ steps.set_image_tag.outputs.image_tag }} .
 
@@ -94,7 +93,6 @@ jobs:
               id: set_image_tag
               run: echo "image_tag=${GITHUB_SHA}" >> $GITHUB_OUTPUT
             - name: Build frontend Docker image
-              id: build_frontend
               run: |
                   docker build -t ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${{ steps.set_image_tag.outputs.image_tag }} .
 
