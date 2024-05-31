@@ -89,7 +89,7 @@ jobs:
         run: go test ./...
 
   backend-build-deploy:
-    needs: [determine-changes]
+    needs: [backend-test]
     # if: needs.determine-changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     defaults:
