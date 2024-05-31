@@ -1,83 +1,71 @@
-version: '3.9'
+version: '3.8'
 
 services:
   frontend:
+    image: duckydev/velovoyager-frontend:latest
     build: 
-      context: ./frontend 
+      context: .
       args:
-        VITE_SUPABASE_URL:$supabase_url
-        VITE_SUPABASE_API_KEY:$supabase_url
+        VITE_SUPABASE_URL: https://aryooqhdgtuhynbydyvf.supabase.co
+        VITE_SUPABASE_API_KEY: $SUPABASE_API_KEY
     ports:
       - "8080:8080"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=Host(`velovoyager.com`)"
       - "traefik.http.services.frontend.loadbalancer.server.port=8080"
-    secrets:
-      - supabase_url
-      - supabase_api_key
+    environment:
+        VITE_SUPABASE_URL: https://aryooqhdgtuhynbydyvf.supabase.co
+        VITE_SUPABASE_API_KEY: $SUPABASE_API_KEY
     stdin_open: true
 
   backend:
     image: duckydev/velovoyager-backend:latest
     ports:
-      - 3000:3000
+      - "3000:3000"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.backend.rule=Host(`api.velovoyager.com`)"
       - "traefik.http.services.backend.loadbalancer.server.port=3000"
     environment:
-      - ENV=production
+      - ENV=preview
+      - SERVER_PORT=:3000
+      - DB_CONNECTION_STRING=$DB_CONNECTION_STRING
+      - SUPABASE_URL=$SUPABASE_URL
+      - SUPABASE_API_KEY=$SUPABASE_API_KEY
+      - SUPABASE_JWT_SECRET=$SUPABASE_JWT_SECRET
 
   traefik:
     image: traefik:v3.0.1
     container_name: traefik
-    # restart: always
     security_opt:
       - no-new-privileges:true
     command:
       - "--log.level=DEBUG"
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --api.dashboard=false
-      # Set up LetsEncrypt certificate resolver
-      - --certificatesresolvers.letsencrypt.acme.dnschallenge=true
-      - --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=digitalocean
-      - --certificatesResolvers.letsencrypt.acme.dnschallenge.resolvers=1.1.1.1:53,1.0.0.1:53
-      - --certificatesResolvers.letsencrypt.acme.dnschallenge.delayBeforeCheck=20
-      - --certificatesresolvers.letsencrypt.acme.email=daniel@guldberglab.info
-      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
-      # staging environment of LE, remove for real certs
-      # - --certificatesresolvers.letsencrypt.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
-      # Set up an insecure listener that redirects all traffic to TLS
-      - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
-      # Set up the TLS configuration for our websecure listener
-      - --entrypoints.websecure.http.tls=true
-      - --entrypoints.websecure.http.tls.certResolver=letsencrypt
-      - --entrypoints.websecure.http.tls.domains[0].main=velovoyager.com
-      - --entrypoints.websecure.http.tls.domains[0].sans=*.velovoyager.com
-    secrets:
-      - "do-token"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--api.dashboard=false"
+      - "--certificatesresolvers.letsencrypt.acme.dnschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.dnschallenge.provider=digitalocean"
+      - "--certificatesResolvers.letsencrypt.acme.dnschallenge.resolvers=1.1.1.1:53,1.0.0.1:53"
+      - "--certificatesResolvers.letsencrypt.acme.dnschallenge.delayBeforeCheck=20"
+      - "--certificatesresolvers.letsencrypt.acme.email=daniel@guldberglab.info"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.websecure.http.tls=true"
+      - "--entrypoints.websecure.http.tls.certResolver=letsencrypt"
+      - "--entrypoints.websecure.http.tls.domains[0].main=velovoyager.com"
+      - "--entrypoints.websecure.http.tls.domains[0].sans=*.velovoyager.com"
     environment:
-      - "DO_AUTH_TOKEN_FILE=/run/secrets/do-token"
+      - DO_AUTH_TOKEN=$DO_AUTH_TOKEN
     ports:
-      - 80:80
-      - 443:443
+      - "80:80"
+      - "443:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./certs:/letsencrypt
 
-secrets:
-  do-token:
-    file: ./secrets/do_token
-  db_connection_string:
-    file: ./secrets/db_connection_string
-  supabase_url:
-    file: ./secrets/supabase_url
-  supabase_api_key:
-    file: ./secrets/supabase_key
-  supabase_jwt_secret:
-    file: ./secrets/supabase_jwt_secret
+
