@@ -7,7 +7,7 @@ services:
       context: .
       args:
         VITE_SUPABASE_URL: https://aryooqhdgtuhynbydyvf.supabase.co
-        VITE_SUPABASE_API_KEY: $SUPABASE_API_KEY
+        VITE_SUPABASE_API_KEY: "123"
     ports:
       - "8080:8080"
     labels:
