@@ -95,6 +95,14 @@ jobs:
             - name: Build frontend Docker image
               run: |
                   docker build -t ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${{ steps.set_image_tag.outputs.image_tag }} .
+            - name: Save frontend Docker image to file
+              run: |
+                  docker save -o velovoyager-frontend-${{ steps.set_image_tag.outputs.image_tag }}.tar ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${{ steps.set_image_tag.outputs.image_tag }}
+            - name: Upload Docker image
+              uses: actions/upload-artifact@v3
+              with:
+                  name: frontend-image
+                  path: velovoyager-frontend-${{ steps.set_image_tag.outputs.image_tag }}.tar
 
     backend-push:
         needs: [backend-build]
@@ -127,6 +135,14 @@ jobs:
               uses: actions/checkout@v4
             - name: Set up Docker Buildx
               uses: docker/setup-buildx-action@v1
+            - name: Download Docker image
+              uses: actions/download-artifact@v3
+              with:
+                  name: frontend-image
+                  path: .
+            - name: Load Docker image
+              run: |
+                  docker load -i velovoyager-frontend-${{ needs.frontend-build.outputs.frontend_image_tag }}.tar
             - name: Login to DockerHub
               uses: docker/login-action@v1
               with:
