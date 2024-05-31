@@ -32,7 +32,7 @@ jobs:
 
     frontend-build-deploy:
         needs: [determine-changes]
-        if: needs.determine-changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
+        if: (needs.determine-changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/develop'
         runs-on: ubuntu-latest
         defaults:
             run:
