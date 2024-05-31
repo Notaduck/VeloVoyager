@@ -38,8 +38,8 @@ jobs:
       run:
         working-directory: ./frontend
     env:
-      VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      VITE_SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+      VITE_SUPABASE_URL: 11
+      VITE_SUPABASE_API_KEY: 22
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
