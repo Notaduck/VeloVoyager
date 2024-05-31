@@ -140,7 +140,7 @@ jobs:
               run: echo "IMAGE_TAG=${{ needs.frontend-build.outputs.frontend_image_tag }}"
             - name: Push frontend Docker image
               env:
-                  IMAGE_TAG: ${{ needs.build_frontend.outputs.frontend_image_tag }}
+                  IMAGE_TAG: ${{ needs.frontend-build.outputs.frontend_image_tag }}
               run: |
                   docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${{ env.IMAGE_TAG }}
                   docker tag ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${{ env.IMAGE_TAG }} ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:latest
