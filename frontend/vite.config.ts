@@ -9,8 +9,8 @@ export default defineConfig({
   plugins: [react(), TanStackRouterVite()],
   define: {
     "process.env": process.env,
-    VITE_SUPABASE_URL: process.env.SUPABASE_URL,
-    VITE_SUPABASE_API_KEY: process.env.SUPABASE_API_KEY,
+    VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL,
+    VITE_SUPABASE_API_KEY: process.env.VITE_SUPABASE_API_KEY,
   },
   resolve: {
     alias: {
