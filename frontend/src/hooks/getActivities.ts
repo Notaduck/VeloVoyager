@@ -23,7 +23,7 @@ const QUERY_KEY = ["activities"];
 const fetchActivities = async ({
   jwtToken,
 }: GetActivities): Promise<Activity[]> => {
-  const { data } = await axios.get(`http://backend.localhost:3000/activities`, {
+  const { data } = await axios.get(`${import.meta.env.API_URL}/activities`, {
     headers: {
       "x-jwt-token": jwtToken,
     },

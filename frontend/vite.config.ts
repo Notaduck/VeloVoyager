@@ -14,6 +14,8 @@ export default defineConfig({
     "process.env.VITE_SUPABASE_API_KEY": JSON.stringify(
       process.env.VITE_SUPABASE_API_KEY
     ),
+
+    "process.env.API_URL": JSON.stringify(process.env.VITE_API_URL),
   },
   resolve: {
     alias: {
