@@ -22,7 +22,7 @@ const uploadFile = async ({
   }
 
   const response = await axios.post(
-    `${import.meta.env.API_URL}/activity`,
+    `${import.meta.env.VITE_API_URL}/activity`,
     formData,
     {
       headers: {

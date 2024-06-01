@@ -23,11 +23,14 @@ const QUERY_KEY = ["activities"];
 const fetchActivities = async ({
   jwtToken,
 }: GetActivities): Promise<Activity[]> => {
-  const { data } = await axios.get(`${import.meta.env.API_URL}/activities`, {
-    headers: {
-      "x-jwt-token": jwtToken,
-    },
-  });
+  const { data } = await axios.get(
+    `${import.meta.env.VITE_API_URL}/activities`,
+    {
+      headers: {
+        "x-jwt-token": jwtToken,
+      },
+    }
+  );
   console.log("Query data", data);
 
   return data;

@@ -19,7 +19,7 @@ const QUERY_KEY = ["stats"];
 const fetchStats = async ({
   jwtToken,
 }: GetActivities): Promise<ActivityStats> => {
-  const { data } = await axios.get(`${import.meta.env.API_URL}/stats`, {
+  const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/stats`, {
     headers: {
       "x-jwt-token": jwtToken,
     },
