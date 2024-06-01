@@ -90,13 +90,13 @@ jobs:
       - name: Test with the Go CLI
         run: go test ./...
 
-  backend-build-deploy:
-    needs: [backend-test]
-    # if: needs.determine-changes.outputs.backend == 'true'
+  frontend-build-push:
+    needs: [determine-changes]
+    if: needs.determine-changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./backend
+        working-directory: ./frontend
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -113,40 +113,23 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Build and push backend Docker image
+      - name: Build and push frontend Docker image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${IMAGE_TAG} .
-          docker tag ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${IMAGE_TAG} ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:latest
-          docker tag ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${IMAGE_TAG} ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${DATESTAMP}
-          docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${IMAGE_TAG}
-          docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:latest
-          docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${DATESTAMP}
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${IMAGE_TAG} .
+          docker tag ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${IMAGE_TAG} ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:latest
+          docker tag ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${IMAGE_TAG} ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${DATESTAMP}
+          docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${IMAGE_TAG}
+          docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${DATESTAMP}
 
-  # backend-test:
-  #   needs: [determine-changes]
-  #   if: needs.determine-changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
-  #   runs-on: ubuntu-latest
-  #   defaults:
-  #     run:
-  #       working-directory: ./backend
-  #   environment: preview
-  #   env:
-  #     SERVER_PORT: 3000
-  #     DB_CONNECTION_STRING: ${{ secrets.DB_CONNECTION_STRING }}
-  #     SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-  #     SUPABASE_API_KEY: ${{ secrets.SUPABASE_KEY }}
-  #     SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
-  #     ENV: "preview"
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Setup Go
-  #       uses: actions/setup-go@v5
-  #       with:
-  #         go-version: "1.22.x"
-  #     - name: Install dependencies
-  #       run: go mod download
-  #     - name: Test with the Go CLI
-  #       run: go test ./...
+  frontend-trigger-deployment:
+    needs: [frontend-build-push]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Stage
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: "{{ secrets.frontend_preview_webhook }}"
 
   # backend-build:
   #   needs: [backend-test]
