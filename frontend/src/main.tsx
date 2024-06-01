@@ -10,6 +10,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "./globals.css";
 import "./index.css";
 
+console.log(
+  "URL",
+  import.meta.env.VITE_SUPABASE_URL,
+  "API",
+  import.meta.env.VITE_SUPABASE_API_KEY
+);
+
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_API_KEY
