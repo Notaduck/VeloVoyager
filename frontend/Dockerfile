@@ -7,15 +7,6 @@ ARG VITE_SUPABASE_API_KEY
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
 ENV VITE_SUPABASE_API_KEY=$VITE_SUPABASE_API_KEY
 
-
-# # Define build arguments for environment variables
-# ARG VITE_SUPABASE_URL
-# ARG VITE_SUPABASE_API_KEY
-
-# # Set environment variables during the build process
-# ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
-# ENV VITE_SUPABASE_API_KEY=$VITE_SUPABASE_API_KEY
-
 # Set the working directory
 WORKDIR /app
 
