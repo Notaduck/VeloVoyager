@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link, createLazyFileRoute } from "@tanstack/react-router";
+import Hero from "../assets/group_ride.jpg";
 
 export const Route = createLazyFileRoute("/")({
   component: Index,
@@ -17,7 +18,7 @@ function Index() {
                   alt="Hero"
                   className="object-cover overflow-hidden mx-auto rounded-xl aspect-video sm:w-full lg:order-last lg:aspect-square"
                   height="550"
-                  src="https://placehold.co/600x400"
+                  src={Hero}
                   width="550"
                 />
                 <div className="flex flex-col justify-center space-y-4">
