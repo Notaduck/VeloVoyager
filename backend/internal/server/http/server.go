@@ -97,15 +97,12 @@ func (s *APIServer) Run() {
 		LoggingMiddleware,
 	}
 
-	// router.Handle("/activity", buildChain(makeHTTPHandleFunc(s.handleGetActivity), protectedChain...))
-	router.Handle("/activities", buildChain(makeHTTPHandleFunc(s.handleGetActivities), protectedChain...))
-	router.Handle("/activity", buildChain(makeHTTPHandleFunc(s.handlePostActivity), protectedChain...))
-	router.Handle("/stats", buildChain(makeHTTPHandleFunc(s.handleGetActivityStats), protectedChain...))
-
-	router.Handle("/weather", buildChain(makeHTTPHandleFunc(s.handlePOSTWeather), publicChain...))
+	router.Handle("GET /activity/{activityId}", buildChain(makeHTTPHandleFunc(s.handleGetActivity), protectedChain...))
+	router.Handle("GET /activities", buildChain(makeHTTPHandleFunc(s.handleGetActivities), protectedChain...))
+	router.Handle("POST /activity", buildChain(makeHTTPHandleFunc(s.handlePostActivity), protectedChain...))
+	router.Handle("GET /stats", buildChain(makeHTTPHandleFunc(s.handleGetActivityStats), protectedChain...))
 
 	router.Handle("/register", buildChain(makeHTTPHandleFunc(s.handleRegistration), publicChain...))
-	router.Handle("/login", buildChain(makeHTTPHandleFunc(s.handleLogin), publicChain...))
 
 	// Handle OPTIONS requests for all routes
 	router.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -22,6 +22,7 @@ func (s *APIServer) supaClient() *supa.Client {
 
 	supabaseUrl := s.config.SupabaseUrl
 	supabaseKey := s.config.SupabaseKey
+	slog.Info("=>", supabaseKey, supabaseUrl)
 	supwbaseJwtSecret := s.config.SupabaseJwtSecret
 
 	_ = supwbaseJwtSecret
