@@ -97,7 +97,7 @@ jobs:
           curl -X POST ${{ secrets.FRONTEND_PREVIEW_WEBHOOK }} -H "Content-Type: application/json" -d '{"image_tag": "${{ env.IMAGE_TAG }}", "datestamp": "${{ env.DATESTAMP }}"}'
 
   backend-build-push:
-    needs: [determine-changes]
+    needs: [backend-test]
     if: needs.determine-changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     defaults:
@@ -124,6 +124,14 @@ jobs:
           docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${IMAGE_TAG}
           docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${DATESTAMP}
+
+  backend-trigger-deployment:
+    needs: [backend-build-push]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger deployment webhook
+        run: |
+          curl -X POST ${{ secrets.BACKEND_PREVIEW_WEBHOOK }} -H "Content-Type: application/json" -d '{"image_tag": "${{ env.IMAGE_TAG }}", "datestamp": "${{ env.DATESTAMP }}"}'
 
   # backend-build:
   #   needs: [backend-test]
