@@ -7,6 +7,7 @@ interface TotalTime {
 }
 
 interface Activity {
+  id: number;
   activityName: string;
   totalTime: TotalTime;
   distance: number;

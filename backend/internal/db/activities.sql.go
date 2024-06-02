@@ -80,6 +80,7 @@ func (q *Queries) CreateActivity(ctx context.Context, arg CreateActivityParams) 
 
 const getActivities = `-- name: GetActivities :many
 SELECT 
+id,
 activity_name,
 activity_name,
 total_time,
@@ -91,6 +92,7 @@ WHERE user_id = $1
 `
 
 type GetActivitiesRow struct {
+	ID              int32          `json:"id"`
 	ActivityName    string         `json:"activityName"`
 	ActivityName_2  string         `json:"activityName2"`
 	TotalTime       pgtype.Time    `json:"totalTime"`
@@ -109,6 +111,7 @@ func (q *Queries) GetActivities(ctx context.Context, userID string) ([]GetActivi
 	for rows.Next() {
 		var i GetActivitiesRow
 		if err := rows.Scan(
+			&i.ID,
 			&i.ActivityName,
 			&i.ActivityName_2,
 			&i.TotalTime,

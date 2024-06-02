@@ -8,6 +8,7 @@ WHERE id = $1 LIMIT 1;
 
 -- name: GetActivities :many
 SELECT 
+id,
 activity_name,
 activity_name,
 total_time,

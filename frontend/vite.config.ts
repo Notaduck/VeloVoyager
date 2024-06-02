@@ -86,6 +86,9 @@ export default defineConfig({
     ),
 
     "process.env.VITE_API_URL": JSON.stringify(process.env.VITE_API_URL),
+    "process.env.VITE_MAPBOX_TOKEN": JSON.stringify(
+      process.env.VITE_MAPBOX_TOKEN
+    ),
   },
   resolve: {
     alias: {

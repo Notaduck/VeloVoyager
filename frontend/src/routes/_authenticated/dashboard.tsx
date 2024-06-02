@@ -28,7 +28,7 @@ import {
 } from "@radix-ui/react-dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@radix-ui/react-tabs";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { createFileRoute } from "@tanstack/react-router";
+import { Navigate, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { FormProvider, useForm } from "react-hook-form";
 import {
@@ -58,6 +58,8 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 });
 
 function Dashboard() {
+  const navigate = useNavigate();
+
   const [weeklyProgress, setWeeklyProgress] = useState<number>(0);
   const [monthlyProgress, setMonthlyProgress] = useState<number>(0);
 
@@ -267,7 +269,18 @@ function Dashboard() {
                   <TableBody>
                     {activities &&
                       activities?.map((activity) => (
-                        <TableRow className="bg-accent">
+                        <TableRow
+                          onClick={() =>
+                            navigate({
+                              to: "/activity/$activityId",
+                              params: {
+                                activityId: String(activity.id),
+                              },
+                            })
+                          }
+                          key={activity.id}
+                          className="bg-accent"
+                        >
                           <TableCell>
                             <div className="font-medium">
                               <Badge className="rounded-md">Ride</Badge>

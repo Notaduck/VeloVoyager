@@ -97,7 +97,7 @@ func (s *APIServer) Run() {
 		LoggingMiddleware,
 	}
 
-	router.Handle("GET /activity/{activityId}", buildChain(makeHTTPHandleFunc(s.handleGetActivity), protectedChain...))
+	router.Handle("GET /activity/", buildChain(makeHTTPHandleFunc(s.handleGetActivity), protectedChain...))
 	router.Handle("GET /activities", buildChain(makeHTTPHandleFunc(s.handleGetActivities), protectedChain...))
 	router.Handle("POST /activity", buildChain(makeHTTPHandleFunc(s.handlePostActivity), protectedChain...))
 	router.Handle("GET /stats", buildChain(makeHTTPHandleFunc(s.handleGetActivityStats), protectedChain...))
