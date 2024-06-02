@@ -121,15 +121,15 @@ jobs:
           docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${IMAGE_TAG}
           docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:latest
           docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${DATESTAMP}
-
+  
   frontend-trigger-deployment:
     needs: [frontend-build-push]
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy Stage
-        uses: fjogeleit/http-request-action@v1
-        with:
-          url: "{{ secrets.frontend_preview_webhook }}"
+      - name: Trigger deployment webhook
+        run: |
+          curl -X POST ${{ secrets.FRONTEND_PREVIEW_WEBHOOK }} -H "Content-Type: application/json" -d '{"image_tag": "${{ env.IMAGE_TAG }}", "datestamp": "${{ env.DATESTAMP }}"}'
+
 
   # backend-build:
   #   needs: [backend-test]
