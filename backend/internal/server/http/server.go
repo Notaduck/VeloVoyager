@@ -192,6 +192,7 @@ var originAllowlist = []string{
 	"http://frontend.localhost:80/",
 	"http://frontend.localhost:80",
 	"https://velovoyager.com/",
+	"https://velovoyager.com",
 }
 
 func handleOptions(w http.ResponseWriter, r *http.Request) {
