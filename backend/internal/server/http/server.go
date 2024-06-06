@@ -102,7 +102,6 @@ func (s *APIServer) Run() {
 	router.Handle("/activity", buildChain(makeHTTPHandleFunc(s.handlePostActivity), protectedChain...))
 	router.Handle("/stats", buildChain(makeHTTPHandleFunc(s.handleGetActivityStats), protectedChain...))
 
-	router.Handle("/weather", buildChain(makeHTTPHandleFunc(s.handlePOSTWeather), publicChain...))
 
 	router.Handle("/register", buildChain(makeHTTPHandleFunc(s.handleRegistration), publicChain...))
 	router.Handle("/login", buildChain(makeHTTPHandleFunc(s.handleLogin), publicChain...))
@@ -121,15 +120,6 @@ func (s *APIServer) Run() {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func (s *APIServer) handlePOSTWeather(w http.ResponseWriter, r *http.Request) error {
-	ws := service.NewWeatherService()
-	weather, err := ws.GetWeather()
-	if err != nil {
-		return err
-	}
-	return WriteJSON(w, http.StatusOK, weather)
 }
 
 type apiFunc func(http.ResponseWriter, *http.Request) error
