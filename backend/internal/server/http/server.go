@@ -177,10 +177,13 @@ var originAllowlist = []string{
 	"http://127.0.0.1:3000",
 	"http://localhost:5173",
 	"http://localhost:3000",
+	"http://localhost:8080",
 	"http://frontend.localhost",
 	"http://frontend.localhost/",
 	"http://frontend.localhost:80/",
 	"http://frontend.localhost:80",
+	"https://velovoyager.com/",
+	"https://velovoyager.com",
 }
 
 func handleOptions(w http.ResponseWriter, r *http.Request) {

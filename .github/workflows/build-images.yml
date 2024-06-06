@@ -1,18 +1,19 @@
-name: CI/CD Pipeline - Test and Build Docker Images
+name: CI/CD Pipeline (Preview) - Test and Build Docker Images
 
 on:
   push:
     branches:
-      - main
+      - develop
     paths:
-      - '**'
+      - "**"
   pull_request:
     paths:
-      - '**'
+      - "**"
   workflow_dispatch:
 
 jobs:
   determine-changes:
+    if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
@@ -31,7 +32,7 @@ jobs:
 
   backend-test:
     needs: [determine-changes]
-    if: needs.determine-changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
+    # if: needs.determine-changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -43,26 +44,25 @@ jobs:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_API_KEY: ${{ secrets.SUPABASE_KEY }}
       SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
-      ENV: 'preview'
+      ENV: "preview"
     steps:
       - uses: actions/checkout@v4
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22.x'
+          go-version: "1.22.x"
       - name: Install dependencies
         run: go mod download
       - name: Test with the Go CLI
         run: go test ./...
 
-  backend-build:
-    needs: [backend-test]
+  frontend-build-push:
+    needs: [determine-changes]
+    if: needs.determine-changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./backend
-    outputs:
-      backend_image_tag: ${{ steps.set_image_tag.outputs.image_tag }}
+        working-directory: ./frontend
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -71,20 +71,38 @@ jobs:
       - name: Set IMAGE_TAG
         id: set_image_tag
         run: echo "IMAGE_TAG=${GITHUB_SHA}" >> $GITHUB_ENV
-      - name: Build backend Docker image
-        id: build_backend
+      - name: Set DATESTAMP
+        id: set_datestamp
+        run: echo "DATESTAMP=$(date +'%Y%m%d')" >> $GITHUB_ENV
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Build and push frontend Docker image
         run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${IMAGE_TAG} .
+          docker build --build-arg VITE_API_URL=${{ secrets.API_URL }} --build-arg VITE_SUPABASE_URL=${{ secrets.SUPABASE_URL }} --build-arg VITE_SUPABASE_API_KEY=${{ secrets.SUPABASE_API_KEY }} -t ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${IMAGE_TAG} .
+          docker tag ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${IMAGE_TAG} ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:latest
+          docker tag ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${IMAGE_TAG} ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${DATESTAMP}
+          docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${IMAGE_TAG}
+          docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${DATESTAMP}
 
-  frontend-build:
-    needs: [determine-changes]
-    if: needs.determine-changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch'
+  frontend-trigger-deployment:
+    needs: [frontend-build-push]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger deployment webhook
+        run: |
+          curl -X POST ${{ secrets.FRONTEND_PREVIEW_WEBHOOK }} -H "Content-Type: application/json" -d '{"image_tag": "${{ env.IMAGE_TAG }}", "datestamp": "${{ env.DATESTAMP }}"}'
+
+  backend-build-push:
+    needs: [backend-test]
+    if: needs.determine-changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./frontend
-    outputs:
-      frontend_image_tag: ${{ steps.set_image_tag.outputs.image_tag }}
+        working-directory: ./backend
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -92,56 +110,70 @@ jobs:
         uses: docker/setup-buildx-action@v1
       - name: Set IMAGE_TAG
         id: set_image_tag
-        run: echo "IMAGE_TAG=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
-      - name: Build frontend Docker image
-        id: build_frontend
-        run: |
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${IMAGE_TAG} .
-
-  backend-push:
-    needs: [backend-build]
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      - name: Login to DockerHub
-        uses: docker/login-action@v1
+        run: echo "IMAGE_TAG=${GITHUB_SHA}" >> $GITHUB_ENV
+      - name: Set DATESTAMP
+        id: set_datestamp
+        run: echo "DATESTAMP=$(date +'%Y%m%d')" >> $GITHUB_ENV
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Debug IMAGE_TAG
-        run: echo "IMAGE_TAG=${{ needs.backend-build.outputs.backend_image_tag }}"
-      - name: Push backend Docker image
-        env:
-          IMAGE_TAG: ${{ needs.backend-build.outputs.backend_image_tag }}
+      - name: Build and push backend Docker image
         run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${{ env.IMAGE_TAG }}
-          docker tag ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${{ env.IMAGE_TAG }} ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:latest
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${IMAGE_TAG} .
+          docker tag ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${IMAGE_TAG} ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:latest
+          docker tag ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${IMAGE_TAG} ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${DATESTAMP}
+          docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${IMAGE_TAG}
           docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${DATESTAMP}
 
-  frontend-push:
-    needs: [frontend-build]
-    if: github.ref == 'refs/heads/main'
+  backend-trigger-deployment:
+    needs: [backend-build-push]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      - name: Login to DockerHub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Debug IMAGE_TAG
-        run: echo "IMAGE_TAG=${{ needs.frontend-build.outputs.frontend_image_tag }}"
-      - name: Push frontend Docker image
-        env:
-          IMAGE_TAG: ${{ needs.build_frontend.outputs.frontend_image_tag }}
+      - name: Trigger deployment webhook
         run: |
-          docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${{ env.IMAGE_TAG }}
-          docker tag ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:${{ env.IMAGE_TAG }} ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:latest
-          docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-frontend:latest
+          curl -X POST ${{ secrets.BACKEND_PREVIEW_WEBHOOK }} -H "Content-Type: application/json" -d '{"image_tag": "${{ env.IMAGE_TAG }}", "datestamp": "${{ env.DATESTAMP }}"}'
+
+  # backend-build:
+  #   needs: [backend-test]
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: ./backend
+  #   outputs:
+  #     backend_image_tag: ${{ steps.set_image_tag.outputs.image_tag }}
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v1
+  #     - name: Set IMAGE_TAG
+  #       id: set_image_tag
+  #       run: echo "image_tag=${GITHUB_SHA}" >> $GITHUB_OUTPUT
+  #     - name: Build backend Docker image
+  #       run: |
+  #         docker build -t ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${{ steps.set_image_tag.outputs.image_tag }} .
+
+  # backend-push:
+  #   needs: [backend-build]
+  #   if: github.ref == 'refs/heads/main'
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v1
+  #     - name: Login to DockerHub
+  #       uses: docker/login-action@v1
+  #       with:
+  #         username: ${{ secrets.DOCKER_USERNAME }}
+  #         password: ${{ secrets.DOCKER_PASSWORD }}
+  #     - name: Debug IMAGE_TAG
+  #       run: echo "IMAGE_TAG=${{ needs.backend-build.outputs.backend_image_tag }}"
+  #     - name: Push backend Docker image
+  #       run: |
+  #         docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${{ needs.backend-build.outputs.backend_image_tag }}
+  #         docker tag ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:${{ needs.backend-build.outputs.backend_image_tag }} ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:latest
+  #         docker push ${{ secrets.DOCKER_USERNAME }}/velovoyager-backend:latest

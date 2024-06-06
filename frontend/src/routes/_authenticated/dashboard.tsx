@@ -265,27 +265,28 @@ function Dashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {activities?.map((activity) => (
-                      <TableRow className="bg-accent">
-                        <TableCell>
-                          <div className="font-medium">
-                            <Badge className="rounded-md">Ride</Badge>
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell">
-                          {activity?.activityName}
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell">
-                          {activity.totalTimeChar}
-                          {/* <Badge className="text-xs" variant="secondary">
+                    {activities &&
+                      activities?.map((activity) => (
+                        <TableRow className="bg-accent">
+                          <TableCell>
+                            <div className="font-medium">
+                              <Badge className="rounded-md">Ride</Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell">
+                            {activity?.activityName}
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell">
+                            {activity.totalTimeChar}
+                            {/* <Badge className="text-xs" variant="secondary">
                             Fulfilled
                           </Badge> */}
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          {activity.distance} (unit)
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            {activity.distance} (unit)
+                          </TableCell>
+                        </TableRow>
+                      ))}
                   </TableBody>
                 </Table>
               </CardContent>

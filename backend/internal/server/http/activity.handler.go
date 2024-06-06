@@ -13,7 +13,6 @@ func (s *APIServer) handleGetActivity(w http.ResponseWriter, r *http.Request) er
 	activityID, err := strconv.ParseInt(q.Get("activityId"), 10, 32)
 
 	if err != nil {
-
 		slog.Error("Error converting activity ID:", err)
 		return WriteJSON(w, http.StatusBadRequest, ApiError{Error: "activityId is either missing or must be a number"})
 
