@@ -16,6 +16,10 @@ interface Activity {
 interface Record {
   id: number;
   coordinates: Coordinates;
+  distance: number;
+  speed: number;
+  timeStamp: number;
+  heartRate?: number;
 }
 
 interface Coordinates {

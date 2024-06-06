@@ -48,8 +48,12 @@ type Point struct {
 }
 
 type Record struct {
-	ID          int32 `json:"id"`
-	Coordinates Point `json:"coordinates"`
+	ID          int32     `json:"id"`
+	Coordinates Point     `json:"coordinates"`
+	Speed       float64   `json:"speed"`
+	TimeStamp   time.Time `json:"timeStamp"`
+	Distance    int32     `json:"distance"`
+	HeartRate   int16     `json:"heartRate"`
 }
 
 type ActivityService interface {
@@ -241,6 +245,7 @@ func (s *activityService) processRecords(records []*fit.RecordMsg) ([]db.CreateR
 				EnhancedAltitude: pgtype.Int4{Int32: int32(record.EnhancedAltitude), Valid: true},
 				ActivityID:       pgtype.Int4{Int32: int32(0)},
 			}
+
 			recordEntities = append(recordEntities, newRecord)
 
 			if index != 0 {
@@ -355,8 +360,14 @@ func convertActivityEntityToDomainModel(activityEntity *db.ActivityWithRecordsVi
 func convertRecords(recordEntities []db.Record) []Record {
 	records := make([]Record, len(recordEntities))
 	for i, record := range recordEntities {
+
+		fmt.Printf("heart rate %d\n", record.HeartRate.Int16)
 		records[i] = Record{
-			ID: record.ID,
+			ID:        record.ID,
+			Speed:     utils.ConvertSpeed(record.Speed.Int32),
+			TimeStamp: record.TimeStamp.Time,
+			HeartRate: record.HeartRate.Int16,
+			Distance:  record.Distance.Int32,
 			Coordinates: Point{
 				X: record.Position.P.X,
 				Y: record.Position.P.Y,
