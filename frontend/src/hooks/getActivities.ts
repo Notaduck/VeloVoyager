@@ -32,7 +32,6 @@ const fetchActivities = async ({
       },
     }
   );
-  console.log("Query data", data);
 
   return data;
 };

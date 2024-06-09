@@ -45,7 +45,7 @@ type Record struct {
 	TimeStamp        pgtype.Timestamptz `json:"timeStamp"`
 	Position         pgtype.Point       `json:"position"`
 	Altitude         pgtype.Int4        `json:"altitude"`
-	HeartRate        pgtype.Int2        `json:"heartRate"`
+	HeartRate        pgtype.Int2        `json:"heart_rate"`
 	Cadence          pgtype.Int2        `json:"cadence"`
 	Distance         pgtype.Int4        `json:"distance"`
 	Speed            pgtype.Int4        `json:"speed"`

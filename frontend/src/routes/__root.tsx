@@ -55,7 +55,7 @@ function Header() {
   }, []);
   return (
     <header
-      className={`flex transition-shadow  sticky top-0 items-center px-4 w-full h-20 shrink-0 md:px-6 bg-white ${
+      className={`flex transition-shadow  sticky top-0 items-center px-4 w-full h-16 shrink-0 md:px-6 bg-white z-10 ${
         isScrolled ? "shadow-md" : "z-10"
       }`}
     >

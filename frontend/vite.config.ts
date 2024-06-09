@@ -64,7 +64,7 @@ const DEFAULT_OPTIONS = {
     // https://sharp.pixelplumbing.com/api-output#avif
     lossless: true,
   },
-  cache: false,
+  cache: true,
   cacheLocation: undefined,
 };
 

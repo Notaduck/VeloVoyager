@@ -49,7 +49,6 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
     const jwt = await (supabase as SupabaseClient).auth
       .getSession()
       .then((session) => session.data.session?.access_token);
-    console.log("jwt", jwt);
     return {
       activities: await queryClient.ensureQueryData(postsQueryOptions(jwt!)),
       authToken: jwt,
@@ -103,8 +102,6 @@ function Dashboard() {
       } else {
         methods.setValue("files", acceptedFiles);
         methods.clearErrors("files");
-
-        console.log("handleOnDrop", authToken);
 
         mutate({ files: acceptedFiles, jwtToken: authToken! }); // Call the upload function here
       }
