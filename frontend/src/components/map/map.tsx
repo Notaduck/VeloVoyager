@@ -8,6 +8,8 @@ mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 type Props = {
   route: number[][];
   records: Record[];
+  initialLng: number;
+  initialLat: number;
 };
 
 interface Record {
@@ -19,16 +21,16 @@ interface Record {
   heartRate?: number;
 }
 
-interface Coordinates {
+export interface Coordinates {
   x: number;
   y: number;
 }
 
-export default function Map({ route, records }: Props) {
+export default function Map({ route, records, initialLat, initialLng }: Props) {
   const mapContainer = useRef(null);
   const map = useRef(null);
-  const [lng, setLng] = useState(12.5452754);
-  const [lat, setLat] = useState(55.6237343);
+  const [lng, setLng] = useState(initialLng);
+  const [lat, setLat] = useState(initialLat);
   const [zoom, setZoom] = useState(9);
   const [hoveredRecordId, setHoveredRecordId] = useState<number | null>(null);
 
@@ -161,7 +163,7 @@ export default function Map({ route, records }: Props) {
         )}
       </div>
       <div
-        className="p-4 w-full bg-white rounded-lg shadow-md map-container"
+        className="w-full bg-white rounded-lg shadow-md map-container"
         ref={mapContainer}
       />
     </div>

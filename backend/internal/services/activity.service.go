@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
-	"math/big"
 	"mime/multipart"
 	"path/filepath"
 	"sync"
@@ -29,18 +28,6 @@ type Activity struct {
 	TotalTime    string    `json:"totalTime"`
 	Records      []Record  `json:"records"`
 }
-
-// type ActivityStats struct {
-// 	ID           int32     `json:"id"`
-// 	CreatedAt    time.Time `json:"createdAt"`
-// 	Distance     float64   `json:"distance"`
-// 	ActivityName string    `json:"activityName"`
-// 	AvgSpeed     float64   `json:"avgSpeed"`
-// 	MaxSpeed     float64   `json:"maxSpeed"`
-// 	ElapsedTime  string    `json:"elapsedTime"`
-// 	TotalTime    string    `json:"totalTime"`
-// 	Records      []Record  `json:"records"`
-// }
 
 type Point struct {
 	X float64 `json:"x"`
@@ -182,19 +169,20 @@ func (s *activityService) createActivityRecord(ctx context.Context, activity *fi
 		Valid:        true,
 	}
 
+	dateOfActivity := pgtype.Timestamptz{
+		Time:  activity.Activity.LocalTimestamp,
+		Valid: true,
+	}
+
 	activityId, err := s.activityRepo.CreateActivity(ctx, db.CreateActivityParams{
-		Distance:        stats.Distance,
-		UserID:          userId,
-		TotalTime:       totalRideTime,
-		ElapsedTime:     elapsedTime,
-		AvgSpeed:        stats.AvgSpeed,
-		MaxSpeed:        stats.MaxSpeed,
-		ActivityName:    getActivityName(activity.Activity.LocalTimestamp),
-		WeatherImpact:   pgtype.Numeric{Int: big.NewInt(0), Valid: true},
-		Headwind:        2,
-		LongestHeadwind: pgtype.Time{Microseconds: 0, Valid: true},
-		AirSpeed:        pgtype.Numeric{Int: big.NewInt(0), Valid: true},
-		Temp:            pgtype.Numeric{Int: big.NewInt(0), Valid: true},
+		Distance:       stats.Distance,
+		UserID:         userId,
+		TotalTime:      totalRideTime,
+		ElapsedTime:    elapsedTime,
+		AvgSpeed:       stats.AvgSpeed,
+		MaxSpeed:       stats.MaxSpeed,
+		ActivityName:   getActivityName(activity.Activity.LocalTimestamp),
+		DateOfActivity: dateOfActivity,
 	})
 	if err != nil {
 		return nil, err
@@ -262,14 +250,6 @@ func (s *activityService) processRecords(records []*fit.RecordMsg) ([]db.CreateR
 				long2 := record.PositionLong.Degrees()
 				lat1 := records[index-1].PositionLat.Degrees()
 				long1 := records[index-1].PositionLong.Degrees()
-
-				lat2Rad := record.PositionLat.Semicircles()
-				long2Rad := record.PositionLong.Semicircles()
-				lat1Rad := records[index-1].PositionLat.Semicircles()
-				long1Rad := records[index-1].PositionLong.Semicircles()
-
-				bearing := utils.CalculateBearing(float64(lat1Rad), float64(long1Rad), float64(lat2Rad), float64(long2Rad))
-				newRecord.Bearing = bearing
 
 				if !math.IsNaN(lat1) && !math.IsNaN(long1) && !math.IsNaN(lat2) && !math.IsNaN(long2) {
 					distance += utils.Haversine(lat1, long1, lat2, long2)
@@ -361,7 +341,6 @@ func convertRecords(recordEntities []db.Record) []Record {
 	records := make([]Record, len(recordEntities))
 	for i, record := range recordEntities {
 
-		fmt.Printf("heart rate %d\n", record.HeartRate.Int16)
 		records[i] = Record{
 			ID:        record.ID,
 			Speed:     utils.ConvertSpeed(record.Speed.Int32),

@@ -1,3 +1,5 @@
+DROP VIEW IF EXISTS activity_with_records_view;
+
 CREATE VIEW activity_with_records_view AS 
 SELECT 
     a.id,

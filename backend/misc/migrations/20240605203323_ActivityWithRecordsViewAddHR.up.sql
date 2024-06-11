@@ -15,7 +15,7 @@ SELECT
     TO_CHAR(a.total_time, 'HH24:MI:SS') AS total_time_char,
     JSON_AGG(r.*) AS records
 FROM activities a
-JOIN records r ON r.activity_id = a.i
+JOIN records r ON r.activity_id = a.id
 GROUP BY 
     a.id, 
     a.created_at,

@@ -1,6 +1,7 @@
 -- name: GetActivity :one
 SELECT 
     a.*,
+    a.date_of_activity,
     TO_CHAR(elapsed_time, 'HH24:MI:SS') as elapsed_time_char,
     TO_CHAR(total_time, 'HH24:MI:SS') as total_time_char
 FROM activities a
@@ -32,11 +33,7 @@ INSERT INTO activities (
     max_speed,
     elapsed_time,
     total_time,
-    weather_impact,
-    headwind,
-    longest_headwind,
-    air_speed,
-    temp
+    date_of_activity
 
 ) VALUES (
     $1, 
@@ -46,11 +43,7 @@ INSERT INTO activities (
     $5,
     $6,
     $7,
-    $8,
-    $9,
-    $10,
-    $11,
-    $12
+    $8
 )
 RETURNING id; 
 
@@ -89,3 +82,11 @@ SELECT
     ) AS percentage_change_week
 FROM activities
 WHERE user_id = $1;
+
+-- name: UpdateActivityname :one
+UPDATE activities 
+SET activity_name = $1
+WHERE 
+    id = $2 
+    AND user_id = $3
+RETURNING *;

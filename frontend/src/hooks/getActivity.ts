@@ -20,6 +20,7 @@ interface Record {
   speed: number;
   timeStamp: number;
   heartRate?: number;
+  dateOfActivity: Date;
 }
 
 interface Coordinates {

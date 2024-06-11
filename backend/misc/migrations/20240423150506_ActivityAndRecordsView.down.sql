@@ -1,1 +1,1 @@
-DROP VIEW IF EXISTS VIEW activity_with_records_view;
+DROP VIEW IF EXISTS  activity_with_records_view;
