@@ -9,7 +9,7 @@ const DEFAULT_OPTIONS = {
   test: /\.(jpe?g|png|gif|tiff|webp|svg|avif)$/i,
   exclude: undefined,
   include: undefined,
-  includePublic: true,
+  includePublic: false,
   logStats: true,
   ansiColors: true,
   svg: {
