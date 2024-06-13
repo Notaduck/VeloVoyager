@@ -1,11 +1,59 @@
 package http
 
 import (
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/notaduck/backend/internal/db"
 )
+
+func (s *APIServer) handlePatchActivity(w http.ResponseWriter, r *http.Request) error {
+
+	activityIdStr := r.URL.Query().Get("activityId")
+
+	// Convert the string to an int
+	activityIdInt, err := strconv.Atoi(activityIdStr)
+
+	if err != nil {
+		// Handle error
+		slog.Error("Error converting string to int:", err)
+		return WriteJSON(w, http.StatusBadRequest, ApiError{Error: "no activityId was found."})
+	}
+
+	// Cast the int to int32
+	activityId := int32(activityIdInt)
+
+	req := new(db.UpdateActivitynameParams)
+
+	// Parse the body into req
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		slog.Error("failed to parse body", "err", err.Error())
+		return WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
+	}
+
+	slog.Info("ActivityId", "key", activityId)
+	slog.Info("ActivityName", "key", req.ActivityName)
+	user := RetrieveUserFromContext(r.Context())
+
+	activity, err := s.activityService.UpdateActivity(r.Context(), db.UpdateActivitynameParams{
+		ActivityName: req.ActivityName,
+		ID:           activityId,
+		UserID:       user.ID,
+	})
+
+	if err != nil {
+		slog.Error("failed to fina an activity", "no activity found for", err.Error())
+
+		return WriteJSON(w, http.StatusBadRequest, ApiError{Error: "no activity was found."})
+
+	}
+
+	return WriteJSON(w, http.StatusOK, activity)
+
+}
 
 func (s *APIServer) handleGetActivity(w http.ResponseWriter, r *http.Request) error {
 
