@@ -188,7 +188,6 @@ var originAllowlist = []string{
 func handleOptions(w http.ResponseWriter, r *http.Request) {
 	origin := r.Header.Get("Origin")
 	slog.Info("CORS", "origin", origin)
-	fmt.Println("============>", origin)
 	if slices.Contains(originAllowlist, origin) {
 		w.Header().Set("Access-Control-Allow-Origin", origin)
 		w.Header().Set("Access-Control-Allow-Methods", strings.Join(methodAllowlist, ", "))
@@ -202,7 +201,6 @@ func checkCORS(next http.Handler) http.Handler {
 		origin := r.Header.Get("Origin")
 
 		slog.Info("CORS", "origin", origin)
-		fmt.Println("============>", origin)
 		if slices.Contains(originAllowlist, origin) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Add("Vary", "Origin")
