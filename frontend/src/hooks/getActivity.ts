@@ -84,7 +84,6 @@ const updateActivityFn = async ({
   activityId,
   activityName,
 }: UpdateActivityParams): Promise<Activity> => {
-  console.log(jwtToken, activityId, activityName);
   const { data } = await axios.patch(
     `${import.meta.env.VITE_API_URL}/activity`,
     {
