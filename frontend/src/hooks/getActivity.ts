@@ -11,6 +11,7 @@ interface Activity {
   elapsedTime: string;
   totalTime: string;
   records: Record[];
+  tourDate:string 
 }
 
 interface Record {
@@ -106,10 +107,6 @@ export const useActivity = () => {
 
   const queryClient = useQueryClient()
 
-  const getActivity = useQuery({
-    queryKey: [...QUERY_KEY, ],
-    queryFn: fetchActivity 
-  })
 
   const updateActivity = useMutation<Activity, Error, UpdateActivityParams>({
     mutationKey: ["mutate", "activity"],
@@ -122,6 +119,5 @@ export const useActivity = () => {
 
   return {
     updateActivity,
-    getActivity
   };
 };

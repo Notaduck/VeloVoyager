@@ -1,5 +1,5 @@
 import { ELineChart } from "@/components/charts/eLineChart";
-import Map, { Coordinates } from "@/components/map/map";
+import Map from "@/components/map/map";
 import {
   Card,
   CardContent,
@@ -39,49 +39,6 @@ export const Route = createFileRoute("/_authenticated/activity/$activityId")({
   },
 });
 
-function findCentroid(coordinates: Array<Coordinates>) {
-  let sumX = 0;
-  let sumY = 0;
-  const n = coordinates.length;
-
-  coordinates.forEach((coord) => {
-    sumX += coord.x;
-    sumY += coord.y;
-  });
-
-  const centerX = sumX / n;
-  const centerY = sumY / n;
-
-  return { x: centerX, y: centerY };
-}
-
-function findClosest(dataset: Array<number>, maxKm: number) {
-  const targets = [];
-  const closestIndices = new Set();
-
-  for (let i = 0; i <= maxKm; i += 5) {
-    targets.push(i * 100000); // converting km to cm
-  }
-
-  targets.forEach((target) => {
-    let closestIndex = 0;
-    let minDiff = Math.abs(dataset[0] - target);
-
-    dataset.forEach((value, index) => {
-      const diff = Math.abs(value - target);
-      if (diff < minDiff) {
-        minDiff = diff;
-        closestIndex = index;
-      }
-    });
-
-    closestIndices.add(closestIndex);
-  });
-
-  return dataset.map((value, index) =>
-    closestIndices.has(index) ? value / 10000 : null
-  );
-}
 
 const formSchema = z.object({
   activityName: z.string().min(2).max(50),
