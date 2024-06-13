@@ -27,8 +27,8 @@ export interface Coordinates {
 }
 
 export default function Map({ route, records, initialLat, initialLng }: Props) {
-  const mapContainer = useRef(null);
-  const map = useRef(null);
+  const mapContainer = useRef<HTMLDivElement | null>(null);
+  const map = useRef<mapboxgl.Map | null>(null);
   const [lng, setLng] = useState(initialLng);
   const [lat, setLat] = useState(initialLat);
   const [zoom, setZoom] = useState(9);
@@ -45,29 +45,29 @@ export default function Map({ route, records, initialLat, initialLng }: Props) {
       });
 
       map.current.on("move", () => {
-        setLng(map.current.getCenter().lng.toFixed(4));
-        setLat(map.current.getCenter().lat.toFixed(4));
-        setZoom(map.current.getZoom().toFixed(2));
+        setLng(parseFloat(map.current!.getCenter().lng.toFixed(4)));
+        setLat(parseFloat(map.current!.getCenter().lat.toFixed(4)));
+        setZoom(parseFloat(map.current!.getZoom().toFixed(2)));
       });
 
       // Add the route source
       map.current.on("load", () => {
-        const geojson = {
-          type: "Feature",
-          properties: {},
-          geometry: {
-            type: "LineString",
-            coordinates: route,
+        const geojson: mapboxgl.GeoJSONSourceRaw = {
+          type: "geojson",
+          data: {
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "LineString",
+              coordinates: route,
+            },
           },
         };
 
-        map.current.addSource("route", {
-          type: "geojson",
-          data: geojson,
-        });
+        map.current!.addSource("route", geojson);
 
         // Add the route layer
-        map.current.addLayer({
+        map.current!.addLayer({
           id: "route",
           type: "line",
           source: "route",
@@ -83,25 +83,27 @@ export default function Map({ route, records, initialLat, initialLng }: Props) {
 
         // Add a circle layer for each record
         const points = records.map((record) => ({
-          type: "Feature",
+          type: "Feature" as const,
           properties: {
             id: record.id,
           },
           geometry: {
-            type: "Point",
+            type: "Point" as const,
             coordinates: [record.coordinates.x, record.coordinates.y],
           },
         }));
 
-        map.current.addSource("points", {
+        const pointsSource: mapboxgl.GeoJSONSourceRaw = {
           type: "geojson",
           data: {
             type: "FeatureCollection",
             features: points,
           },
-        });
+        };
 
-        map.current.addLayer({
+        map.current!.addSource("points", pointsSource);
+
+        map.current!.addLayer({
           id: "points",
           type: "circle",
           source: "points",
@@ -112,7 +114,7 @@ export default function Map({ route, records, initialLat, initialLng }: Props) {
         });
 
         // Add a separate layer for the hovered point
-        map.current.addLayer({
+        map.current!.addLayer({
           id: "hovered-point",
           type: "circle",
           source: "points",
@@ -129,11 +131,11 @@ export default function Map({ route, records, initialLat, initialLng }: Props) {
         });
 
         // Handle hover events
-        map.current.on("mousemove", "points", (e) => {
-          if (e.features.length > 0) {
+        map.current!.on("mousemove", "points", (e: mapboxgl.MapMouseEvent & mapboxgl.EventData) => {
+          if (e.features && e.features.length > 0) {
             const feature = e.features[0];
-            setHoveredRecordId(feature.properties.id);
-            map.current.setFeatureState(
+            setHoveredRecordId(feature.properties?.id);
+            map.current!.setFeatureState(
               { source: "points", id: feature.id },
               { hover: true }
             );
@@ -141,14 +143,14 @@ export default function Map({ route, records, initialLat, initialLng }: Props) {
         });
 
         // Change cursor to pointer when hovering over points
-        map.current.on("mouseenter", "points", () => {
-          map.current.getCanvas().style.cursor = "pointer";
+        map.current!.on("mouseenter", "points", () => {
+          map.current!.getCanvas().style.cursor = "pointer";
         });
 
-        map.current.on("mouseleave", "points", () => {
-          map.current.getCanvas().style.cursor = "";
+        map.current!.on("mouseleave", "points", () => {
+          map.current!.getCanvas().style.cursor = "";
           setHoveredRecordId(null);
-          map.current.removeFeatureState({ source: "points" });
+          map.current!.removeFeatureState({ source: "points" });
         });
       });
     }

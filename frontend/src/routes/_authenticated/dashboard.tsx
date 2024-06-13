@@ -28,7 +28,7 @@ import {
 } from "@radix-ui/react-dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@radix-ui/react-tabs";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { Navigate, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Badge } from "@/components/ui/badge";
 import { FormProvider, useForm } from "react-hook-form";
 import {
