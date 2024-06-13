@@ -16,6 +16,7 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as LoginImport } from './routes/login'
 import { Route as AuthenticatedImport } from './routes/_authenticated'
 import { Route as AuthenticatedDashboardImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedActivityActivityIdImport } from './routes/_authenticated/activity/$activityId'
 
 // Create Virtual Routes
 
@@ -42,6 +43,12 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+
+const AuthenticatedActivityActivityIdRoute =
+  AuthenticatedActivityActivityIdImport.update({
+    path: '/activity/$activityId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 // Populate the FileRoutesByPath interface
 
@@ -75,6 +82,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardImport
       parentRoute: typeof AuthenticatedImport
     }
+    '/_authenticated/activity/$activityId': {
+      id: '/_authenticated/activity/$activityId'
+      path: '/activity/$activityId'
+      fullPath: '/activity/$activityId'
+      preLoaderRoute: typeof AuthenticatedActivityActivityIdImport
+      parentRoute: typeof AuthenticatedImport
+    }
   }
 }
 
@@ -84,6 +98,7 @@ export const routeTree = rootRoute.addChildren({
   IndexLazyRoute,
   AuthenticatedRoute: AuthenticatedRoute.addChildren({
     AuthenticatedDashboardRoute,
+    AuthenticatedActivityActivityIdRoute,
   }),
   LoginRoute,
 })

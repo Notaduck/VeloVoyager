@@ -64,7 +64,7 @@ const DEFAULT_OPTIONS = {
     // https://sharp.pixelplumbing.com/api-output#avif
     lossless: true,
   },
-  cache: false,
+  cache: true,
   cacheLocation: undefined,
 };
 
@@ -86,6 +86,9 @@ export default defineConfig({
     ),
 
     "process.env.VITE_API_URL": JSON.stringify(process.env.VITE_API_URL),
+    "process.env.VITE_MAPBOX_TOKEN": JSON.stringify(
+      process.env.VITE_MAPBOX_TOKEN
+    ),
   },
   resolve: {
     alias: {

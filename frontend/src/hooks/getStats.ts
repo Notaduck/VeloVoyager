@@ -24,7 +24,6 @@ const fetchStats = async ({
       "x-jwt-token": jwtToken,
     },
   });
-  console.log("Query data for stats", data);
 
   return data;
 };

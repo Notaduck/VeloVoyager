@@ -9,6 +9,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import "./globals.css";
 import "./index.css";
+import "mapbox-gl/dist/mapbox-gl.css";
 
 console.table(import.meta.env);
 

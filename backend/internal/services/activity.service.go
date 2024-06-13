@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
-	"math/big"
 	"mime/multipart"
 	"path/filepath"
 	"sync"
@@ -30,29 +29,22 @@ type Activity struct {
 	Records      []Record  `json:"records"`
 }
 
-// type ActivityStats struct {
-// 	ID           int32     `json:"id"`
-// 	CreatedAt    time.Time `json:"createdAt"`
-// 	Distance     float64   `json:"distance"`
-// 	ActivityName string    `json:"activityName"`
-// 	AvgSpeed     float64   `json:"avgSpeed"`
-// 	MaxSpeed     float64   `json:"maxSpeed"`
-// 	ElapsedTime  string    `json:"elapsedTime"`
-// 	TotalTime    string    `json:"totalTime"`
-// 	Records      []Record  `json:"records"`
-// }
-
 type Point struct {
 	X float64 `json:"x"`
 	Y float64 `json:"y"`
 }
 
 type Record struct {
-	ID          int32 `json:"id"`
-	Coordinates Point `json:"coordinates"`
+	ID          int32     `json:"id"`
+	Coordinates Point     `json:"coordinates"`
+	Speed       float64   `json:"speed"`
+	TimeStamp   time.Time `json:"timeStamp"`
+	Distance    int32     `json:"distance"`
+	HeartRate   int16     `json:"heartRate"`
 }
 
 type ActivityService interface {
+	UpdateActivity(ctx context.Context, activityData db.UpdateActivitynameParams) (db.Activity, error)
 	GetSingleActivityById(ctx context.Context, activityId int32, userId string) (*Activity, error)
 	GetActivities(ctx context.Context, userId string) ([]db.GetActivitiesRow, error)
 	CreateActivities(ctx context.Context, files []*multipart.FileHeader, userID string) ([]*Activity, error)
@@ -83,6 +75,20 @@ func (s *activityService) GetActivities(ctx context.Context, userId string) ([]d
 	// activityDetails := convertActivityEntityToDomainModel(&activityEntity)
 
 	return activities, nil
+}
+
+func (s *activityService) UpdateActivity(ctx context.Context, activityData db.UpdateActivitynameParams) (db.Activity, error) {
+
+	slog.Info(activityData.ActivityName, slog.Int("id", int(activityData.ID)), slog.String("userID", activityData.UserID))
+
+	activity, err := s.activityRepo.UpdateActivity(ctx, activityData)
+
+	if err != nil {
+		return db.Activity{}, err
+	}
+
+	return activity, nil
+
 }
 
 func (s *activityService) GetSingleActivityById(ctx context.Context, activityId int32, userId string) (*Activity, error) {
@@ -178,19 +184,20 @@ func (s *activityService) createActivityRecord(ctx context.Context, activity *fi
 		Valid:        true,
 	}
 
+	dateOfActivity := pgtype.Timestamptz{
+		Time:  activity.Activity.LocalTimestamp,
+		Valid: true,
+	}
+
 	activityId, err := s.activityRepo.CreateActivity(ctx, db.CreateActivityParams{
-		Distance:        stats.Distance,
-		UserID:          userId,
-		TotalTime:       totalRideTime,
-		ElapsedTime:     elapsedTime,
-		AvgSpeed:        stats.AvgSpeed,
-		MaxSpeed:        stats.MaxSpeed,
-		ActivityName:    getActivityName(activity.Activity.LocalTimestamp),
-		WeatherImpact:   pgtype.Numeric{Int: big.NewInt(0), Valid: true},
-		Headwind:        2,
-		LongestHeadwind: pgtype.Time{Microseconds: 0, Valid: true},
-		AirSpeed:        pgtype.Numeric{Int: big.NewInt(0), Valid: true},
-		Temp:            pgtype.Numeric{Int: big.NewInt(0), Valid: true},
+		Distance:       stats.Distance,
+		UserID:         userId,
+		TotalTime:      totalRideTime,
+		ElapsedTime:    elapsedTime,
+		AvgSpeed:       stats.AvgSpeed,
+		MaxSpeed:       stats.MaxSpeed,
+		ActivityName:   getActivityName(activity.Activity.LocalTimestamp),
+		DateOfActivity: dateOfActivity,
 	})
 	if err != nil {
 		return nil, err
@@ -241,6 +248,7 @@ func (s *activityService) processRecords(records []*fit.RecordMsg) ([]db.CreateR
 				EnhancedAltitude: pgtype.Int4{Int32: int32(record.EnhancedAltitude), Valid: true},
 				ActivityID:       pgtype.Int4{Int32: int32(0)},
 			}
+
 			recordEntities = append(recordEntities, newRecord)
 
 			if index != 0 {
@@ -257,14 +265,6 @@ func (s *activityService) processRecords(records []*fit.RecordMsg) ([]db.CreateR
 				long2 := record.PositionLong.Degrees()
 				lat1 := records[index-1].PositionLat.Degrees()
 				long1 := records[index-1].PositionLong.Degrees()
-
-				lat2Rad := record.PositionLat.Semicircles()
-				long2Rad := record.PositionLong.Semicircles()
-				lat1Rad := records[index-1].PositionLat.Semicircles()
-				long1Rad := records[index-1].PositionLong.Semicircles()
-
-				bearing := utils.CalculateBearing(float64(lat1Rad), float64(long1Rad), float64(lat2Rad), float64(long2Rad))
-				newRecord.Bearing = bearing
 
 				if !math.IsNaN(lat1) && !math.IsNaN(long1) && !math.IsNaN(lat2) && !math.IsNaN(long2) {
 					distance += utils.Haversine(lat1, long1, lat2, long2)
@@ -355,8 +355,13 @@ func convertActivityEntityToDomainModel(activityEntity *db.ActivityWithRecordsVi
 func convertRecords(recordEntities []db.Record) []Record {
 	records := make([]Record, len(recordEntities))
 	for i, record := range recordEntities {
+
 		records[i] = Record{
-			ID: record.ID,
+			ID:        record.ID,
+			Speed:     utils.ConvertSpeed(record.Speed.Int32),
+			TimeStamp: record.TimeStamp.Time,
+			HeartRate: record.HeartRate.Int16,
+			Distance:  record.Distance.Int32,
 			Coordinates: Point{
 				X: record.Position.P.X,
 				Y: record.Position.P.Y,

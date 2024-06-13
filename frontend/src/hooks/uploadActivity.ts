@@ -44,7 +44,6 @@ export const useUploadActivities = () => {
       queryClient.refetchQueries({ queryKey: ["posts"] });
     },
     onSuccess: (data) => {
-      console.log("File uploaded successfully", data);
       queryClient.invalidateQueries();
     },
     onError: (error) => {
