@@ -10,10 +10,6 @@ import (
 	"github.com/notaduck/backend/internal/db"
 )
 
-type patchActivity struct {
-	ActivityName string `json:"activityName"`
-}
-
 func (s *APIServer) handlePatchActivity(w http.ResponseWriter, r *http.Request) error {
 
 	activityIdStr := r.URL.Query().Get("activityId")
