@@ -79,6 +79,8 @@ func (s *activityService) GetActivities(ctx context.Context, userId string) ([]d
 
 func (s *activityService) UpdateActivity(ctx context.Context, activityData db.UpdateActivitynameParams) (db.Activity, error) {
 
+	slog.Info(activityData.ActivityName, slog.Int("id", int(activityData.ID)), slog.String("userID", activityData.UserID))
+
 	activity, err := s.activityRepo.UpdateActivity(ctx, activityData)
 
 	if err != nil {

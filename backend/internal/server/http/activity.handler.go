@@ -1,6 +1,7 @@
 package http
 
 import (
+	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -31,18 +32,20 @@ func (s *APIServer) handlePatchActivity(w http.ResponseWriter, r *http.Request) 
 
 	req := new(db.UpdateActivitynameParams)
 
-	if err != nil {
+	// Parse the body into req
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		slog.Error("failed to parse body", "err", err.Error())
 		return WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
-
 	}
 
 	slog.Info("ActivityId", "key", activityId)
+	slog.Info("ActivityName", "key", req.ActivityName)
+	user := RetrieveUserFromContext(r.Context())
 
 	activity, err := s.activityService.UpdateActivity(r.Context(), db.UpdateActivitynameParams{
 		ActivityName: req.ActivityName,
 		ID:           activityId,
-		UserID:       req.UserID,
+		UserID:       user.ID,
 	})
 
 	if err != nil {

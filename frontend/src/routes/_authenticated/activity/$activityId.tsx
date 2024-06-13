@@ -88,6 +88,7 @@ const formSchema = z.object({
 });
 
 function Activity() {
+
   const { activity, authToken } = Route.useLoaderData();
   const { updateActivity } = useActivity();
 
@@ -124,7 +125,7 @@ function Activity() {
   const syncGroup = 1;
 
   const onSubmit = (data: z.infer<typeof formSchema>) => {
-    if (data.activityName != activity.activityName) {
+    if (data.activityName != activity.activityName && authToken) {
       const params = {
         jwtToken: authToken,
         activityId: activity.id, // replace with actual activity id
@@ -133,6 +134,8 @@ function Activity() {
 
       updateActivity.mutate(params, {
         onSuccess: (data) => {
+
+          Route.router?.dehydratedData()
           console.log("Activity updated successfully:", data);
         },
         onError: (error) => {

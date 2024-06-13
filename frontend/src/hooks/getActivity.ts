@@ -1,4 +1,4 @@
-import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
+import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 
 interface Activity {
@@ -57,6 +57,27 @@ const fetchActivity = async ({
   return data;
 };
 
+
+export const activityQueryOptions = ({
+  jwtToken,
+  activityId,
+}: GetActivityParas) =>
+  queryOptions({
+    queryKey: [...QUERY_KEY, activityId],
+    queryFn: () => fetchActivity({ jwtToken, activityId }),
+  });
+
+export const useGetActivities = ({
+  jwtToken,
+  activityId,
+}: GetActivityParas) => {
+  return useQuery<Activity, Error>({
+    queryKey: [...QUERY_KEY, activityId],
+    queryFn: () => fetchActivity({ jwtToken, activityId }),
+  });
+};
+
+
 const updateActivityFn = async ({
   jwtToken,
   activityId,
@@ -81,32 +102,26 @@ const updateActivityFn = async ({
   return data;
 };
 
-export const activityQueryOptions = ({
-  jwtToken,
-  activityId,
-}: GetActivityParas) =>
-  queryOptions({
-    queryKey: [...QUERY_KEY, activityId],
-    queryFn: () => fetchActivity({ jwtToken, activityId }),
-  });
-
-export const useGetActivities = ({
-  jwtToken,
-  activityId,
-}: GetActivityParas) => {
-  return useQuery<Activity, Error>({
-    queryKey: [...QUERY_KEY, activityId],
-    queryFn: () => fetchActivity({ jwtToken, activityId }),
-  });
-};
-
 export const useActivity = () => {
+
+  const queryClient = useQueryClient()
+
+  const getActivity = useQuery({
+    queryKey: [...QUERY_KEY, ],
+    queryFn: fetchActivity 
+  })
+
   const updateActivity = useMutation<Activity, Error, UpdateActivityParams>({
     mutationKey: ["mutate", "activity"],
     mutationFn: updateActivityFn,
+    onSuccess: (activity) => {
+      queryClient.setQueryData([ ...QUERY_KEY, activity.id ],activity)
+      queryClient.invalidateQueries({queryKey: [...QUERY_KEY, activity.id]});
+    }
   });
 
   return {
     updateActivity,
+    getActivity
   };
 };
