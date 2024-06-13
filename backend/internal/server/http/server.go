@@ -98,6 +98,7 @@ func (s *APIServer) Run() {
 	}
 
 	router.Handle("GET /activity/", buildChain(makeHTTPHandleFunc(s.handleGetActivity), protectedChain...))
+	router.Handle("PATCH /activity", buildChain(makeHTTPHandleFunc(s.handlePatchActivity), protectedChain...))
 	router.Handle("GET /activities", buildChain(makeHTTPHandleFunc(s.handleGetActivities), protectedChain...))
 	router.Handle("POST /activity", buildChain(makeHTTPHandleFunc(s.handlePostActivity), protectedChain...))
 	router.Handle("GET /stats", buildChain(makeHTTPHandleFunc(s.handleGetActivityStats), protectedChain...))
@@ -171,7 +172,7 @@ func WriteJSON(w http.ResponseWriter, status int, v any) error {
 	return json.NewEncoder(w).Encode(v)
 }
 
-var methodAllowlist = []string{"GET", "POST", "DELETE", "OPTIONS"}
+var methodAllowlist = []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"}
 
 func isPreflight(r *http.Request) bool {
 	return r.Method == "OPTIONS" &&

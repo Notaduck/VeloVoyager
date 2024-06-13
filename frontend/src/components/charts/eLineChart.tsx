@@ -18,7 +18,6 @@ export const ELineChart: FC<Props> = ({ y, x, xLabel, yLabel }) => {
       data: x,
       axisLabel: {
         formatter: function (value: number) {
-          console.log(value);
           return value === null ? value + "km" : "";
         },
       },

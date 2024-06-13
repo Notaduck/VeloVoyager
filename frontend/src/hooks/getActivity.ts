@@ -1,4 +1,4 @@
-import { queryOptions, useQuery } from "@tanstack/react-query";
+import { queryOptions, useMutation, useQuery } from "@tanstack/react-query";
 import axios from "axios";
 
 interface Activity {
@@ -33,6 +33,12 @@ type GetActivityParas = {
   activityId: number;
 };
 
+type UpdateActivityParams = {
+  jwtToken: string;
+  activityId: number;
+  activityName: string;
+};
+
 const QUERY_KEY = ["activity"];
 
 const fetchActivity = async ({
@@ -47,6 +53,30 @@ const fetchActivity = async ({
       activityId: activityId,
     },
   });
+
+  return data;
+};
+
+const updateActivityFn = async ({
+  jwtToken,
+  activityId,
+  activityName,
+}: UpdateActivityParams): Promise<Activity> => {
+  console.log(jwtToken, activityId, activityName);
+  const { data } = await axios.patch(
+    `${import.meta.env.VITE_API_URL}/activity`,
+    {
+      activityName, // Body data should be an object
+    },
+    {
+      headers: {
+        "x-jwt-token": jwtToken,
+      },
+      params: {
+        activityId: activityId,
+      },
+    }
+  );
 
   return data;
 };
@@ -68,4 +98,15 @@ export const useGetActivities = ({
     queryKey: [...QUERY_KEY, activityId],
     queryFn: () => fetchActivity({ jwtToken, activityId }),
   });
+};
+
+export const useActivity = () => {
+  const updateActivity = useMutation<Activity, Error, UpdateActivityParams>({
+    mutationKey: ["mutate", "activity"],
+    mutationFn: updateActivityFn,
+  });
+
+  return {
+    updateActivity,
+  };
 };

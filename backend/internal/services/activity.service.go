@@ -44,6 +44,7 @@ type Record struct {
 }
 
 type ActivityService interface {
+	UpdateActivity(ctx context.Context, activityData db.UpdateActivitynameParams) (db.Activity, error)
 	GetSingleActivityById(ctx context.Context, activityId int32, userId string) (*Activity, error)
 	GetActivities(ctx context.Context, userId string) ([]db.GetActivitiesRow, error)
 	CreateActivities(ctx context.Context, files []*multipart.FileHeader, userID string) ([]*Activity, error)
@@ -74,6 +75,18 @@ func (s *activityService) GetActivities(ctx context.Context, userId string) ([]d
 	// activityDetails := convertActivityEntityToDomainModel(&activityEntity)
 
 	return activities, nil
+}
+
+func (s *activityService) UpdateActivity(ctx context.Context, activityData db.UpdateActivitynameParams) (db.Activity, error) {
+
+	activity, err := s.activityRepo.UpdateActivity(ctx, activityData)
+
+	if err != nil {
+		return db.Activity{}, err
+	}
+
+	return activity, nil
+
 }
 
 func (s *activityService) GetSingleActivityById(ctx context.Context, activityId int32, userId string) (*Activity, error) {

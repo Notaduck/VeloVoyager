@@ -8,29 +8,25 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { activityQueryOptions } from "@/hooks/getActivity";
+import { activityQueryOptions, useActivity } from "@/hooks/getActivity";
 import { Pencil2Icon } from "@radix-ui/react-icons";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Form, FormProvider, useForm } from "react-hook-form";
+import { FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "@/components/ui/button";
 import {
   FormField,
   FormItem,
-  FormLabel,
   FormControl,
-  FormDescription,
   FormMessage,
 } from "@/components/ui/form";
 
 export const Route = createFileRoute("/_authenticated/activity/$activityId")({
   component: Activity,
-
   loader: async ({ context: { queryClient, supabase }, ...rest }) => {
-    let activityId = Number(rest.params.activityId);
+    const activityId = Number(rest.params.activityId);
     const jwt = await (supabase as SupabaseClient).auth
       .getSession()
       .then((session) => session.data.session?.access_token);
@@ -63,7 +59,6 @@ function findClosest(dataset: Array<number>, maxKm: number) {
   const targets = [];
   const closestIndices = new Set();
 
-  // Convert target distances to centimeters and store them in targets array
   for (let i = 0; i <= maxKm; i += 5) {
     targets.push(i * 100000); // converting km to cm
   }
@@ -83,10 +78,9 @@ function findClosest(dataset: Array<number>, maxKm: number) {
     closestIndices.add(closestIndex);
   });
 
-  const result = dataset.map((value, index) =>
+  return dataset.map((value, index) =>
     closestIndices.has(index) ? value / 10000 : null
   );
-  return result;
 }
 
 const formSchema = z.object({
@@ -94,20 +88,17 @@ const formSchema = z.object({
 });
 
 function Activity() {
-  const { activity } = Route.useLoaderData();
+  const { activity, authToken } = Route.useLoaderData();
+  const { updateActivity } = useActivity();
 
   const { distance, speed, heartRate, route, x, y } = activity.records.reduce(
     (acc, record) => {
-      // acc.distance.push(record.distance / 100000);
       acc.distance.push(record.distance);
       acc.speed.push(record.speed);
       acc.heartRate.push(record.heartRate!);
-
       acc.route.push([record.coordinates.x, record.coordinates.y]);
-
       acc.x += record.coordinates.x;
       acc.y += record.coordinates.y;
-
       return acc;
     },
     {
@@ -120,21 +111,8 @@ function Activity() {
     }
   );
 
-  // Example dataset of n values in centimeters
-  // // Maximum kilometers to consider (e.g., up to 50 km)
-  // const maxKm = Math.max(...distance) / 100000;
-
-  // // Find closest values
-  // const closestValues = findClosest(distance, maxKm);
-
-  // console.log(
-  //   "Closest values to targets with non-closest set to null:",
-  //   closestValues
-  // );
-
-  const syncGroup = 1;
-
   const formMethods = useForm<z.infer<typeof formSchema>>({
+    mode: "onBlur",
     resolver: zodResolver(formSchema),
     defaultValues: {
       activityName: activity.activityName,
@@ -143,21 +121,38 @@ function Activity() {
 
   const [editTitle, setEditTitle] = useState<boolean>(false);
 
-  const onSubmit = () => {
-    console.log("lll");
+  const syncGroup = 1;
+
+  const onSubmit = (data: z.infer<typeof formSchema>) => {
+    if (data.activityName != activity.activityName) {
+      const params = {
+        jwtToken: authToken,
+        activityId: activity.id, // replace with actual activity id
+        activityName: data.activityName, // replace with the new activity name
+      };
+
+      updateActivity.mutate(params, {
+        onSuccess: (data) => {
+          console.log("Activity updated successfully:", data);
+        },
+        onError: (error) => {
+          console.error("Error updating activity:", error);
+        },
+      });
+    }
+
+    setEditTitle(false);
   };
+
   return (
     <div className="container p-4 mx-auto min-h-screen">
       <div className="grid gap-4">
         <Card>
           <CardHeader>
-            <CardTitle className="">
+            <CardTitle>
               {editTitle ? (
                 <FormProvider {...formMethods}>
-                  <form
-                    onSubmit={formMethods.handleSubmit(onSubmit)}
-                    className="w-full transition-all duration-300 ease-in-out"
-                  >
+                  <form className="w-full transition-all duration-300 ease-in-out">
                     <FormField
                       control={formMethods.control}
                       name="activityName"
@@ -166,7 +161,7 @@ function Activity() {
                           <FormControl>
                             <Input
                               {...field}
-                              onBlur={() => setEditTitle(false)}
+                              onBlur={() => onSubmit(formMethods.getValues())}
                               type="text"
                               placeholder={activity.activityName}
                             />
@@ -190,7 +185,7 @@ function Activity() {
             <CardDescription>
               Avg Speed: {activity.avgSpeed}, Max Speed: {activity.maxSpeed},
               Elapsed Time: {activity.elapsedTime}, Tour Date:{" "}
-              {activity.avgSpeed}
+              {activity.tourDate}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -202,7 +197,7 @@ function Activity() {
             />
 
             <div className="flex items-center">
-              <div className="my-8  w-1/12 h-[2px] bg-gray-600 rounded-lg" />
+              <div className="my-8 w-1/12 h-[2px] bg-gray-600 rounded-lg" />
               <h2 className="px-2">Speed</h2>
               <div className="my-8 w-full h-[2px] bg-gray-800" />
             </div>
@@ -217,7 +212,7 @@ function Activity() {
             />
 
             <div className="flex items-center">
-              <div className="my-8  w-1/12 h-[2px] bg-gray-600 rounded-lg" />
+              <div className="my-8 w-1/12 h-[2px] bg-gray-600 rounded-lg" />
               <h2 className="px-2 text-nowrap">Heart Rate</h2>
               <div className="my-8 w-full h-[2px] bg-gray-800" />
             </div>
