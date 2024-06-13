@@ -11,6 +11,10 @@ interface Activity {
   elapsedTime: string;
   totalTime: string;
   records: Record[];
+<<<<<<< HEAD
+  tourDate:string 
+=======
+>>>>>>> 1c6cc9d4ba8a284c89fe07b82fb94c10a333a216
 }
 
 interface Record {
@@ -106,10 +110,13 @@ export const useActivity = () => {
 
   const queryClient = useQueryClient()
 
+<<<<<<< HEAD
+=======
   const getActivity = useQuery({
     queryKey: [...QUERY_KEY, ],
     queryFn: fetchActivity 
   })
+>>>>>>> 1c6cc9d4ba8a284c89fe07b82fb94c10a333a216
 
   const updateActivity = useMutation<Activity, Error, UpdateActivityParams>({
     mutationKey: ["mutate", "activity"],
@@ -122,6 +129,9 @@ export const useActivity = () => {
 
   return {
     updateActivity,
+<<<<<<< HEAD
+=======
     getActivity
+>>>>>>> 1c6cc9d4ba8a284c89fe07b82fb94c10a333a216
   };
 };
