@@ -121,15 +121,6 @@ func (s *APIServer) Run() {
 	}
 }
 
-func (s *APIServer) handlePOSTWeather(w http.ResponseWriter, r *http.Request) error {
-	ws := service.NewWeatherService()
-	weather, err := ws.GetWeather()
-	if err != nil {
-		return err
-	}
-	return WriteJSON(w, http.StatusOK, weather)
-}
-
 type apiFunc func(http.ResponseWriter, *http.Request) error
 
 type ApiError struct {
