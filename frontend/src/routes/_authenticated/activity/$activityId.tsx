@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { activityQueryOptions, useActivity } from "@/hooks/getActivity";
 import { Pencil2Icon } from "@radix-ui/react-icons";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -39,13 +39,11 @@ export const Route = createFileRoute("/_authenticated/activity/$activityId")({
   },
 });
 
-
 const formSchema = z.object({
   activityName: z.string().min(2).max(50),
 });
 
 function Activity() {
-
   const { activity, authToken } = Route.useLoaderData();
   const { updateActivity } = useActivity();
 
@@ -80,7 +78,7 @@ function Activity() {
   const [editTitle, setEditTitle] = useState<boolean>(false);
 
   const syncGroup = 1;
-
+  const router = useRouter();
   const onSubmit = (data: z.infer<typeof formSchema>) => {
     if (data.activityName != activity.activityName && authToken) {
       const params = {
@@ -90,10 +88,8 @@ function Activity() {
       };
 
       updateActivity.mutate(params, {
-        onSuccess: (data) => {
-
-          Route.router?.dehydratedData()
-          console.log("Activity updated successfully:", data);
+        onSuccess: async (data) => {
+          await router?.invalidate();
         },
         onError: (error) => {
           console.error("Error updating activity:", error);

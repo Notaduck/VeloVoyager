@@ -90,3 +90,16 @@ WHERE
     id = $2 
     AND user_id = $3
 RETURNING *;
+
+-- name: UpdateActivity :one
+WITH updated_activity AS (
+    UPDATE activities 
+    SET activity_name = $1
+    WHERE 
+        activities.id = $2 
+        AND activities.user_id = $3
+    RETURNING activities.id
+)
+SELECT *
+FROM activity_with_records_view awrv
+WHERE awrv.id = (SELECT updated_activity.id FROM updated_activity);

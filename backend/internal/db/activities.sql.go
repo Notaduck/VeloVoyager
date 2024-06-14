@@ -248,6 +248,46 @@ func (q *Queries) GetActivityWithRecordsView(ctx context.Context, id int32) (Act
 	return i, err
 }
 
+const updateActivity = `-- name: UpdateActivity :one
+WITH updated_activity AS (
+    UPDATE activities 
+    SET activity_name = $1
+    WHERE 
+        activities.id = $2 
+        AND activities.user_id = $3
+    RETURNING activities.id
+)
+SELECT id, created_at, user_id, distance, activity_name, avg_speed, max_speed, elapsed_time, total_time, elapsed_time_char, total_time_char, records
+FROM activity_with_records_view awrv
+WHERE awrv.id = (SELECT updated_activity.id FROM updated_activity)
+`
+
+type UpdateActivityParams struct {
+	ActivityName string `json:"activityName"`
+	ID           int32  `json:"id"`
+	UserID       string `json:"userId"`
+}
+
+func (q *Queries) UpdateActivity(ctx context.Context, arg UpdateActivityParams) (ActivityWithRecordsView, error) {
+	row := q.db.QueryRow(ctx, updateActivity, arg.ActivityName, arg.ID, arg.UserID)
+	var i ActivityWithRecordsView
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UserID,
+		&i.Distance,
+		&i.ActivityName,
+		&i.AvgSpeed,
+		&i.MaxSpeed,
+		&i.ElapsedTime,
+		&i.TotalTime,
+		&i.ElapsedTimeChar,
+		&i.TotalTimeChar,
+		&i.Records,
+	)
+	return i, err
+}
+
 const updateActivityname = `-- name: UpdateActivityname :one
 UPDATE activities 
 SET activity_name = $1

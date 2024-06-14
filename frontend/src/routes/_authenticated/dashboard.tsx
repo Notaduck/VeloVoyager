@@ -273,7 +273,7 @@ function Dashboard() {
                           })
                         }
                         key={activity.id}
-                        className="bg-accent"
+                        className="cursor-pointer hover:bg-slate-50"
                       >
                         <TableCell>
                           <div className="font-medium">

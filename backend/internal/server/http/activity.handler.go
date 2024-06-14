@@ -38,7 +38,7 @@ func (s *APIServer) handlePatchActivity(w http.ResponseWriter, r *http.Request) 
 	slog.Info("ActivityName", "key", req.ActivityName)
 	user := RetrieveUserFromContext(r.Context())
 
-	activity, err := s.activityService.UpdateActivity(r.Context(), db.UpdateActivitynameParams{
+	activity, err := s.activityService.UpdateActivity(r.Context(), db.UpdateActivityParams{
 		ActivityName: req.ActivityName,
 		ID:           activityId,
 		UserID:       user.ID,
