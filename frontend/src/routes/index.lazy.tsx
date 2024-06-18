@@ -20,6 +20,7 @@ function Index() {
                   height="550"
                   src={Hero}
                   width="550"
+                  
                 />
                 <div className="flex flex-col justify-center space-y-4">
                   <div className="space-y-2">
