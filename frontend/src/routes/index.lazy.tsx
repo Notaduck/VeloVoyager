@@ -9,9 +9,6 @@ export const Route = createLazyFileRoute("/")({
 function Index() {
   return (
     <div className="p-2">
-<button onClick={()=>{
-throw 'oh no an error'
-}}> Err </button>
       <div className="flex overflow-y-scroll flex-col h-screen snap-y snap-mandatory">
         <main className="flex-1">
           <section className="py-12 w-full h-screen md:py-24 lg:py-32 xl:py-48 snap-start">
