@@ -58,8 +58,8 @@ function Activity() {
       return acc;
     },
     {
-      x: 0,
-      y: 0,
+      x: 0 as number,
+      y: 0 as number,
       distance: [] as number[],
       speed: [] as number[],
       heartRate: [] as number[],
@@ -88,7 +88,7 @@ function Activity() {
       };
 
       updateActivity.mutate(params, {
-        onSuccess: async (data) => {
+        onSuccess: async () => {
           await router?.invalidate();
         },
         onError: (error) => {
