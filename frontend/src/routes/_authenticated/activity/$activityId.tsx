@@ -1,5 +1,4 @@
 import { ELineChart } from "@/components/charts/eLineChart";
-import Map from "@/components/map/map";
 import {
   Card,
   CardContent,
@@ -12,7 +11,7 @@ import { activityQueryOptions, useActivity } from "@/hooks/getActivity";
 import { Pencil2Icon } from "@radix-ui/react-icons";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { useState } from "react";
+import { Suspense, lazy, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,6 +21,8 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
+
+const LazyMap = lazy(() => import("../../../components/map/lazyMap"));
 
 export const Route = createFileRoute("/_authenticated/activity/$activityId")({
   component: Activity,
@@ -145,12 +146,14 @@ function Activity() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Map
-              initialLat={y / activity.records.length}
-              initialLng={x / activity.records.length}
-              records={activity.records}
-              route={route}
-            />
+            <Suspense fallback={<div>Loading map...</div>}>
+              <LazyMap
+                initialLat={y / activity.records.length}
+                initialLng={x / activity.records.length}
+                records={activity.records}
+                route={route}
+              />
+            </Suspense>
 
             <div className="flex items-center">
               <div className="my-8 w-1/12 h-[2px] bg-gray-600 rounded-lg" />
