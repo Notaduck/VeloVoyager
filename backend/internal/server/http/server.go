@@ -25,6 +25,7 @@ type APIServer struct {
 	listenAddr      string
 	queries         *db.Queries
 	activityService service.ActivityService
+	imageService    service.ImageService
 	config          *config.Config
 }
 
@@ -61,6 +62,9 @@ func NewAPIServer(options ...func(*APIServer)) *APIServer {
 	activityRepo := repositories.NewActivityRepository(server.queries)
 	recordRepo := repositories.NewRecordRepository(server.queries)
 	activityService := service.NewActivityService(activityRepo, recordRepo)
+	imageService := service.NewImageService()
+
+	server.imageService = imageService
 	server.activityService = activityService
 
 	return server
@@ -102,6 +106,8 @@ func (s *APIServer) Run() {
 	router.Handle("GET /activities", buildChain(makeHTTPHandleFunc(s.handleGetActivities), protectedChain...))
 	router.Handle("POST /activity", buildChain(makeHTTPHandleFunc(s.handlePostActivity), protectedChain...))
 	router.Handle("GET /stats", buildChain(makeHTTPHandleFunc(s.handleGetActivityStats), protectedChain...))
+
+	router.Handle("POST /activity/image", buildChain(makeHTTPHandleFunc(s.handlePostImage), publicChain...))
 
 	router.Handle("/register", buildChain(makeHTTPHandleFunc(s.handleRegistration), publicChain...))
 
