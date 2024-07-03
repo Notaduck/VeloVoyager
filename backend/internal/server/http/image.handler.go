@@ -14,7 +14,9 @@ func (s *APIServer) handlePostImage(w http.ResponseWriter, r *http.Request) erro
 		http.Error(w, "Error parsing form data", http.StatusBadRequest)
 	}
 
-	err = s.imageService.UploadImage(r.MultipartForm.File)
+	user := RetrieveUserFromContext(r.Context())
+
+	err = s.imageService.UploadImage(r.MultipartForm.File, user.ID)
 
 	if err != nil {
 		return err

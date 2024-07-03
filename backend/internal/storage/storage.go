@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 )
@@ -20,25 +21,34 @@ type storage struct {
 	client *s3.S3
 }
 
-func New(region string) (*storage, error) {
+func New(region, endpoint, accessKeyID, secretAccessKey string) (Storage, error) {
+	// Validate the credentials
+	if accessKeyID == "" || secretAccessKey == "" {
+		return nil, fmt.Errorf("accessKeyID and secretAccessKey must be provided")
+	}
 
-	sess, err := session.NewSession(&aws.Config{
-		Region: aws.String(region),
-	})
+	creds := credentials.NewStaticCredentials(accessKeyID, secretAccessKey, "")
 
+	awsConfig := &aws.Config{
+		Region:           aws.String(region),
+		Endpoint:         aws.String(endpoint),
+		Credentials:      creds,
+		S3ForcePathStyle: aws.Bool(true),
+	}
+
+	sess, err := session.NewSession(awsConfig)
 	if err != nil {
 		slog.Error("Error creating storage session:", err)
 		return nil, err
 	}
-	svc := s3.New(sess)
 
+	svc := s3.New(sess)
 	return &storage{
 		client: svc,
 	}, nil
 }
 
 func (s *storage) Upload(bucket string, key string, file io.Reader) (*s3.PutObjectOutput, error) {
-
 	var buf bytes.Buffer
 	if _, err := io.Copy(&buf, file); err != nil {
 		slog.Error("buffer copy err", fmt.Sprintf("%v", os.Stderr), "Error reading file:", err)
@@ -46,7 +56,7 @@ func (s *storage) Upload(bucket string, key string, file io.Reader) (*s3.PutObje
 	}
 
 	out, err := s.client.PutObject(&s3.PutObjectInput{
-		Bucket: aws.String(bucket),
+		Bucket: aws.String("activity_media"),
 		Key:    aws.String(key),
 		Body:   bytes.NewReader(buf.Bytes()),
 	})
@@ -59,5 +69,4 @@ func (s *storage) Upload(bucket string, key string, file io.Reader) (*s3.PutObje
 	fmt.Println("File uploaded successfully!!!")
 
 	return out, nil
-
 }

@@ -33,11 +33,11 @@ tasks:
   start-all:
     desc: "Start both backend and frontend"
     cmds:
-      - "task watch-backend &"
-      - "task run-frontend"
+      - "go-task watch-backend &"
+      - "go-task run-frontend"
 
   watch-backend:
     desc: "Watch Go files in the backend and rerun tasks"
     cmds:
-      - "cd backend && reflex -r '\\.go$' -s -- sh -c 'task test-backend && task build-backend && task run-backend'"
+      - "cd backend && reflex -r '\\.go$' -s -- sh -c 'go-task test-backend && go-task build-backend && go-task run-backend'"
 # Add a watch task for frontend if needed, using your frontend technology's watch capabilities

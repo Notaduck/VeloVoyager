@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@tanstack/start": "^1.38.1"
+  }
+}

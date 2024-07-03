@@ -14,6 +14,7 @@ import (
 	"github.com/notaduck/backend/internal/db"
 	"github.com/notaduck/backend/internal/repositories"
 	service "github.com/notaduck/backend/internal/services"
+	"github.com/notaduck/backend/internal/storage"
 )
 
 const (
@@ -41,7 +42,7 @@ func NewAPIServer(options ...func(*APIServer)) *APIServer {
 	if server.config == nil {
 		cfg := config.NewConfig()
 		server.config = cfg
-		slog.Info("Config initialized", "config", server.config)
+		// slog.Info("Config initialized", "config", server.config)
 	}
 
 	if server.queries == nil {
@@ -59,10 +60,16 @@ func NewAPIServer(options ...func(*APIServer)) *APIServer {
 		server.queries = db.New(pool)
 	}
 
+	storage, err := storage.New(server.config.S3Region, server.config.S3EndPoint, server.config.S3AccessKeyId, server.config.S3SecretAccessKey)
+
+	if err != nil {
+		panic(err)
+	}
+
 	activityRepo := repositories.NewActivityRepository(server.queries)
 	recordRepo := repositories.NewRecordRepository(server.queries)
 	activityService := service.NewActivityService(activityRepo, recordRepo)
-	imageService := service.NewImageService()
+	imageService := service.NewImageService(storage)
 
 	server.imageService = imageService
 	server.activityService = activityService
@@ -107,9 +114,10 @@ func (s *APIServer) Run() {
 	router.Handle("POST /activity", buildChain(makeHTTPHandleFunc(s.handlePostActivity), protectedChain...))
 	router.Handle("GET /stats", buildChain(makeHTTPHandleFunc(s.handleGetActivityStats), protectedChain...))
 
-	router.Handle("POST /activity/image", buildChain(makeHTTPHandleFunc(s.handlePostImage), publicChain...))
+	router.Handle("POST /activity/image", buildChain(makeHTTPHandleFunc(s.handlePostImage), protectedChain...))
 
 	router.Handle("/register", buildChain(makeHTTPHandleFunc(s.handleRegistration), publicChain...))
+	router.Handle("/login", buildChain(makeHTTPHandleFunc(s.handleLogin), publicChain...))
 
 	// Handle OPTIONS requests for all routes
 	router.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

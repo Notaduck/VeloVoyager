@@ -13,6 +13,11 @@ type Config struct {
 	SupabaseUrl        string `mapstructure:"SUPABASE_URL"`
 	SupabaseKey        string `mapstructure:"SUPABASE_API_KEY"`
 	SupabaseJwtSecret  string `mapstructure:"SUPABASE_JWT_SECRET"`
+	S3EndPoint         string `mapstructure:"S3_ENDPOINT"`
+	S3Region           string `mapstructure:"S3_REGION"`
+	S3AccessKeyId      string `mapstructure:"S3_ACCESS_KEY_ID"`
+	S3SecretAccessKey  string `mapstructure:"S3_SECRET_ACCESS_KEY"`
+	S3Bucket           string `mapstructure:"S3_MEDIA_BUCKET"`
 }
 
 func NewConfig() *Config {

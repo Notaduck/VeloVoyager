@@ -11,21 +11,25 @@ import (
 	"mime/multipart"
 
 	"github.com/evanoberholster/imagemeta"
+	"github.com/notaduck/backend/internal/storage"
 	"golang.org/x/sync/errgroup"
 )
 
 type ImageService interface {
-	UploadImage(images map[string][]*multipart.FileHeader) error
+	UploadImage(images map[string][]*multipart.FileHeader, userId string) error
 }
 
 type imageService struct {
+	storage storage.Storage
 }
 
-func NewImageService() ImageService {
-	return &imageService{}
+func NewImageService(storage storage.Storage) ImageService {
+	return &imageService{
+		storage: storage,
+	}
 }
 
-func (is *imageService) UploadImage(images map[string][]*multipart.FileHeader) error {
+func (is *imageService) UploadImage(images map[string][]*multipart.FileHeader, userId string) error {
 	errg := new(errgroup.Group)
 
 	for _, imageHeaders := range images {
@@ -56,12 +60,17 @@ func (is *imageService) UploadImage(images map[string][]*multipart.FileHeader) e
 
 				slog.Info(fmt.Sprintf("%v", e))
 
-				// https://pkg.go.dev/github.com/aws/aws-sdk-go/service/s3
-				// 1. Convert image to webp
-				webpImg := con
-				// 2. UPLOAD THE IMAGE
-				// 3. Take the parsed metadata from the image and upload it to a media table in the database
-				//    with the returned image location.
+				// Convert image to webp (not implemented in the provided code)
+				// webpImg := convertToWebP(image)  //assuming convertToWebP is a function to convert image to webp
+				//
+				// Upload the image
+				_, err = is.storage.Upload("images"+userId, imageHeader.Filename, bytes.NewReader(buf.Bytes()))
+				if err != nil {
+					return err
+				}
+
+				// Store the parsed metadata in the database (not implemented in the provided code)
+				// storeMetadataInDB(e, imageLocation) // assuming storeMetadataInDB is a function to store metadata
 
 				return nil
 			})
@@ -82,7 +91,6 @@ func convertImage(file io.Reader) (image.Image, error) {
 	if err != nil {
 		log.Fatalf("failed to decode image: %v", err)
 		return nil, err
-
 	}
 
 	return img, err

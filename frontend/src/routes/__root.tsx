@@ -11,13 +11,9 @@ import { SupabaseClient } from "@supabase/supabase-js";
 import { QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useAuth } from "@/hooks/useAuth";
+import { RouterContext } from "@/routerContext";
 
-type RouteConntext = {
-  supabase: SupabaseClient;
-  queryClient: QueryClient;
-};
-
-export const Route = createRootRouteWithContext<RouteConntext>()({
+export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootLayout,
 });
 
