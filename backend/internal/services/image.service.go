@@ -2,21 +2,25 @@ package service
 
 import (
 	"bytes"
-	"errors"
+	"context"
 	"fmt"
 	"image"
 	"io"
-	"log"
-	"log/slog"
 	"mime/multipart"
+	"path/filepath"
+	"strings"
 
+	"github.com/chai2010/webp"
 	"github.com/evanoberholster/imagemeta"
+	"github.com/google/uuid"
+	"github.com/jdeng/goheif"
 	"github.com/notaduck/backend/internal/storage"
+	"golang.org/x/exp/slog"
 	"golang.org/x/sync/errgroup"
 )
 
 type ImageService interface {
-	UploadImage(images map[string][]*multipart.FileHeader, userId string) error
+	UploadImage(ctx context.Context, images map[string][]*multipart.FileHeader, userId string) (string, error)
 }
 
 type imageService struct {
@@ -29,69 +33,109 @@ func NewImageService(storage storage.Storage) ImageService {
 	}
 }
 
-func (is *imageService) UploadImage(images map[string][]*multipart.FileHeader, userId string) error {
-	errg := new(errgroup.Group)
+func (is *imageService) UploadImage(ctx context.Context, images map[string][]*multipart.FileHeader, userId string) (string, error) {
+	errg, ctx := errgroup.WithContext(ctx)
 
 	for _, imageHeaders := range images {
 		for _, imageHeader := range imageHeaders {
 			imageHeader := imageHeader
 
 			errg.Go(func() error {
-				file, err := imageHeader.Open()
-				if err != nil {
-					return err
-				}
-				defer file.Close()
-
-				// Copy the file content to an in-memory buffer
-				buf := new(bytes.Buffer)
-				_, err = io.Copy(buf, file)
-				if err != nil {
-					return err
-				}
-
-				// Create a ReadSeeker from the buffer
-				image := bytes.NewReader(buf.Bytes())
-
-				e, err := imagemeta.Decode(image)
-				if err != nil {
-					return err
-				}
-
-				slog.Info(fmt.Sprintf("%v", e))
-
-				// Convert image to webp (not implemented in the provided code)
-				// webpImg := convertToWebP(image)  //assuming convertToWebP is a function to convert image to webp
-				//
-				// Upload the image
-				_, err = is.storage.Upload("images"+userId, imageHeader.Filename, bytes.NewReader(buf.Bytes()))
-				if err != nil {
-					return err
-				}
-
-				// Store the parsed metadata in the database (not implemented in the provided code)
-				// storeMetadataInDB(e, imageLocation) // assuming storeMetadataInDB is a function to store metadata
-
-				return nil
+				return is.processAndUploadImage(ctx, imageHeader, userId)
 			})
 		}
 	}
 
 	if err := errg.Wait(); err != nil {
-		slog.Error("failed", err)
-		return errors.Join(err)
+		slog.Error("Failed to upload images", "error", err)
+		return "", fmt.Errorf("failed to upload images: %w", err)
 	}
+
+	return "Images uploaded successfully", nil
+}
+
+func (is *imageService) processAndUploadImage(ctx context.Context, imageHeader *multipart.FileHeader, userId string) error {
+	file, err := imageHeader.Open()
+	if err != nil {
+		return fmt.Errorf("failed to open image file: %w", err)
+	}
+	defer file.Close()
+
+	buf := new(bytes.Buffer)
+	if _, err := io.Copy(buf, file); err != nil {
+		return fmt.Errorf("failed to copy image file content: %w", err)
+	}
+
+	imageReader := bytes.NewReader(buf.Bytes())
+
+	metadata, err := imagemeta.Decode(imageReader)
+	if err != nil {
+		return fmt.Errorf("failed to decode image metadata: %w", err)
+	}
+
+	slog.Info("Image metadata", "metadata", metadata)
+
+	webpBuf, err := convertToWebP(bytes.NewReader(buf.Bytes()), imageHeader.Filename)
+	if err != nil {
+		slog.Error("Failed to convert image to webp", "error", err)
+		return fmt.Errorf("failed to convert image to webp: %w", err)
+	}
+
+	uniqueImageName := uuid.New().String()
+	key := fmt.Sprintf("%s/%s.webp", userId, uniqueImageName)
+	out, err := is.storage.Upload(storage.ACTIVITY_MEDIA, key, bytes.NewReader(webpBuf))
+	if err != nil {
+		return fmt.Errorf("failed to upload image: %w", err)
+	}
+
+	slog.Info("Image uploaded successfully", "output", out)
+
+	// Assuming storeMetadataInDB is a function to store metadata
+	// storeMetadataInDB(metadata, key)
 
 	return nil
 }
 
-func convertImage(file io.Reader) (image.Image, error) {
-	// Decode the image
-	img, _, err := image.Decode(file)
+func convertToWebP(file io.Reader, filename string) ([]byte, error) {
+	img, err := decodeImage(file, filename)
 	if err != nil {
-		log.Fatalf("failed to decode image: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to decode image: %w", err)
 	}
 
-	return img, err
+	var buf bytes.Buffer
+	options := &webp.Options{Lossless: false, Quality: 75}
+	if err := webp.Encode(&buf, img, options); err != nil {
+		return nil, fmt.Errorf("failed to encode image to webp: %w", err)
+	}
+
+	slog.Info("Image converted to webp")
+	return buf.Bytes(), nil
+}
+
+func decodeImage(file io.Reader, filename string) (image.Image, error) {
+	ext := strings.ToLower(filepath.Ext(filename))
+	switch ext {
+	case ".heic", ".heif":
+		return decodeHEIC(file)
+	default:
+		img, _, err := image.Decode(file)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decode image: %w", err)
+		}
+		return img, nil
+	}
+}
+
+func decodeHEIC(file io.Reader) (image.Image, error) {
+	data, err := io.ReadAll(file)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read HEIC file: %w", err)
+	}
+
+	img, err := goheif.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode HEIC image: %w", err)
+	}
+
+	return img, nil
 }

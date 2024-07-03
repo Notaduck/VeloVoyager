@@ -16,7 +16,7 @@ func (s *APIServer) handlePostImage(w http.ResponseWriter, r *http.Request) erro
 
 	user := RetrieveUserFromContext(r.Context())
 
-	err = s.imageService.UploadImage(r.MultipartForm.File, user.ID)
+	_, err = s.imageService.UploadImage(r.Context(), r.MultipartForm.File, user.ID)
 
 	if err != nil {
 		return err

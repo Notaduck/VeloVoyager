@@ -28,8 +28,10 @@ require (
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
+	github.com/jdeng/goheif v0.0.0-20200323230657-a0d6a8b3e68f // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/compress v1.17.0 // indirect
+	github.com/kolesa-team/go-webp v1.0.4 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
@@ -68,6 +70,7 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
+	github.com/chai2010/webp v1.1.1
 	github.com/client9/misspell v0.3.4 // indirect
 	github.com/evanoberholster/imagemeta v0.3.1
 	github.com/fsnotify/fsnotify v1.7.0 // indirect

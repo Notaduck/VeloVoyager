@@ -13,8 +13,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
+type Bucket = string
+
+const (
+	ACTIVITY_MEDIA Bucket = "activity_media"
+)
+
 type Storage interface {
-	Upload(bucket string, key string, file io.Reader) (*s3.PutObjectOutput, error)
+	Upload(bucket Bucket, key string, file io.Reader) (*s3.PutObjectOutput, error)
 }
 
 type storage struct {
@@ -48,7 +54,7 @@ func New(region, endpoint, accessKeyID, secretAccessKey string) (Storage, error)
 	}, nil
 }
 
-func (s *storage) Upload(bucket string, key string, file io.Reader) (*s3.PutObjectOutput, error) {
+func (s *storage) Upload(bucket Bucket, key string, file io.Reader) (*s3.PutObjectOutput, error) {
 	var buf bytes.Buffer
 	if _, err := io.Copy(&buf, file); err != nil {
 		slog.Error("buffer copy err", fmt.Sprintf("%v", os.Stderr), "Error reading file:", err)
