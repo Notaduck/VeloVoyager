@@ -11,7 +11,7 @@ import { activityQueryOptions, useActivity } from "@/hooks/getActivity";
 import { Pencil2Icon } from "@radix-ui/react-icons";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, useLayoutEffect, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,6 +21,9 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
+import { Dropzone } from "@/components/ui/dropzone";
+import { FileCheck2Icon } from "lucide-react";
+import { useUploadMedia } from "@/hooks/uploadActivityMedia";
 
 const LazyMap = lazy(() => import("../../../components/map/lazyMap"));
 
@@ -101,9 +104,57 @@ function Activity() {
     setEditTitle(false);
   };
 
+  const defaultValues: { files: undefined | FileList } = {
+    files: undefined,
+  };
+
+  const methods = useForm({
+    defaultValues,
+    shouldFocusError: true,
+    shouldUnregister: false,
+    shouldUseNativeValidation: false,
+  });
+
+  function handleFormSubmit() {}
+
+  const { mutate } = useUploadMedia();
+
+  async function handleOnDrop(acceptedFiles: FileList | null) {
+    if (acceptedFiles && acceptedFiles.length > 0) {
+      const allowedTypes = [{ name: "file", types: ["application/fits"] }];
+
+      const fileType = allowedTypes.find((allowedType) =>
+        allowedType.types.find((type) => type === acceptedFiles[0].type)
+      );
+
+      if (!fileType) {
+        methods.setValue("files", undefined);
+        methods.setError("files", {
+          message: "File type is not valid",
+          type: "typeError",
+        });
+      } else {
+        methods.setValue("files", acceptedFiles);
+        methods.clearErrors("files");
+
+        mutate({
+          files: acceptedFiles,
+          jwtToken: authToken!,
+          activityId: activity.id,
+        }); // Call the upload function here
+      }
+    } else {
+      methods.setValue("files", undefined);
+      methods.setError("files", {
+        message: "File is required",
+        type: "typeError",
+      });
+    }
+  }
+
   return (
-    <div className="container p-4 mx-auto min-h-screen">
-      <div className="grid gap-4">
+    <div className="container grid grid-cols-7 p-4 mx-auto min-h-screen">
+      <div className="grid col-span-5 gap-4">
         <Card>
           <CardHeader>
             <CardTitle>
@@ -187,6 +238,46 @@ function Activity() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <p>Images goes here</p>
+        <CardContent>
+          <FormProvider {...methods}>
+            <form
+              className="flex flex-col gap-2 justify-center items-center w-100"
+              onSubmit={methods.handleSubmit(handleFormSubmit)}
+              noValidate
+              autoComplete="off"
+            >
+              <FormField
+                control={methods.control}
+                name="files"
+                render={({ field }) => (
+                  <FormItem className="w-full">
+                    <FormControl>
+                      <Dropzone
+                        {...field}
+                        dropMessage="Drop files or click here"
+                        multiple
+                        handleOnDrop={handleOnDrop}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {methods.watch("files") && (
+                <div className="flex relative gap-3 justify-center items-center p-4">
+                  <FileCheck2Icon className="w-4 h-4" />
+                  <p className="text-sm font-medium">
+                    {/* {methods.watch("files")} */}
+                  </p>
+                </div>
+              )}
+            </form>
+          </FormProvider>
+        </CardContent>
+      </Card>
     </div>
   );
 }

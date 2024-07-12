@@ -22,6 +22,13 @@ type Activity struct {
 	TotalTime      pgtype.Time        `json:"totalTime"`
 }
 
+type ActivityMedium struct {
+	ID         int32       `json:"id"`
+	Location   pgtype.Text `json:"location"`
+	UserID     string      `json:"userId"`
+	ActivityID pgtype.Int4 `json:"activityId"`
+}
+
 type ActivityWithRecordsView struct {
 	ID              int32              `json:"id"`
 	CreatedAt       pgtype.Timestamptz `json:"createdAt"`

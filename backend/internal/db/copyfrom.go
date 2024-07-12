@@ -9,6 +9,40 @@ import (
 	"context"
 )
 
+// iteratorForCreateMedia implements pgx.CopyFromSource.
+type iteratorForCreateMedia struct {
+	rows                 []CreateMediaParams
+	skippedFirstNextCall bool
+}
+
+func (r *iteratorForCreateMedia) Next() bool {
+	if len(r.rows) == 0 {
+		return false
+	}
+	if !r.skippedFirstNextCall {
+		r.skippedFirstNextCall = true
+		return true
+	}
+	r.rows = r.rows[1:]
+	return len(r.rows) > 0
+}
+
+func (r iteratorForCreateMedia) Values() ([]interface{}, error) {
+	return []interface{}{
+		r.rows[0].Location,
+		r.rows[0].ActivityID,
+		r.rows[0].UserID,
+	}, nil
+}
+
+func (r iteratorForCreateMedia) Err() error {
+	return nil
+}
+
+func (q *Queries) CreateMedia(ctx context.Context, arg []CreateMediaParams) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"activity_media"}, []string{"location", "activity_id", "user_id"}, &iteratorForCreateMedia{rows: arg})
+}
+
 // iteratorForCreateRecords implements pgx.CopyFromSource.
 type iteratorForCreateRecords struct {
 	rows                 []CreateRecordsParams

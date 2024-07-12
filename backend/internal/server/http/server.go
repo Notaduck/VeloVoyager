@@ -68,8 +68,10 @@ func NewAPIServer(options ...func(*APIServer)) *APIServer {
 
 	activityRepo := repositories.NewActivityRepository(server.queries)
 	recordRepo := repositories.NewRecordRepository(server.queries)
+	mediaRepo := repositories.NewMediaRepository(server.queries)
+
 	activityService := service.NewActivityService(activityRepo, recordRepo)
-	imageService := service.NewImageService(storage)
+	imageService := service.NewImageService(storage, mediaRepo)
 
 	server.imageService = imageService
 	server.activityService = activityService

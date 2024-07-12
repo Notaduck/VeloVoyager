@@ -1,11 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 
-
 interface UploadFileResponse {
   status: string;
 }
-
 
 interface UploadMediaVariables {
   files: FileList;
@@ -33,8 +31,8 @@ const uploadMedia = async ({
         "Content-Type": "multipart/form-data",
       },
       params: {
-        activityId: activityId
-      }
+        activityId: activityId,
+      },
     }
   );
 
@@ -45,7 +43,8 @@ export const useUploadMedia = () => {
   const queryClient = useQueryClient();
 
   return useMutation<UploadFileResponse, Error, UploadMediaVariables>({
-    mutationFn: ({ files, activityId, jwtToken }) => uploadMedia({ files, activityId, jwtToken }),
+    mutationFn: ({ files, activityId, jwtToken }) =>
+      uploadMedia({ files, activityId, jwtToken }),
     onSettled: () => {
       queryClient.refetchQueries({ queryKey: ["posts"] });
     },
