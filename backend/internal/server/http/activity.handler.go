@@ -45,8 +45,6 @@ func (s *APIServer) handlePatchActivity(w http.ResponseWriter, r *http.Request) 
 	})
 
 	if err != nil {
-		slog.Error("failed to fina an activity", "no activity found for", err.Error())
-
 		return WriteJSON(w, http.StatusBadRequest, ApiError{Error: "no activity was found."})
 
 	}
@@ -67,11 +65,11 @@ func (s *APIServer) handleGetActivity(w http.ResponseWriter, r *http.Request) er
 	}
 
 	user := RetrieveUserFromContext(r.Context())
+	traceId := RetrieveTraceIdFromContext((r.Context()))
 
-	activity, err := s.activityService.GetSingleActivityById(r.Context(), int32(activityID), user.ID)
+	activity, err := s.activityService.GetSingleActivityById(r.Context(), int32(activityID), user.ID, traceId)
 
 	if err != nil {
-		slog.Error("failed to fina an activity", "no activity found for", err.Error())
 
 		return WriteJSON(w, http.StatusBadRequest, ApiError{Error: "no activity was found."})
 

@@ -45,7 +45,7 @@ type Record struct {
 
 type ActivityService interface {
 	UpdateActivity(ctx context.Context, activityData db.UpdateActivityParams) (*Activity, error)
-	GetSingleActivityById(ctx context.Context, activityId int32, userId string) (*Activity, error)
+	GetSingleActivityById(ctx context.Context, activityId int32, userId string, traceId string) (*Activity, error)
 	GetActivities(ctx context.Context, userId string) ([]db.GetActivitiesRow, error)
 	CreateActivities(ctx context.Context, files []*multipart.FileHeader, userID string) ([]*Activity, error)
 	GetActivityStats(ctx context.Context, userID string) (*db.GetActivityStatsRow, error)
@@ -93,11 +93,13 @@ func (s *activityService) UpdateActivity(ctx context.Context, activityData db.Up
 
 }
 
-func (s *activityService) GetSingleActivityById(ctx context.Context, activityId int32, userId string) (*Activity, error) {
+func (s *activityService) GetSingleActivityById(ctx context.Context, activityId int32, userId string, traceId string) (*Activity, error) {
+
 	activityEntity, err := s.activityRepo.GetActivityAndRecords(ctx, activityId)
 
 	if err != nil {
-		slog.Error("failed to retrieve activity", "activityId", activityId, "error", err)
+
+		slog.Error("failed to retrieve activity", "activityId", activityId, "error", err, "trace_id", traceId)
 		return nil, err
 	}
 

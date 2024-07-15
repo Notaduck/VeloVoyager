@@ -44,6 +44,17 @@ func RetrieveUserFromContext(ctx context.Context) *supabase.User {
 	}
 }
 
+func RetrieveTraceIdFromContext(ctx context.Context) string {
+	u := ctx.Value(TraceIdFromContext)
+
+	if traceId, ok := u.(string); ok {
+		return traceId
+	} else {
+		slog.Error("Error: Unable to retrieve traceId from context ")
+		return ""
+	}
+}
+
 func permissionDenied(w http.ResponseWriter) {
 	WriteJSON(w, http.StatusForbidden, ApiError{Error: "permission denied"})
 }

@@ -53,13 +53,24 @@ func LoggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 
 		// After the handler returns, log the request details and response status.
 		duration := time.Since(start)
-		slog.Info("response",
-			slog.String("method:", r.Method),
-			slog.String("uri:", r.RequestURI),
-			slog.Int("status:", rw.statusCode),
-			slog.Duration("duration", duration),
-			slog.String("trace_id", traceId),
-		)
+		if rw.statusCode > 300 {
+			slog.Error("response",
+				slog.String("method:", r.Method),
+				slog.String("uri:", r.RequestURI),
+				slog.Int("status:", rw.statusCode),
+				slog.Duration("duration", duration),
+				slog.String("trace_id", traceId),
+			)
+		} else {
+
+			slog.Info("response",
+				slog.String("method:", r.Method),
+				slog.String("uri:", r.RequestURI),
+				slog.Int("status:", rw.statusCode),
+				slog.Duration("duration", duration),
+				slog.String("trace_id", traceId),
+			)
+		}
 
 	}
 }

@@ -63,7 +63,7 @@ func (s *ActivityServiceTestSuite) TestActivityServiceReturnsAnActivity() {
 
 	activityService := NewActivityService(activityRepo, recordRepo)
 
-	activity, err := activityService.GetSingleActivityById(s.ctx, 1, userId)
+	activity, err := activityService.GetSingleActivityById(s.ctx, 1, userId, "")
 
 	s.NoError(err)
 
