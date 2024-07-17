@@ -166,6 +166,11 @@ func newResponseWriter(w http.ResponseWriter) *responseWriter {
 	return &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
 }
 
+func (rw *responseWriter) WriteHeader(statusCode int) {
+	rw.statusCode = statusCode
+	rw.ResponseWriter.WriteHeader(statusCode)
+}
+
 func buildChain(f http.HandlerFunc, m ...middleware) http.HandlerFunc {
 	if len(m) == 0 {
 		return f
@@ -176,6 +181,7 @@ func buildChain(f http.HandlerFunc, m ...middleware) http.HandlerFunc {
 func WriteJSON(w http.ResponseWriter, status int, v any) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
+
 	return json.NewEncoder(w).Encode(v)
 }
 
@@ -193,17 +199,19 @@ var originAllowlist = []string{
 	"http://localhost:5173",
 	"http://localhost:3000",
 	"http://localhost:8080",
+	"localhost:8080",
 	"http://frontend.localhost",
 	"http://frontend.localhost/",
 	"http://frontend.localhost:80/",
 	"http://frontend.localhost:80",
 	"https://velovoyager.com/",
 	"https://velovoyager.com",
+	"http://localhost:8080",
+	"http://localhost:8080/",
 }
 
 func handleOptions(w http.ResponseWriter, r *http.Request) {
 	origin := r.Header.Get("Origin")
-	slog.Info("CORS", "origin", origin)
 	if slices.Contains(originAllowlist, origin) {
 		w.Header().Set("Access-Control-Allow-Origin", origin)
 		w.Header().Set("Access-Control-Allow-Methods", strings.Join(methodAllowlist, ", "))
@@ -216,7 +224,11 @@ func checkCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
 
-		slog.Info("CORS", "origin", origin)
+		if isPreflight(r) {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
 		if slices.Contains(originAllowlist, origin) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Add("Vary", "Origin")

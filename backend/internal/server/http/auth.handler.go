@@ -22,7 +22,6 @@ func (s *APIServer) supaClient() *supa.Client {
 
 	supabaseUrl := s.config.SupabaseUrl
 	supabaseKey := s.config.SupabaseKey
-	slog.Info("=>", supabaseKey, supabaseUrl)
 	supwbaseJwtSecret := s.config.SupabaseJwtSecret
 
 	_ = supwbaseJwtSecret
@@ -87,10 +86,8 @@ func (s *APIServer) handleLogin(w http.ResponseWriter, r *http.Request) error {
 }
 
 func AuthHandler(f apiFunc) http.HandlerFunc {
-	// Wrap the apiFunc with logRequest middleware.
 	handlerWithLogging := logRequest(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if err := f(w, r); err != nil {
-			// Log the error with the request ID for better traceability.
 			requestID, _ := r.Context().Value("requestID").(string)
 			slog.Error("Request error", "id", requestID, "error", err.Error())
 
