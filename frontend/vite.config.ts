@@ -78,7 +78,9 @@ export default defineConfig({
     ...DEFAULT_OPTIONS,
   }), sentryVitePlugin({
     org: "velovoyager",
-    project: "frontend"
+    project: "frontend",
+    telemetry: false,
+    disable: true
   })],
 
   define: {
@@ -104,15 +106,15 @@ export default defineConfig({
   base: "/",
 
   preview: {
-    port: 8080,
+    port: 8081,
     strictPort: true,
   },
 
   server: {
-    port: 8080,
+    port: 8081,
     strictPort: true,
     host: true,
-    origin: "http://0.0.0.0:8080",
+    origin: "http://0.0.0.0:8081",
   },
 
   build: {

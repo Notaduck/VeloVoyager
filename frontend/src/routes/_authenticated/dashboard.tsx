@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState } from "react";
+import { useState } from "react";
 import { File, FileCheck2Icon, ListFilter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +17,6 @@ import {
   TableBody,
   TableCell,
 } from "@/components/ui/table";
-import { postsQueryOptions, useGetActivities } from "@/hooks/getActivities";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -38,19 +37,18 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Dropzone } from "@/components/ui/dropzone";
-import { useUploadActivities } from "@/hooks/uploadActivity";
-import { useGetStats } from "@/hooks/getStats";
 import { Progress } from "@/components/ui/progress";
+import { getActivities } from "@/gen/activity/v1/activity-ActivityService_connectquery";
+import { useQuery } from "@connectrpc/connect-query";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
 
-  loader: async ({ context: { queryClient, supabase } }) => {
+  loader: async ({ context: { supabase } }) => {
     const jwt = await (supabase as SupabaseClient).auth
       .getSession()
       .then((session) => session.data.session?.access_token);
     return {
-      activities: await queryClient.ensureQueryData(postsQueryOptions(jwt!)),
       authToken: jwt,
     };
   },
@@ -59,18 +57,24 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 function Dashboard() {
   const navigate = useNavigate();
 
-  const [weeklyProgress, setWeeklyProgress] = useState<number>(0);
-  const [monthlyProgress, setMonthlyProgress] = useState<number>(0);
+  const [weeklyProgress] = useState<number>(0);
+  const [monthlyProgress] = useState<number>(0);
 
-  const { authToken } = Route.useLoaderData();
-  const { accessToken } = Route.useRouteContext();
+  // const { authToken } = Route.useLoaderData();
+  // const { accessToken } = Route.useRouteContext();
 
-  const { data: activities } = useGetActivities({ jwtToken: accessToken });
-  const { data: stats, status: statsStatus } = useGetStats({
-    jwtToken: accessToken,
-  });
+  // const { data: activities } = useGetActivities({ jwtToken: accessToken });
+  // const { data: stats, status: statsStatus } = useGetStats({
+  //   jwtToken: accessToken,
+  // });
 
-  const { mutate } = useUploadActivities();
+  const { data } = useQuery(getActivities);
+
+  // const { mutate } = useUploadActivities();
+  // useEffect(() => {
+  // console.log(data?.activities)
+  // console.log('data', data)
+  // },[])
 
   const defaultValues: { files: undefined | FileList } = {
     files: undefined,
@@ -103,7 +107,7 @@ function Dashboard() {
         methods.setValue("files", acceptedFiles);
         methods.clearErrors("files");
 
-        mutate({ files: acceptedFiles, jwtToken: authToken! }); // Call the upload function here
+        // mutate({ files: acceptedFiles, jwtToken: authToken! }); // Call the upload function here
       }
     } else {
       methods.setValue("files", undefined);
@@ -114,15 +118,15 @@ function Dashboard() {
     }
   }
 
-  useLayoutEffect(() => {
-    const timer = setTimeout(() => {
-      if (statsStatus === "success") {
-        setWeeklyProgress(stats?.percentageChangeWeek);
-        setMonthlyProgress(stats?.percentageChangeMonth);
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [stats]);
+  // useLayoutEffect(() => {
+  //   const timer = setTimeout(() => {
+  //     if (statsStatus === "success") {
+  //       setWeeklyProgress(stats?.percentageChangeWeek);
+  //       setMonthlyProgress(stats?.percentageChangeMonth);
+  //     }
+  //   }, 500);
+  //   return () => clearTimeout(timer);
+  // }, [stats]);
 
   return (
     <>
@@ -173,12 +177,12 @@ function Dashboard() {
           <CardHeader className="pb-2">
             <CardDescription>Kilomoters This Week</CardDescription>
             <CardTitle className="text-4xl">
-              {stats?.totalForCurrentWeek} Km
+              {/* {stats?.totalForCurrentWeek} Km */}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-xs text-muted-foreground">
-              {stats?.percentageChangeWeek}% from last week
+              {/* {stats?.percentageChangeWeek}% from last week */}
             </div>
           </CardContent>
           <CardFooter>
@@ -189,12 +193,12 @@ function Dashboard() {
           <CardHeader className="pb-2">
             <CardDescription>This Month</CardDescription>
             <CardTitle className="text-4xl">
-              {stats?.totalForCurrentMonth} km
+              {/* {stats?.totalForCurrentMonth} km */}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-xs text-muted-foreground">
-              {stats?.percentageChangeMonth}% from last month
+              {/* {stats?.percentageChangeMonth}% from last month */}
             </div>
           </CardContent>
           <CardFooter>
@@ -261,39 +265,35 @@ function Dashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {activities &&
-                    activities?.map((activity) => (
-                      <TableRow
-                        onClick={() =>
-                          navigate({
-                            to: "/activity/$activityId",
-                            params: {
-                              activityId: String(activity.id),
-                            },
-                          })
-                        }
-                        key={activity.id}
-                        className="cursor-pointer hover:bg-slate-50"
-                      >
-                        <TableCell>
-                          <div className="font-medium">
-                            <Badge className="rounded-md">Ride</Badge>
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell">
-                          {activity?.activityName}
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell">
-                          {activity.totalTimeChar}
-                          {/* <Badge className="text-xs" variant="secondary">
-                            Fulfilled
-                          </Badge> */}
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          {activity.distance} (unit)
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                  {data?.activities?.map((activity) => (
+                    <TableRow
+                      onClick={() =>
+                        navigate({
+                          to: "/activity/$activityId",
+                          params: {
+                            activityId: String(activity.id),
+                          },
+                        })
+                      }
+                      key={activity.id}
+                      className="cursor-pointer hover:bg-slate-50"
+                    >
+                      <TableCell>
+                        <div className="font-medium">
+                          <Badge className="rounded-md">Ride</Badge>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        {activity?.activityName}
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        {activity.totalTime}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {activity.distance} (unit)
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </CardContent>

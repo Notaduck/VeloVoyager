@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package activity.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/notaduck/backend/gen/activity/v1;activityv1";
+
+// Point represents a coordinate point.
+message Point {
+  double x = 1;
+  double y = 2;
+}
+
+// Record represents the details of an activity record.
+message Record {
+  int32 id = 1;
+  Point coordinates = 2;
+  double speed = 3;
+  google.protobuf.Timestamp time_stamp = 4;
+  int32 distance = 5;
+  int32 heart_rate = 6;
+}
+
+// Activity represents the detailed information of a single activity.
+message GetActivityResponse {
+  int32 id = 1;
+  string created_at = 2;
+  double distance = 3;
+  string activity_name = 4;
+  double avg_speed = 5;
+  double max_speed = 6;
+  string elapsed_time = 7;
+  string total_time = 8;
+  repeated Record records = 9;
+}
+
+// ActivitySummary provides a summarized view of an activity.
+message ActivitySummary {
+  int32 id = 1;
+  google.protobuf.Timestamp created_at = 2;
+  double distance = 3;
+  string activity_name = 4;
+  double avg_speed = 5;
+  double max_speed = 6;
+  string elapsed_time = 7;
+  string total_time = 8;
+}
+
+// Request message for streaming uploads
+message UploadActivitiesRequest {
+  oneof payload {
+    bytes file_chunk = 1; // Chunk of file data
+    string metadata = 2;  // Optional metadata (e.g., user ID, filename)
+  }
+}
+
+// Response message after upload
+message UploadActivitiesResponse {
+  string status = 1; // Status of the upload (e.g., "success" or error message)
+}
+
+// GetActivitiesResponse contains a list of activity summaries.
+message GetActivitiesResponse { repeated ActivitySummary activities = 1; }
+
+// GetActivitiesRequest is an empty request message for fetching all activities.
+// If you prefer to keep using the standard Empty message, you can alias it, but
+// defining it explicitly is clearer.
+message GetActivitiesRequest {}
+
+// GetActivityRequest specifies the ID of the activity to retrieve.
+message GetActivityRequest { int32 activity_id = 1; }
+
+service ActivityService {
+  // Fetch all activities without records.
+  rpc GetActivities(GetActivitiesRequest) returns (GetActivitiesResponse) {}
+
+  // Fetch a single activity by ID with records.
+  rpc GetActivity(GetActivityRequest) returns (GetActivityResponse) {}
+  // Upload multiple fit files
+  rpc UploadActivities(stream UploadActivitiesRequest)
+      returns (UploadActivitiesResponse);
+}

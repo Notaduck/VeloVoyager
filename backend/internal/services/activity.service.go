@@ -11,10 +11,12 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/shopspring/decimal"
+	"github.com/tormoder/fit"
+
 	"github.com/notaduck/backend/internal/db"
 	"github.com/notaduck/backend/internal/repositories"
 	"github.com/notaduck/backend/utils"
-	"github.com/tormoder/fit"
 )
 
 type Activity struct {
@@ -176,15 +178,8 @@ func (s *activityService) createActivityRecord(ctx context.Context, activity *fi
 		return nil, err
 	}
 
-	totalRideTime := pgtype.Time{
-		Microseconds: int64(activity.Sessions[0].TotalElapsedTime * uint32(time.Microsecond)),
-		Valid:        true,
-	}
-
-	elapsedTime := pgtype.Time{
-		Microseconds: int64(activity.Sessions[0].TotalTimerTime * uint32(time.Microsecond)),
-		Valid:        true,
-	}
+	totalRideTime := time.Unix(0, (time.Duration(activity.Sessions[0].TotalElapsedTime) * time.Microsecond).Nanoseconds())
+	elapsedTime := time.Unix(0, (time.Duration(activity.Sessions[0].TotalTimerTime) * time.Microsecond).Nanoseconds())
 
 	dateOfActivity := pgtype.Timestamptz{
 		Time:  activity.Activity.LocalTimestamp,
@@ -294,34 +289,9 @@ func (s *activityService) processRecords(records []*fit.RecordMsg) ([]db.CreateR
 	avgSpeedKmH := avgSpeedMs * 3.60 / 1000.00
 	maxSpeedKmH := float64(maxSpeed) * 3.60 / 1000.00
 
-	var numericDistance pgtype.Numeric
-	err := numericDistance.Scan(fmt.Sprintf("%f", distance))
-
-	if err != nil {
-		slog.Error("Failed to set numeric value: %v", err)
-	}
-
-	var avgSpeedKmHNumeric pgtype.Numeric
-
-	err = avgSpeedKmHNumeric.Scan(fmt.Sprintf("%.2f", avgSpeedKmH))
-
-	if err != nil {
-		return nil, nil, err
-
-	}
-
-	var maxSpeedKmHNumeric pgtype.Numeric
-
-	err = maxSpeedKmHNumeric.Scan(fmt.Sprintf("%.2f", maxSpeedKmH))
-
-	if err != nil {
-		return nil, nil, err
-
-	}
-
-	stats.AvgSpeed = avgSpeedKmHNumeric
-	stats.MaxSpeed = maxSpeedKmHNumeric
-	stats.Distance = numericDistance
+	stats.AvgSpeed = decimal.NewFromFloat(avgSpeedKmH)
+	stats.MaxSpeed = decimal.NewFromFloat(maxSpeedKmH)
+	stats.Distance = decimal.NewFromFloat(distance)
 
 	return recordEntities, &stats, nil
 }
@@ -343,10 +313,10 @@ func convertActivityEntityToDomainModel(activityEntity *db.ActivityWithRecordsVi
 	activity := &Activity{
 		ID:           activityEntity.ID,
 		CreatedAt:    activityEntity.CreatedAt.Time,
-		Distance:     convertNumericToFloat64(activityEntity.Distance),
+		Distance:     activityEntity.Distance.InexactFloat64(),
 		ActivityName: activityEntity.ActivityName,
-		AvgSpeed:     convertNumericToFloat64(activityEntity.AvgSpeed),
-		MaxSpeed:     convertNumericToFloat64(activityEntity.MaxSpeed),
+		AvgSpeed:     activityEntity.AvgSpeed.InexactFloat64(),
+		MaxSpeed:     activityEntity.MaxSpeed.InexactFloat64(),
 		ElapsedTime:  activityEntity.ElapsedTimeChar,
 		TotalTime:    activityEntity.TotalTimeChar,
 		Records:      convertRecords(activityEntity.Records),
@@ -383,11 +353,11 @@ func convertNumericToFloat64(n pgtype.Numeric) float64 {
 }
 
 type ActivityStats struct {
-	Distance    pgtype.Numeric
+	Distance    decimal.Decimal
 	TotalTime   pgtype.Time
 	ElapsedTime pgtype.Time
-	AvgSpeed    pgtype.Numeric
-	MaxSpeed    pgtype.Numeric
+	AvgSpeed    decimal.Decimal
+	MaxSpeed    decimal.Decimal
 }
 
 func getActivityName(t time.Time) string {

@@ -13,6 +13,8 @@ type Config struct {
 	SupabaseUrl        string `mapstructure:"SUPABASE_URL"`
 	SupabaseKey        string `mapstructure:"SUPABASE_API_KEY"`
 	SupabaseJwtSecret  string `mapstructure:"SUPABASE_JWT_SECRET"`
+	NewRelicAppName    string `mapstructure:"NEW_RELIC_APP_NAME"`
+	NewRelicLicense    string `mapstructure:"NEW_RELIC_LICENSE"`
 }
 
 func NewConfig() *Config {
@@ -28,6 +30,8 @@ func NewConfig() *Config {
 		config.SupabaseUrl = os.Getenv("SUPABASE_URL")
 		config.SupabaseKey = os.Getenv("SUPABASE_API_KEY")
 		config.SupabaseJwtSecret = os.Getenv("SUPABASE_JWT_SECRET")
+		config.NewRelicAppName = os.Getenv("NEW_RELIC_APP_NAME")
+		config.NewRelicLicense = os.Getenv("NEW_RELIC_LICENSE")
 	} else {
 		// In development, read from the .env file
 		viper.SetConfigFile(".env")

@@ -30,7 +30,7 @@ type APIServer struct {
 
 func NewAPIServer(options ...func(*APIServer)) *APIServer {
 	server := &APIServer{
-		listenAddr: "127.0.0.1:3000",
+		listenAddr: "127.0.0.1:3030",
 	}
 
 	for _, option := range options {
@@ -40,7 +40,6 @@ func NewAPIServer(options ...func(*APIServer)) *APIServer {
 	if server.config == nil {
 		cfg := config.NewConfig()
 		server.config = cfg
-		slog.Info("Config initialized", "config", server.config)
 	}
 
 	if server.queries == nil {
@@ -165,12 +164,6 @@ func WriteJSON(w http.ResponseWriter, status int, v any) error {
 
 var methodAllowlist = []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"}
 
-func isPreflight(r *http.Request) bool {
-	return r.Method == "OPTIONS" &&
-		r.Header.Get("Origin") != "" &&
-		r.Header.Get("Access-Control-Request-Method") != ""
-}
-
 var originAllowlist = []string{
 	"http://127.0.0.1:5173",
 	"http://127.0.0.1:3000",
@@ -183,6 +176,7 @@ var originAllowlist = []string{
 	"http://frontend.localhost:80",
 	"https://velovoyager.com/",
 	"https://velovoyager.com",
+	"http://localhost:8080",
 }
 
 func handleOptions(w http.ResponseWriter, r *http.Request) {
@@ -191,7 +185,7 @@ func handleOptions(w http.ResponseWriter, r *http.Request) {
 	if slices.Contains(originAllowlist, origin) {
 		w.Header().Set("Access-Control-Allow-Origin", origin)
 		w.Header().Set("Access-Control-Allow-Methods", strings.Join(methodAllowlist, ", "))
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, x-jwt-token")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.WriteHeader(http.StatusOK)
 	}
 }
@@ -205,7 +199,7 @@ func checkCORS(next http.Handler) http.Handler {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Add("Vary", "Origin")
 			w.Header().Set("Access-Control-Allow-Methods", strings.Join(methodAllowlist, ", "))
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, x-jwt-token")
+			w.Header().Set("Access-Control-Allow-Headers", "*")
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 
 			if r.Method == http.MethodOptions {

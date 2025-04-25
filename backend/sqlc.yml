@@ -17,10 +17,26 @@ sql:
         emit_json_tags: true
         json_tags_case_style: camel
         overrides:
+          - go_type: "time.Time" # Use Go's time.Time
+            db_type: "time"      # Corresponding PostgreSQL type
           - column: "activity_with_records_view.records"
             go_type:
               type: "Record"
               slice: true
           - go_type: "string" # Use string in Go
             db_type: "uuid" # Corresponding PostgreSQL type
+          - db_type: "pg_catalog.interval"
+            engine: "postgresql"
+            go_type:
+              import: "time"
+              type: "Duration"
 
+          - db_type: "pg_catalog.time"
+            engine: "postgresql"
+            go_type:
+              import: "time"
+              type: "Time"
+          - go_type: "github.com/jackc/pgtype.Interval"
+            db_type: "interval"
+          - go_type: "github.com/shopspring/decimal.Decimal"
+            db_type: "pg_catalog.numeric"
