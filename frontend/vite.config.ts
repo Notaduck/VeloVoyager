@@ -1,3 +1,4 @@
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { defineConfig } from "vite";
 import { ViteImageOptimizer } from "vite-plugin-image-optimizer";
 import react from "@vitejs/plugin-react-swc";
@@ -8,35 +9,38 @@ const DEFAULT_OPTIONS = {
   test: /\.(jpe?g|png|gif|tiff|webp|svg|avif)$/i,
   exclude: undefined,
   include: undefined,
-  includePublic: true,
+  includePublic: false,
   logStats: true,
   ansiColors: true,
-  svg: {
-    multipass: true,
-    plugins: [
-      {
-        name: "preset-default",
-        params: {
-          overrides: {
-            cleanupNumericValues: false,
-            removeViewBox: false, // https://github.com/svg/svgo/issues/1128
-          },
-          cleanupIDs: {
-            minify: false,
-            remove: false,
-          },
-          convertPathData: false,
-        },
-      },
-      "sortAttrs",
-      {
-        name: "addAttributesToSVGElement",
-        params: {
-          attributes: [{ xmlns: "http://www.w3.org/2000/svg" }],
-        },
-      },
-    ],
-  },
+  // svg: {
+  //   multipass: true,
+  //   plugins: [
+  //     {
+  //       name: "preset-default",
+  //       params: {
+  //         overrides: {
+  //           cleanupNumericValues: false,
+  //           removeViewBox: false, // https://github.com/svg/svgo/issues/1128
+  //         },
+  //         cleanupIDs: {
+  //           minify: false,
+  //           remove: false,
+  //         },
+  //         convertPathData: false,
+  //       },
+  //     },
+  //     {
+  //       name: "sortAttrs",
+  //       params: {},
+  //     },
+  //     {
+  //       name: "addAttributesToSVGElement",
+  //       params: {
+  //         attributes: [{ xmlns: "http://www.w3.org/2000/svg" }],
+  //       },
+  //     },
+  //   ],
+  // },
   png: {
     // https://sharp.pixelplumbing.com/api-output#png
     quality: 100,
@@ -70,13 +74,15 @@ const DEFAULT_OPTIONS = {
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [
-    react(),
-    TanStackRouterVite(),
-    ViteImageOptimizer({
-      ...DEFAULT_OPTIONS,
-    }),
-  ],
+  plugins: [react(), TanStackRouterVite(), ViteImageOptimizer({
+    ...DEFAULT_OPTIONS,
+  }), sentryVitePlugin({
+    org: "velovoyager",
+    project: "frontend",
+    telemetry: false,
+    disable: true
+  })],
+
   define: {
     "process.env.VITE_SUPABASE_URL": JSON.stringify(
       process.env.VITE_SUPABASE_URL
@@ -86,21 +92,32 @@ export default defineConfig({
     ),
 
     "process.env.VITE_API_URL": JSON.stringify(process.env.VITE_API_URL),
+    "process.env.VITE_MAPBOX_TOKEN": JSON.stringify(
+      process.env.VITE_MAPBOX_TOKEN
+    ),
   },
+
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
   },
+
   base: "/",
+
   preview: {
-    port: 8080,
+    port: 8081,
     strictPort: true,
   },
+
   server: {
-    port: 8080,
+    port: 8081,
     strictPort: true,
     host: true,
-    origin: "http://0.0.0.0:8080",
+    origin: "http://0.0.0.0:8081",
   },
+
+  build: {
+    sourcemap: true
+  }
 });

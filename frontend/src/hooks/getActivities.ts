@@ -7,6 +7,7 @@ interface TotalTime {
 }
 
 interface Activity {
+  id: number;
   activityName: string;
   totalTime: TotalTime;
   distance: number;
@@ -31,7 +32,6 @@ const fetchActivities = async ({
       },
     }
   );
-  console.log("Query data", data);
 
   return data;
 };

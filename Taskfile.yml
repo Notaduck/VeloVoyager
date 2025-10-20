@@ -2,7 +2,8 @@ version: "3"
 
 vars:
   GOCMD: go
-  NPMCMD: npm # Assuming npm for frontend, change as necessary
+  YARNCMD: yarn
+  BUFCMD: buf
 
 tasks:
   build-backend:
@@ -20,24 +21,44 @@ tasks:
     cmds:
       - "cd backend && {{.GOCMD}} test ./..."
 
+  debug-backend:
+    desc: "Debug backend with hot-reloading using reflex and Delve"
+    cmds:
+      - |
+        reflex -r '\.go$' -s -- \
+        dlv debug ./backend/cmd/app/main.go \
+        --headless --listen=:2345 --api-version=2 --accept-multiclient
+
   build-frontend:
     desc: "Build the frontend project"
     cmds:
-      - "cd frontend && {{.NPMCMD}} install && {{.NPMCMD}} run build" # Adjust if not using npm
+      - "cd frontend && {{.YARNCMD}} install --frozen-lockfile"
+      - "cd frontend && {{.YARNCMD}} build"
 
   run-frontend:
     desc: "Run the frontend project"
     cmds:
-      - "cd frontend && {{.NPMCMD}} run dev" # Adjust if not using npm
+      - "cd frontend && {{.YARNCMD}} dev"
 
   start-all:
     desc: "Start both backend and frontend"
     cmds:
-      - "go-task watch-backend &"
-      - "go-task run-frontend"
+      - "task watch-backend &"
+      - "task run-frontend"
 
   watch-backend:
     desc: "Watch Go files in the backend and rerun tasks"
     cmds:
-      - "cd backend && reflex -r '\\.go$' -s -- sh -c 'go-task test-backend && go-task build-backend && go-task run-backend'"
-# Add a watch task for frontend if needed, using your frontend technology's watch capabilities
+      # - "cd backend && reflex -r '\\.go$' -s -- sh -c 'task test-backend && task build-backend && task run-backend'"
+      - "cd backend && reflex -r '\\.go$' -s -- sh -c 'task build-backend && task run-backend'"
+        # Add a watch task for frontend if needed, using your frontend technology's watch capabilities
+
+  lint-frontend:
+    desc: "Run the frontend lint suite"
+    cmds:
+      - "cd frontend && {{.YARNCMD}} lint"
+
+  generate-proto:
+    desc: "Regenerate Go and TypeScript clients from protobuf definitions"
+    cmds:
+      - "{{.BUFCMD}} generate"

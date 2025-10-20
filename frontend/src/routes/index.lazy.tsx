@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link, createLazyFileRoute } from "@tanstack/react-router";
-import Hero from "../assets/group_ride.jpeg";
+import Hero from "../assets/biking_asphalt_road.webp";
 
 export const Route = createLazyFileRoute("/")({
   component: Index,
@@ -20,6 +20,7 @@ function Index() {
                   height="550"
                   src={Hero}
                   width="550"
+                  
                 />
                 <div className="flex flex-col justify-center space-y-4">
                   <div className="space-y-2">

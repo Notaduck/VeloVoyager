@@ -6,6 +6,15 @@ import { ThemeSupa } from "@supabase/auth-ui-shared";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
+  loader: async ({ context }) => {
+    const { supabase } = context;
+    if (!supabase) {
+      throw new Error(
+        "Supabase instance is not provided in the route context."
+      );
+    }
+    return { supabase };
+  },
 });
 
 function LoginPage() {

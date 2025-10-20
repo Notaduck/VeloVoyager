@@ -14,12 +14,14 @@ func AuthMiddleware(apiServer *APIServer) func(http.HandlerFunc) http.HandlerFun
 			ctx := r.Context()
 			token := r.Header.Get("x-jwt-token")
 			if token == "" {
+				slog.Error("no x-jwt-token was provided in the header")
 				permissionDenied(w)
 				return
 			}
 
 			user, err := apiServer.supaClient().Auth.User(ctx, token)
 			if err != nil {
+				slog.Error("failed to fetch user from supabase", "error", err, "token", token)
 				permissionDenied(w)
 				return
 			}
