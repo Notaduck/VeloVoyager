@@ -137,8 +137,6 @@ github.com/nedpals/supabase-go v0.4.0 h1:8fwmhgwiFE3z9fpvLRTIi7+0RTtVgHmCNU25a4k
 github.com/nedpals/supabase-go v0.4.0/go.mod h1:rscvF0tYsD6gJYKMYZy8e6YWspVIaGnBb13PlU6HFcU=
 github.com/newrelic/go-agent/v3 v3.35.1 h1:N43qBNDILmnwLDCSfnE1yy6adyoVEU95nAOtdUgG4vA=
 github.com/newrelic/go-agent/v3 v3.35.1/go.mod h1:GNTda53CohAhkgsc7/gqSsJhDZjj8vaky5u+vKz7wqM=
-github.com/newrelic/go-agent/v3/integrations/nrslog v1.0.0 h1:lHviwcczur3vuPeSQ2MAnmjP30bCE+1vFq44dkfNh1g=
-github.com/newrelic/go-agent/v3/integrations/nrslog v1.0.0/go.mod h1:H+bMdwSGhwGUiaQ4DejN9c6FtkI3SCJ96RAv3ZHsFhM=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opencontainers/image-spec v1.1.0 h1:8SG7/vwALn54lVB/0yZ/MMwhFrPYtpEHQb2IpWsCzug=

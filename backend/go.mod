@@ -83,7 +83,6 @@ require (
 	github.com/mdempsky/unconvert v0.0.0-20241127004111-db6ad295e1ce // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/nedpals/postgrest-go v0.1.3 // indirect
-	github.com/newrelic/go-agent/v3/integrations/nrslog v1.0.0
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/sagikazarmark/locafero v0.6.0 // indirect
 	github.com/sagikazarmark/slog-shim v0.1.0 // indirect

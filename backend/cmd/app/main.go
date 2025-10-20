@@ -9,7 +9,6 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/lmittmann/tint"
-	nrslog "github.com/newrelic/go-agent/v3/integrations/nrslog"
 	"github.com/newrelic/go-agent/v3/newrelic"
 
 	"github.com/notaduck/backend/internal/config"
@@ -40,7 +39,6 @@ func main() {
 		newrelic.ConfigLicense(config.NewRelicLicense),
 		newrelic.ConfigAppLogForwardingEnabled(true),
 		newrelic.ConfigAppLogEnabled(true),
-		nrslog.ConfigLogger(tintLogger), // Configure New Relic to use slog
 	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to initialize New Relic application: %v\n", err)
