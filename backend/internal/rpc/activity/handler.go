@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"time"
 
 	"connectrpc.com/connect"
 	activityv1 "github.com/notaduck/backend/gen/activity/v1"
@@ -69,6 +70,50 @@ func (h *ActivityHandler) UploadActivities(
 	}
 
 	// Return the response
+	return connect.NewResponse(response), nil
+}
+
+func (h *ActivityHandler) UploadActivitiesUnary(
+	ctx context.Context,
+	req *connect.Request[activityv1.UploadActivitiesUnaryRequest],
+) (*connect.Response[activityv1.UploadActivitiesResponse], error) {
+	user := middleware.RetrieveUserFromContext(ctx)
+	if user == nil {
+		err := fmt.Errorf("user not authenticated")
+		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+	}
+
+	if len(req.Msg.GetFiles()) == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("no file data received"))
+	}
+
+	files := make([]service.ActivityFilePayload, 0, len(req.Msg.Files))
+	for _, file := range req.Msg.Files {
+		if len(file.GetData()) == 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("file %q has no data", file.GetFilename()))
+		}
+
+		payload := service.ActivityFilePayload{
+			Filename:    file.GetFilename(),
+			ContentType: file.GetContentType(),
+			Data:        file.GetData(),
+		}
+
+		if lm := file.GetLastModified(); lm > 0 {
+			payload.LastModified = time.UnixMilli(lm)
+		}
+
+		files = append(files, payload)
+	}
+
+	if _, err := h.service.CreateActivitiesFromBytes(ctx, files, user.ID); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	response := &activityv1.UploadActivitiesResponse{
+		Status: "success",
+	}
+
 	return connect.NewResponse(response), nil
 }
 

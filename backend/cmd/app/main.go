@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/lmittmann/tint"
 	"github.com/newrelic/go-agent/v3/newrelic"
@@ -15,6 +16,7 @@ import (
 	"github.com/notaduck/backend/internal/db"
 	"github.com/notaduck/backend/internal/repositories"
 	rpcserver "github.com/notaduck/backend/internal/rpc/server"
+	httpserver "github.com/notaduck/backend/internal/server/http"
 	service "github.com/notaduck/backend/internal/services"
 )
 
@@ -51,7 +53,14 @@ func main() {
 	ctx := context.Background()
 
 	// Set up database connection pool
-	pool, err := pgxpool.New(ctx, config.DbConnectionString)
+	poolConfig, err := pgxpool.ParseConfig(config.DbConnectionString)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to parse database configuration: %v\n", err)
+		os.Exit(1)
+	}
+	poolConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
+
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
 		slog.Error("Failed to connect to database", "error", err)
 		os.Exit(1)
@@ -62,11 +71,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	db := db.New(pool)
+	queries := db.New(pool)
 
 	// Initialize repositories and services
-	activityRepo := repositories.NewActivityRepository(db)
-	recordRepo := repositories.NewRecordRepository(db)
+	apiServer := httpserver.NewAPIServer(
+		httpserver.WithConfig(config),
+		httpserver.WithDbQueries(queries),
+	)
+
+	go apiServer.Run()
+
+	activityRepo := repositories.NewActivityRepository(queries)
+	recordRepo := repositories.NewRecordRepository(queries)
 	activityService := service.NewActivityService(activityRepo, recordRepo)
 
 	// Initialize RPC server

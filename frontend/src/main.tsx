@@ -18,7 +18,7 @@ console.table(import.meta.env);
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_API_KEY
+  import.meta.env.VITE_SUPABASE_API_KEY,
 );
 
 const queryClient = new QueryClient();
@@ -30,12 +30,10 @@ export const transport = createConnectTransport({
         data: { session },
       } = await supabase.auth.getSession();
 
-      console.log("xession", session);
       if (session) {
-        console.log("session", session.access_token);
         request.header.append(
           "Authorization",
-          "Bearer " + session.access_token
+          "Bearer " + session.access_token,
         );
       }
       // Add your headers here
@@ -51,7 +49,6 @@ const router = createRouter({
     queryClient: queryClient,
   },
 });
-
 
 // Register the router instance for type safety
 declare module "@tanstack/react-router" {
@@ -86,6 +83,6 @@ if (!rootElement.innerHTML) {
           <RouterProvider router={router} />
         </QueryClientProvider>
       </TransportProvider>
-    </StrictMode>
+    </StrictMode>,
   );
 }

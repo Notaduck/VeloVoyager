@@ -42,14 +42,18 @@ const (
 	// ActivityServiceUploadActivitiesProcedure is the fully-qualified name of the ActivityService's
 	// UploadActivities RPC.
 	ActivityServiceUploadActivitiesProcedure = "/activity.v1.ActivityService/UploadActivities"
+	// ActivityServiceUploadActivitiesUnaryProcedure is the fully-qualified name of the
+	// ActivityService's UploadActivitiesUnary RPC.
+	ActivityServiceUploadActivitiesUnaryProcedure = "/activity.v1.ActivityService/UploadActivitiesUnary"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
 var (
-	activityServiceServiceDescriptor                = v1.File_activity_v1_activity_proto.Services().ByName("ActivityService")
-	activityServiceGetActivitiesMethodDescriptor    = activityServiceServiceDescriptor.Methods().ByName("GetActivities")
-	activityServiceGetActivityMethodDescriptor      = activityServiceServiceDescriptor.Methods().ByName("GetActivity")
-	activityServiceUploadActivitiesMethodDescriptor = activityServiceServiceDescriptor.Methods().ByName("UploadActivities")
+	activityServiceServiceDescriptor                     = v1.File_activity_v1_activity_proto.Services().ByName("ActivityService")
+	activityServiceGetActivitiesMethodDescriptor         = activityServiceServiceDescriptor.Methods().ByName("GetActivities")
+	activityServiceGetActivityMethodDescriptor           = activityServiceServiceDescriptor.Methods().ByName("GetActivity")
+	activityServiceUploadActivitiesMethodDescriptor      = activityServiceServiceDescriptor.Methods().ByName("UploadActivities")
+	activityServiceUploadActivitiesUnaryMethodDescriptor = activityServiceServiceDescriptor.Methods().ByName("UploadActivitiesUnary")
 )
 
 // ActivityServiceClient is a client for the activity.v1.ActivityService service.
@@ -60,6 +64,8 @@ type ActivityServiceClient interface {
 	GetActivity(context.Context, *connect.Request[v1.GetActivityRequest]) (*connect.Response[v1.GetActivityResponse], error)
 	// Upload multiple fit files
 	UploadActivities(context.Context) *connect.ClientStreamForClient[v1.UploadActivitiesRequest, v1.UploadActivitiesResponse]
+	// Upload fit files using a unary request (for clients without streaming support)
+	UploadActivitiesUnary(context.Context, *connect.Request[v1.UploadActivitiesUnaryRequest]) (*connect.Response[v1.UploadActivitiesResponse], error)
 }
 
 // NewActivityServiceClient constructs a client for the activity.v1.ActivityService service. By
@@ -90,14 +96,21 @@ func NewActivityServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(activityServiceUploadActivitiesMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
+		uploadActivitiesUnary: connect.NewClient[v1.UploadActivitiesUnaryRequest, v1.UploadActivitiesResponse](
+			httpClient,
+			baseURL+ActivityServiceUploadActivitiesUnaryProcedure,
+			connect.WithSchema(activityServiceUploadActivitiesUnaryMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // activityServiceClient implements ActivityServiceClient.
 type activityServiceClient struct {
-	getActivities    *connect.Client[v1.GetActivitiesRequest, v1.GetActivitiesResponse]
-	getActivity      *connect.Client[v1.GetActivityRequest, v1.GetActivityResponse]
-	uploadActivities *connect.Client[v1.UploadActivitiesRequest, v1.UploadActivitiesResponse]
+	getActivities         *connect.Client[v1.GetActivitiesRequest, v1.GetActivitiesResponse]
+	getActivity           *connect.Client[v1.GetActivityRequest, v1.GetActivityResponse]
+	uploadActivities      *connect.Client[v1.UploadActivitiesRequest, v1.UploadActivitiesResponse]
+	uploadActivitiesUnary *connect.Client[v1.UploadActivitiesUnaryRequest, v1.UploadActivitiesResponse]
 }
 
 // GetActivities calls activity.v1.ActivityService.GetActivities.
@@ -115,6 +128,11 @@ func (c *activityServiceClient) UploadActivities(ctx context.Context) *connect.C
 	return c.uploadActivities.CallClientStream(ctx)
 }
 
+// UploadActivitiesUnary calls activity.v1.ActivityService.UploadActivitiesUnary.
+func (c *activityServiceClient) UploadActivitiesUnary(ctx context.Context, req *connect.Request[v1.UploadActivitiesUnaryRequest]) (*connect.Response[v1.UploadActivitiesResponse], error) {
+	return c.uploadActivitiesUnary.CallUnary(ctx, req)
+}
+
 // ActivityServiceHandler is an implementation of the activity.v1.ActivityService service.
 type ActivityServiceHandler interface {
 	// Fetch all activities without records.
@@ -123,6 +141,8 @@ type ActivityServiceHandler interface {
 	GetActivity(context.Context, *connect.Request[v1.GetActivityRequest]) (*connect.Response[v1.GetActivityResponse], error)
 	// Upload multiple fit files
 	UploadActivities(context.Context, *connect.ClientStream[v1.UploadActivitiesRequest]) (*connect.Response[v1.UploadActivitiesResponse], error)
+	// Upload fit files using a unary request (for clients without streaming support)
+	UploadActivitiesUnary(context.Context, *connect.Request[v1.UploadActivitiesUnaryRequest]) (*connect.Response[v1.UploadActivitiesResponse], error)
 }
 
 // NewActivityServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -149,6 +169,12 @@ func NewActivityServiceHandler(svc ActivityServiceHandler, opts ...connect.Handl
 		connect.WithSchema(activityServiceUploadActivitiesMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
+	activityServiceUploadActivitiesUnaryHandler := connect.NewUnaryHandler(
+		ActivityServiceUploadActivitiesUnaryProcedure,
+		svc.UploadActivitiesUnary,
+		connect.WithSchema(activityServiceUploadActivitiesUnaryMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/activity.v1.ActivityService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ActivityServiceGetActivitiesProcedure:
@@ -157,6 +183,8 @@ func NewActivityServiceHandler(svc ActivityServiceHandler, opts ...connect.Handl
 			activityServiceGetActivityHandler.ServeHTTP(w, r)
 		case ActivityServiceUploadActivitiesProcedure:
 			activityServiceUploadActivitiesHandler.ServeHTTP(w, r)
+		case ActivityServiceUploadActivitiesUnaryProcedure:
+			activityServiceUploadActivitiesUnaryHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -176,4 +204,8 @@ func (UnimplementedActivityServiceHandler) GetActivity(context.Context, *connect
 
 func (UnimplementedActivityServiceHandler) UploadActivities(context.Context, *connect.ClientStream[v1.UploadActivitiesRequest]) (*connect.Response[v1.UploadActivitiesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("activity.v1.ActivityService.UploadActivities is not implemented"))
+}
+
+func (UnimplementedActivityServiceHandler) UploadActivitiesUnary(context.Context, *connect.Request[v1.UploadActivitiesUnaryRequest]) (*connect.Response[v1.UploadActivitiesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("activity.v1.ActivityService.UploadActivitiesUnary is not implemented"))
 }

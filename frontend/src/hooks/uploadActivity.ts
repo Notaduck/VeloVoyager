@@ -1,9 +1,14 @@
+import { useCallback, useMemo, useState } from "react";
+import { createClient } from "@connectrpc/connect";
+
+import { create } from "@bufbuild/protobuf";
+
 import {
   ActivityService,
-  UploadActivitiesRequest,
-} from "@/gen/activity/v1/activity_pb"; // Import the type
-import { useCallback, useState } from "react";
-import { createClient } from "@connectrpc/connect";
+  UploadActivitiesUnaryFile,
+  UploadActivitiesUnaryFileSchema,
+  UploadActivitiesUnaryRequestSchema,
+} from "@/gen/activity/v1/activity_pb";
 import { transport } from "@/main";
 
 type UploadStatus = {
@@ -19,49 +24,58 @@ export const useUploadActivities = () => {
     success: false,
   });
 
-  // Create a client for the ActivityService
-  const client = createClient(ActivityService, transport);
+  const client = useMemo(() => createClient(ActivityService, transport), []);
 
   const uploadActivities = useCallback(
-    async (fileChunks: ArrayBuffer[], metadata: string) => {
+    async (files: FileList) => {
+      if (!files || files.length === 0) {
+        setStatus({
+          isUploading: false,
+          error: "No files selected",
+          success: false,
+        });
+        return false;
+      }
+
       setStatus({ isUploading: true, error: null, success: false });
 
       try {
-        // Use client streaming
-        const response = await client.uploadActivities({
-          async *[Symbol.asyncIterator]() {
-            // Send metadata first
-            yield {
-              payload: {
-                case: "metadata",
-                value: metadata,
-              },
-            } as UploadActivitiesRequest;
+        const payloads: UploadActivitiesUnaryFile[] = await Promise.all(
+          Array.from(files).map(async (file) => {
+            const buffer = await file.arrayBuffer();
+            return create(UploadActivitiesUnaryFileSchema, {
+              data: new Uint8Array(buffer),
+              filename: file.name,
+              contentType: file.type || "application/octet-stream",
+              lastModified: BigInt(file.lastModified || Date.now()),
+            });
+          }),
+        );
 
-            // Stream file chunks
-            for (const chunk of fileChunks) {
-              yield {
-                payload: {
-                  case: "fileChunk",
-                  value: new Uint8Array(chunk),
-                },
-              } as UploadActivitiesRequest;
-            }
-          },
-        });
+        const response = await client.uploadActivitiesUnary(
+          create(UploadActivitiesUnaryRequestSchema, {
+            files: payloads,
+          }),
+        );
 
-        console.log("Upload response:", response.status);
+        console.debug("Upload success:", response.status);
+
         setStatus({ isUploading: false, error: null, success: true });
-      } catch (error: any) {
-        console.error("Upload error:", error);
+        return true;
+      } catch (error) {
+        console.error("Upload failed:", error);
         setStatus({
           isUploading: false,
-          error: error.message || "Unknown error",
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to upload activities",
           success: false,
         });
+        return false;
       }
     },
-    [client]
+    [client],
   );
 
   return {

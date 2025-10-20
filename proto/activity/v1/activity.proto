@@ -60,6 +60,17 @@ message UploadActivitiesResponse {
   string status = 1; // Status of the upload (e.g., "success" or error message)
 }
 
+message UploadActivitiesUnaryFile {
+  bytes data = 1;
+  string filename = 2;
+  string content_type = 3;
+  int64 last_modified = 4; // Unix milliseconds
+}
+
+message UploadActivitiesUnaryRequest {
+  repeated UploadActivitiesUnaryFile files = 1;
+}
+
 // GetActivitiesResponse contains a list of activity summaries.
 message GetActivitiesResponse { repeated ActivitySummary activities = 1; }
 
@@ -79,5 +90,8 @@ service ActivityService {
   rpc GetActivity(GetActivityRequest) returns (GetActivityResponse) {}
   // Upload multiple fit files
   rpc UploadActivities(stream UploadActivitiesRequest)
+      returns (UploadActivitiesResponse);
+  // Upload fit files using a unary request (for clients without streaming support)
+  rpc UploadActivitiesUnary(UploadActivitiesUnaryRequest)
       returns (UploadActivitiesResponse);
 }

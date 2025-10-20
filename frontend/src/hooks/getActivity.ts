@@ -1,4 +1,9 @@
-import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  queryOptions,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import axios from "axios";
 
 interface Activity {
@@ -11,7 +16,7 @@ interface Activity {
   elapsedTime: string;
   totalTime: string;
   records: Record[];
-  tourDate:string 
+  tourDate: string;
 }
 
 interface Record {
@@ -58,7 +63,6 @@ const fetchActivity = async ({
   return data;
 };
 
-
 export const activityQueryOptions = ({
   jwtToken,
   activityId,
@@ -78,13 +82,11 @@ export const useGetActivities = ({
   });
 };
 
-
 const updateActivityFn = async ({
   jwtToken,
   activityId,
   activityName,
 }: UpdateActivityParams): Promise<Activity> => {
-  console.log(jwtToken, activityId, activityName);
   const { data } = await axios.patch(
     `${import.meta.env.VITE_API_URL}/activity`,
     {
@@ -97,24 +99,22 @@ const updateActivityFn = async ({
       params: {
         activityId: activityId,
       },
-    }
+    },
   );
 
   return data;
 };
 
 export const useActivity = () => {
-
-  const queryClient = useQueryClient()
-
+  const queryClient = useQueryClient();
 
   const updateActivity = useMutation<Activity, Error, UpdateActivityParams>({
     mutationKey: ["mutate", "activity"],
     mutationFn: updateActivityFn,
     onSuccess: (activity) => {
-      queryClient.setQueryData([ ...QUERY_KEY, activity.id ],activity)
-      queryClient.invalidateQueries({queryKey: [...QUERY_KEY, activity.id]});
-    }
+      queryClient.setQueryData([...QUERY_KEY, activity.id], activity);
+      queryClient.invalidateQueries({ queryKey: [...QUERY_KEY, activity.id] });
+    },
   });
 
   return {

@@ -17,3 +17,10 @@ export const getActivities = ActivityService.method.getActivities;
  * @generated from rpc activity.v1.ActivityService.GetActivity
  */
 export const getActivity = ActivityService.method.getActivity;
+
+/**
+ * Upload fit files using a unary request (for clients without streaming support)
+ *
+ * @generated from rpc activity.v1.ActivityService.UploadActivitiesUnary
+ */
+export const uploadActivitiesUnary = ActivityService.method.uploadActivitiesUnary;

@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file activity/v1/activity.proto.
  */
 export const file_activity_v1_activity: GenFile = /*@__PURE__*/
-  fileDesc("ChphY3Rpdml0eS92MS9hY3Rpdml0eS5wcm90bxILYWN0aXZpdHkudjEiHQoFUG9pbnQSCQoBeBgBIAEoARIJCgF5GAIgASgBIqIBCgZSZWNvcmQSCgoCaWQYASABKAUSJwoLY29vcmRpbmF0ZXMYAiABKAsyEi5hY3Rpdml0eS52MS5Qb2ludBINCgVzcGVlZBgDIAEoARIuCgp0aW1lX3N0YW1wGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIQCghkaXN0YW5jZRgFIAEoBRISCgpoZWFydF9yYXRlGAYgASgFItQBChNHZXRBY3Rpdml0eVJlc3BvbnNlEgoKAmlkGAEgASgFEhIKCmNyZWF0ZWRfYXQYAiABKAkSEAoIZGlzdGFuY2UYAyABKAESFQoNYWN0aXZpdHlfbmFtZRgEIAEoCRIRCglhdmdfc3BlZWQYBSABKAESEQoJbWF4X3NwZWVkGAYgASgBEhQKDGVsYXBzZWRfdGltZRgHIAEoCRISCgp0b3RhbF90aW1lGAggASgJEiQKB3JlY29yZHMYCSADKAsyEy5hY3Rpdml0eS52MS5SZWNvcmQixgEKD0FjdGl2aXR5U3VtbWFyeRIKCgJpZBgBIAEoBRIuCgpjcmVhdGVkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIQCghkaXN0YW5jZRgDIAEoARIVCg1hY3Rpdml0eV9uYW1lGAQgASgJEhEKCWF2Z19zcGVlZBgFIAEoARIRCgltYXhfc3BlZWQYBiABKAESFAoMZWxhcHNlZF90aW1lGAcgASgJEhIKCnRvdGFsX3RpbWUYCCABKAkiTgoXVXBsb2FkQWN0aXZpdGllc1JlcXVlc3QSFAoKZmlsZV9jaHVuaxgBIAEoDEgAEhIKCG1ldGFkYXRhGAIgASgJSABCCQoHcGF5bG9hZCIqChhVcGxvYWRBY3Rpdml0aWVzUmVzcG9uc2USDgoGc3RhdHVzGAEgASgJIkkKFUdldEFjdGl2aXRpZXNSZXNwb25zZRIwCgphY3Rpdml0aWVzGAEgAygLMhwuYWN0aXZpdHkudjEuQWN0aXZpdHlTdW1tYXJ5IhYKFEdldEFjdGl2aXRpZXNSZXF1ZXN0IikKEkdldEFjdGl2aXR5UmVxdWVzdBITCgthY3Rpdml0eV9pZBgBIAEoBTKiAgoPQWN0aXZpdHlTZXJ2aWNlElgKDUdldEFjdGl2aXRpZXMSIS5hY3Rpdml0eS52MS5HZXRBY3Rpdml0aWVzUmVxdWVzdBoiLmFjdGl2aXR5LnYxLkdldEFjdGl2aXRpZXNSZXNwb25zZSIAElIKC0dldEFjdGl2aXR5Eh8uYWN0aXZpdHkudjEuR2V0QWN0aXZpdHlSZXF1ZXN0GiAuYWN0aXZpdHkudjEuR2V0QWN0aXZpdHlSZXNwb25zZSIAEmEKEFVwbG9hZEFjdGl2aXRpZXMSJC5hY3Rpdml0eS52MS5VcGxvYWRBY3Rpdml0aWVzUmVxdWVzdBolLmFjdGl2aXR5LnYxLlVwbG9hZEFjdGl2aXRpZXNSZXNwb25zZSgBQjhaNmdpdGh1Yi5jb20vbm90YWR1Y2svYmFja2VuZC9nZW4vYWN0aXZpdHkvdjE7YWN0aXZpdHl2MWIGcHJvdG8z", [file_google_protobuf_timestamp]);
+  fileDesc("ChphY3Rpdml0eS92MS9hY3Rpdml0eS5wcm90bxILYWN0aXZpdHkudjEiHQoFUG9pbnQSCQoBeBgBIAEoARIJCgF5GAIgASgBIqIBCgZSZWNvcmQSCgoCaWQYASABKAUSJwoLY29vcmRpbmF0ZXMYAiABKAsyEi5hY3Rpdml0eS52MS5Qb2ludBINCgVzcGVlZBgDIAEoARIuCgp0aW1lX3N0YW1wGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIQCghkaXN0YW5jZRgFIAEoBRISCgpoZWFydF9yYXRlGAYgASgFItQBChNHZXRBY3Rpdml0eVJlc3BvbnNlEgoKAmlkGAEgASgFEhIKCmNyZWF0ZWRfYXQYAiABKAkSEAoIZGlzdGFuY2UYAyABKAESFQoNYWN0aXZpdHlfbmFtZRgEIAEoCRIRCglhdmdfc3BlZWQYBSABKAESEQoJbWF4X3NwZWVkGAYgASgBEhQKDGVsYXBzZWRfdGltZRgHIAEoCRISCgp0b3RhbF90aW1lGAggASgJEiQKB3JlY29yZHMYCSADKAsyEy5hY3Rpdml0eS52MS5SZWNvcmQixgEKD0FjdGl2aXR5U3VtbWFyeRIKCgJpZBgBIAEoBRIuCgpjcmVhdGVkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIQCghkaXN0YW5jZRgDIAEoARIVCg1hY3Rpdml0eV9uYW1lGAQgASgJEhEKCWF2Z19zcGVlZBgFIAEoARIRCgltYXhfc3BlZWQYBiABKAESFAoMZWxhcHNlZF90aW1lGAcgASgJEhIKCnRvdGFsX3RpbWUYCCABKAkiTgoXVXBsb2FkQWN0aXZpdGllc1JlcXVlc3QSFAoKZmlsZV9jaHVuaxgBIAEoDEgAEhIKCG1ldGFkYXRhGAIgASgJSABCCQoHcGF5bG9hZCIqChhVcGxvYWRBY3Rpdml0aWVzUmVzcG9uc2USDgoGc3RhdHVzGAEgASgJImgKGVVwbG9hZEFjdGl2aXRpZXNVbmFyeUZpbGUSDAoEZGF0YRgBIAEoDBIQCghmaWxlbmFtZRgCIAEoCRIUCgxjb250ZW50X3R5cGUYAyABKAkSFQoNbGFzdF9tb2RpZmllZBgEIAEoAyJVChxVcGxvYWRBY3Rpdml0aWVzVW5hcnlSZXF1ZXN0EjUKBWZpbGVzGAEgAygLMiYuYWN0aXZpdHkudjEuVXBsb2FkQWN0aXZpdGllc1VuYXJ5RmlsZSJJChVHZXRBY3Rpdml0aWVzUmVzcG9uc2USMAoKYWN0aXZpdGllcxgBIAMoCzIcLmFjdGl2aXR5LnYxLkFjdGl2aXR5U3VtbWFyeSIWChRHZXRBY3Rpdml0aWVzUmVxdWVzdCIpChJHZXRBY3Rpdml0eVJlcXVlc3QSEwoLYWN0aXZpdHlfaWQYASABKAUyjQMKD0FjdGl2aXR5U2VydmljZRJYCg1HZXRBY3Rpdml0aWVzEiEuYWN0aXZpdHkudjEuR2V0QWN0aXZpdGllc1JlcXVlc3QaIi5hY3Rpdml0eS52MS5HZXRBY3Rpdml0aWVzUmVzcG9uc2UiABJSCgtHZXRBY3Rpdml0eRIfLmFjdGl2aXR5LnYxLkdldEFjdGl2aXR5UmVxdWVzdBogLmFjdGl2aXR5LnYxLkdldEFjdGl2aXR5UmVzcG9uc2UiABJhChBVcGxvYWRBY3Rpdml0aWVzEiQuYWN0aXZpdHkudjEuVXBsb2FkQWN0aXZpdGllc1JlcXVlc3QaJS5hY3Rpdml0eS52MS5VcGxvYWRBY3Rpdml0aWVzUmVzcG9uc2UoARJpChVVcGxvYWRBY3Rpdml0aWVzVW5hcnkSKS5hY3Rpdml0eS52MS5VcGxvYWRBY3Rpdml0aWVzVW5hcnlSZXF1ZXN0GiUuYWN0aXZpdHkudjEuVXBsb2FkQWN0aXZpdGllc1Jlc3BvbnNlQjhaNmdpdGh1Yi5jb20vbm90YWR1Y2svYmFja2VuZC9nZW4vYWN0aXZpdHkvdjE7YWN0aXZpdHl2MWIGcHJvdG8z", [file_google_protobuf_timestamp]);
 
 /**
  * Point represents a coordinate point.
@@ -252,6 +252,57 @@ export const UploadActivitiesResponseSchema: GenMessage<UploadActivitiesResponse
   messageDesc(file_activity_v1_activity, 5);
 
 /**
+ * @generated from message activity.v1.UploadActivitiesUnaryFile
+ */
+export type UploadActivitiesUnaryFile = Message<"activity.v1.UploadActivitiesUnaryFile"> & {
+  /**
+   * @generated from field: bytes data = 1;
+   */
+  data: Uint8Array;
+
+  /**
+   * @generated from field: string filename = 2;
+   */
+  filename: string;
+
+  /**
+   * @generated from field: string content_type = 3;
+   */
+  contentType: string;
+
+  /**
+   * Unix milliseconds
+   *
+   * @generated from field: int64 last_modified = 4;
+   */
+  lastModified: bigint;
+};
+
+/**
+ * Describes the message activity.v1.UploadActivitiesUnaryFile.
+ * Use `create(UploadActivitiesUnaryFileSchema)` to create a new message.
+ */
+export const UploadActivitiesUnaryFileSchema: GenMessage<UploadActivitiesUnaryFile> = /*@__PURE__*/
+  messageDesc(file_activity_v1_activity, 6);
+
+/**
+ * @generated from message activity.v1.UploadActivitiesUnaryRequest
+ */
+export type UploadActivitiesUnaryRequest = Message<"activity.v1.UploadActivitiesUnaryRequest"> & {
+  /**
+   * @generated from field: repeated activity.v1.UploadActivitiesUnaryFile files = 1;
+   */
+  files: UploadActivitiesUnaryFile[];
+};
+
+/**
+ * Describes the message activity.v1.UploadActivitiesUnaryRequest.
+ * Use `create(UploadActivitiesUnaryRequestSchema)` to create a new message.
+ */
+export const UploadActivitiesUnaryRequestSchema: GenMessage<UploadActivitiesUnaryRequest> = /*@__PURE__*/
+  messageDesc(file_activity_v1_activity, 7);
+
+/**
  * GetActivitiesResponse contains a list of activity summaries.
  *
  * @generated from message activity.v1.GetActivitiesResponse
@@ -268,7 +319,7 @@ export type GetActivitiesResponse = Message<"activity.v1.GetActivitiesResponse">
  * Use `create(GetActivitiesResponseSchema)` to create a new message.
  */
 export const GetActivitiesResponseSchema: GenMessage<GetActivitiesResponse> = /*@__PURE__*/
-  messageDesc(file_activity_v1_activity, 6);
+  messageDesc(file_activity_v1_activity, 8);
 
 /**
  * GetActivitiesRequest is an empty request message for fetching all activities.
@@ -285,7 +336,7 @@ export type GetActivitiesRequest = Message<"activity.v1.GetActivitiesRequest"> &
  * Use `create(GetActivitiesRequestSchema)` to create a new message.
  */
 export const GetActivitiesRequestSchema: GenMessage<GetActivitiesRequest> = /*@__PURE__*/
-  messageDesc(file_activity_v1_activity, 7);
+  messageDesc(file_activity_v1_activity, 9);
 
 /**
  * GetActivityRequest specifies the ID of the activity to retrieve.
@@ -304,7 +355,7 @@ export type GetActivityRequest = Message<"activity.v1.GetActivityRequest"> & {
  * Use `create(GetActivityRequestSchema)` to create a new message.
  */
 export const GetActivityRequestSchema: GenMessage<GetActivityRequest> = /*@__PURE__*/
-  messageDesc(file_activity_v1_activity, 8);
+  messageDesc(file_activity_v1_activity, 10);
 
 /**
  * @generated from service activity.v1.ActivityService
@@ -338,6 +389,16 @@ export const ActivityService: GenService<{
   uploadActivities: {
     methodKind: "client_streaming";
     input: typeof UploadActivitiesRequestSchema;
+    output: typeof UploadActivitiesResponseSchema;
+  },
+  /**
+   * Upload fit files using a unary request (for clients without streaming support)
+   *
+   * @generated from rpc activity.v1.ActivityService.UploadActivitiesUnary
+   */
+  uploadActivitiesUnary: {
+    methodKind: "unary";
+    input: typeof UploadActivitiesUnaryRequestSchema;
     output: typeof UploadActivitiesResponseSchema;
   },
 }> = /*@__PURE__*/

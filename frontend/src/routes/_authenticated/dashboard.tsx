@@ -40,6 +40,7 @@ import { Dropzone } from "@/components/ui/dropzone";
 import { Progress } from "@/components/ui/progress";
 import { getActivities } from "@/gen/activity/v1/activity-ActivityService_connectquery";
 import { useQuery } from "@connectrpc/connect-query";
+import { useUploadActivities } from "@/hooks/uploadActivity";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
@@ -60,70 +61,84 @@ function Dashboard() {
   const [weeklyProgress] = useState<number>(0);
   const [monthlyProgress] = useState<number>(0);
 
-  // const { authToken } = Route.useLoaderData();
-  // const { accessToken } = Route.useRouteContext();
-
-  // const { data: activities } = useGetActivities({ jwtToken: accessToken });
-  // const { data: stats, status: statsStatus } = useGetStats({
-  //   jwtToken: accessToken,
-  // });
-
   const { data } = useQuery(getActivities);
 
+  type FormValues = { files: undefined | FileList };
 
-  let x = 1
-  let n = x
-
-  let y = [x, n].reduce((acc, curr) => acc + curr)
-
-
-
-  // const { mutate } = useUploadActivities();
-  // useEffect(() => {
-  // console.log(data?.activities)
-  // console.log('data', data)
-  // },[])
-
-  const defaultValues: { files: undefined | FileList } = {
+  const defaultValues: FormValues = {
     files: undefined,
   };
 
-  const methods = useForm({
+  const methods = useForm<FormValues>({
     defaultValues,
     shouldFocusError: true,
     shouldUnregister: false,
     shouldUseNativeValidation: false,
   });
 
-  function handleFormSubmit() { }
+  const { uploadActivities, status } = useUploadActivities();
 
-  async function handleOnDrop(acceptedFiles: FileList | null) {
-    if (acceptedFiles && acceptedFiles.length > 0) {
-      const allowedTypes = [{ name: "file", types: ["application/fits"] }];
+  async function handleFormSubmit(values: FormValues) {
+    if (!values.files || values.files.length === 0) {
+      methods.setError("files", {
+        message: "File is required",
+        type: "typeError",
+      });
+      return;
+    }
 
-      const fileType = allowedTypes.find((allowedType) =>
-        allowedType.types.find((type) => type === acceptedFiles[0].type)
-      );
+    const success = await uploadActivities(values.files);
+    if (success) {
+      methods.reset(defaultValues);
+    }
+  }
 
-      if (!fileType) {
-        methods.setValue("files", undefined);
-        methods.setError("files", {
-          message: "File type is not valid",
-          type: "typeError",
-        });
-      } else {
-        methods.setValue("files", acceptedFiles);
-        methods.clearErrors("files");
+  const allowedMimeTypes = ["application/fits"];
+  const allowedExtensions = ["fit", "fits"];
+  const allowedExtensionsLabel = allowedExtensions
+    .map((extension) => `.${extension}`)
+    .join(", ");
+  const acceptExtensions = allowedExtensions
+    .map((extension) => `.${extension}`)
+    .join(",");
 
-        // mutate({ files: acceptedFiles, jwtToken: authToken! }); // Call the upload function here
-      }
-    } else {
+  function handleOnDrop(acceptedFiles: FileList | null) {
+    if (!acceptedFiles || acceptedFiles.length === 0) {
       methods.setValue("files", undefined);
       methods.setError("files", {
         message: "File is required",
         type: "typeError",
       });
+      return;
     }
+
+    const containsInvalidFile = Array.from(acceptedFiles).some((file) => {
+      if (file.type && allowedMimeTypes.includes(file.type)) {
+        return false;
+      }
+
+      const fileExtension = file.name.split(".").pop()?.toLowerCase()?.trim();
+
+      return !fileExtension || !allowedExtensions.includes(fileExtension);
+    });
+
+    if (containsInvalidFile) {
+      methods.setValue("files", undefined);
+      methods.setError("files", {
+        message: `File type is not valid. Allowed extensions: ${allowedExtensionsLabel}`,
+        type: "typeError",
+      });
+      return;
+    }
+
+    methods.setValue("files", acceptedFiles);
+    methods.clearErrors("files");
+    void (async () => {
+      const success = await uploadActivities(acceptedFiles);
+      if (success) {
+        methods.reset(defaultValues);
+      }
+    })();
   }
 
   // useLayoutEffect(() => {
@@ -157,6 +172,7 @@ function Dashboard() {
                         <FormControl>
                           <Dropzone
                             {...field}
+                            accept={acceptExtensions}
                             dropMessage="Drop files or click here"
                             multiple
                             handleOnDrop={handleOnDrop}
@@ -173,6 +189,17 @@ function Dashboard() {
                         {/* {methods.watch("files")} */}
                       </p>
                     </div>
+                  )}
+                  {status.isUploading && (
+                    <p className="text-sm text-muted-foreground">
+                      Uploading activities…
+                    </p>
+                  )}
+                  {status.error && (
+                    <p className="text-sm text-destructive">{status.error}</p>
+                  )}
+                  {status.success && (
+                    <p className="text-sm text-emerald-600">Upload complete</p>
                   )}
                 </form>
               </FormProvider>

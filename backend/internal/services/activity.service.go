@@ -1,8 +1,10 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"math"
 	"mime/multipart"
@@ -45,11 +47,19 @@ type Record struct {
 	HeartRate   int16     `json:"heartRate"`
 }
 
+type ActivityFilePayload struct {
+	Filename     string
+	ContentType  string
+	Data         []byte
+	LastModified time.Time
+}
+
 type ActivityService interface {
 	UpdateActivity(ctx context.Context, activityData db.UpdateActivityParams) (*Activity, error)
 	GetSingleActivityById(ctx context.Context, activityId int32, userId string) (*Activity, error)
 	GetActivities(ctx context.Context, userId string) ([]db.GetActivitiesRow, error)
 	CreateActivities(ctx context.Context, files []*multipart.FileHeader, userID string) ([]*Activity, error)
+	CreateActivitiesFromBytes(ctx context.Context, files []ActivityFilePayload, userID string) ([]*Activity, error)
 	GetActivityStats(ctx context.Context, userID string) (*db.GetActivityStatsRow, error)
 }
 
@@ -146,18 +156,42 @@ func (s *activityService) CreateActivities(ctx context.Context, files []*multipa
 	return activities, nil
 }
 
-func (s *activityService) processFitFile(ctx context.Context, fileHeader *multipart.FileHeader, userId string) (*Activity, error) {
-	if filepath.Ext(fileHeader.Filename) != ".fit" {
-		return nil, fmt.Errorf("invalid file type: only .fit files are allowed")
+func (s *activityService) CreateActivitiesFromBytes(ctx context.Context, files []ActivityFilePayload, userId string) ([]*Activity, error) {
+	activities := make([]*Activity, 0, len(files))
+
+	for _, file := range files {
+		if len(file.Data) == 0 {
+			return nil, fmt.Errorf("file %q has no data", file.Filename)
+		}
+
+		reader := bytes.NewReader(file.Data)
+		activity, err := s.processFitData(ctx, reader, file.Filename, userId)
+		if err != nil {
+			return nil, err
+		}
+
+		activities = append(activities, activity)
 	}
 
+	return activities, nil
+}
+
+func (s *activityService) processFitFile(ctx context.Context, fileHeader *multipart.FileHeader, userId string) (*Activity, error) {
 	file, err := fileHeader.Open()
 	if err != nil {
 		return nil, err
 	}
 	defer file.Close()
 
-	fit, err := fit.Decode(file)
+	return s.processFitData(ctx, file, fileHeader.Filename, userId)
+}
+
+func (s *activityService) processFitData(ctx context.Context, reader io.Reader, filename string, userId string) (*Activity, error) {
+	if filepath.Ext(filename) != ".fit" {
+		return nil, fmt.Errorf("invalid file type: only .fit files are allowed")
+	}
+
+	fit, err := fit.Decode(reader)
 	if err != nil {
 		return nil, err
 	}
