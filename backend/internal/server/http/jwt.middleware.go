@@ -21,8 +21,7 @@ func AuthMiddleware(apiServer *APIServer) func(http.HandlerFunc) http.HandlerFun
 
 			user, err := apiServer.supaClient().Auth.User(ctx, token)
 			if err != nil {
-
-				slog.Error("err", err, slog.String("token", token))
+				slog.Error("failed to fetch user from supabase", "error", err, "token", token)
 				permissionDenied(w)
 				return
 			}

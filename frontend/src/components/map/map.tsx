@@ -131,16 +131,20 @@ export default function Map({ route, records, initialLat, initialLng }: Props) {
         });
 
         // Handle hover events
-        map.current!.on("mousemove", "points", (e: mapboxgl.MapMouseEvent & mapboxgl.EventData) => {
-          if (e.features && e.features.length > 0) {
-            const feature = e.features[0];
-            setHoveredRecordId(feature.properties?.id);
-            map.current!.setFeatureState(
-              { source: "points", id: feature.id },
-              { hover: true }
-            );
-          }
-        });
+        map.current!.on(
+          "mousemove",
+          "points",
+          (e: mapboxgl.MapMouseEvent & mapboxgl.EventData) => {
+            if (e.features && e.features.length > 0) {
+              const feature = e.features[0];
+              setHoveredRecordId(feature.properties?.id);
+              map.current!.setFeatureState(
+                { source: "points", id: feature.id },
+                { hover: true },
+              );
+            }
+          },
+        );
 
         // Change cursor to pointer when hovering over points
         map.current!.on("mouseenter", "points", () => {

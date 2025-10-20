@@ -24,8 +24,6 @@ func main() {
 
 	w := os.Stderr
 
-	w.Chmod()
-
 	// Create a tint handler for pretty logging
 	tintHandler := tint.NewHandler(w, &tint.Options{
 		Level:      slog.LevelDebug,
@@ -78,5 +76,8 @@ func main() {
 
 	// Start the server
 	slog.Info("Starting RPC server...")
-	server.Start(ctx)
+	if err := server.Start(ctx); err != nil {
+		slog.Error("RPC server exited with error", "error", err)
+		os.Exit(1)
+	}
 }

@@ -2,7 +2,8 @@ version: "3"
 
 vars:
   GOCMD: go
-  NPMCMD: npm # Assuming npm for frontend, change as necessary
+  YARNCMD: yarn
+  BUFCMD: buf
 
 tasks:
   build-backend:
@@ -31,12 +32,13 @@ tasks:
   build-frontend:
     desc: "Build the frontend project"
     cmds:
-      - "cd frontend && {{.NPMCMD}} install && {{.NPMCMD}} run build" # Adjust if not using npm
+      - "cd frontend && {{.YARNCMD}} install --frozen-lockfile"
+      - "cd frontend && {{.YARNCMD}} build"
 
   run-frontend:
     desc: "Run the frontend project"
     cmds:
-      - "cd frontend && {{.NPMCMD}} run dev" # Adjust if not using npm
+      - "cd frontend && {{.YARNCMD}} dev"
 
   start-all:
     desc: "Start both backend and frontend"
@@ -50,3 +52,13 @@ tasks:
       # - "cd backend && reflex -r '\\.go$' -s -- sh -c 'task test-backend && task build-backend && task run-backend'"
       - "cd backend && reflex -r '\\.go$' -s -- sh -c 'task build-backend && task run-backend'"
         # Add a watch task for frontend if needed, using your frontend technology's watch capabilities
+
+  lint-frontend:
+    desc: "Run the frontend lint suite"
+    cmds:
+      - "cd frontend && {{.YARNCMD}} lint"
+
+  generate-proto:
+    desc: "Regenerate Go and TypeScript clients from protobuf definitions"
+    cmds:
+      - "{{.BUFCMD}} generate"

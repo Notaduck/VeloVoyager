@@ -19,7 +19,7 @@ func (s *APIServer) handlePatchActivity(w http.ResponseWriter, r *http.Request) 
 
 	if err != nil {
 		// Handle error
-		slog.Error("Error converting string to int:", err)
+		slog.Error("failed to convert activityId to int", "error", err)
 		return WriteJSON(w, http.StatusBadRequest, ApiError{Error: "no activityId was found."})
 	}
 
@@ -30,12 +30,12 @@ func (s *APIServer) handlePatchActivity(w http.ResponseWriter, r *http.Request) 
 
 	// Parse the body into req
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		slog.Error("failed to parse body", "err", err.Error())
+		slog.Error("failed to parse request body", "error", err)
 		return WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
 	}
 
-	slog.Info("ActivityId", "key", activityId)
-	slog.Info("ActivityName", "key", req.ActivityName)
+	slog.Info("activity id received", "activityId", activityId)
+	slog.Info("activity name received", "activityName", req.ActivityName)
 	user := RetrieveUserFromContext(r.Context())
 
 	activity, err := s.activityService.UpdateActivity(r.Context(), db.UpdateActivityParams{
@@ -45,7 +45,7 @@ func (s *APIServer) handlePatchActivity(w http.ResponseWriter, r *http.Request) 
 	})
 
 	if err != nil {
-		slog.Error("failed to fina an activity", "no activity found for", err.Error())
+		slog.Error("failed to update activity", "error", err)
 
 		return WriteJSON(w, http.StatusBadRequest, ApiError{Error: "no activity was found."})
 
@@ -61,7 +61,7 @@ func (s *APIServer) handleGetActivity(w http.ResponseWriter, r *http.Request) er
 	activityID, err := strconv.ParseInt(q.Get("activityId"), 10, 32)
 
 	if err != nil {
-		slog.Error("Error converting activity ID:", err)
+		slog.Error("failed to parse activityId", "error", err)
 		return WriteJSON(w, http.StatusBadRequest, ApiError{Error: "activityId is either missing or must be a number"})
 
 	}
@@ -71,7 +71,7 @@ func (s *APIServer) handleGetActivity(w http.ResponseWriter, r *http.Request) er
 	activity, err := s.activityService.GetSingleActivityById(r.Context(), int32(activityID), user.ID)
 
 	if err != nil {
-		slog.Error("failed to fina an activity", "no activity found for", err.Error())
+		slog.Error("failed to fetch activity", "error", err)
 
 		return WriteJSON(w, http.StatusBadRequest, ApiError{Error: "no activity was found."})
 
@@ -88,8 +88,7 @@ func (s *APIServer) handleGetActivityStats(w http.ResponseWriter, r *http.Reques
 	stats, err := s.activityService.GetActivityStats(r.Context(), user.ID)
 
 	if err != nil {
-
-		slog.Error(err.Error())
+		slog.Error("failed to get activity stats", "error", err)
 		return WriteJSON(w, http.StatusInternalServerError, ApiError{Error: "failed to generate stats"})
 	}
 
@@ -104,7 +103,7 @@ func (s *APIServer) handleGetActivities(w http.ResponseWriter, r *http.Request) 
 	activities, err := s.activityService.GetActivities(r.Context(), user.ID)
 
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("failed to list activities", "error", err)
 		return WriteJSON(w, http.StatusBadRequest, ApiError{Error: "no activity was found."})
 
 	}

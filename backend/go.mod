@@ -1,12 +1,13 @@
 module github.com/notaduck/backend
 
-go 1.22.1
+go 1.23
 
 toolchain go1.23.4
 
 require (
 	connectrpc.com/connect v1.17.0
 	github.com/nedpals/supabase-go v0.4.0
+	github.com/newrelic/go-agent/v3 v3.35.1
 	github.com/rs/cors v1.11.1
 	github.com/shopspring/decimal v1.4.0
 	github.com/testcontainers/testcontainers-go v0.34.0
@@ -42,7 +43,6 @@ require (
 	github.com/moby/sys/userns v0.1.0 // indirect
 	github.com/moby/term v0.5.0 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
-	github.com/newrelic/go-agent/v3 v3.35.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect

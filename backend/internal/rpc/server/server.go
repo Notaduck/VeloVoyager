@@ -18,7 +18,7 @@ import (
 	service "github.com/notaduck/backend/internal/services"
 )
 
-type RPCServe2 struct {
+type Server struct {
 	activityHandler  *handlers.ActivityHandler
 	config           *config.Config
 	supabaseClient   *supabase.Client
@@ -26,12 +26,12 @@ type RPCServe2 struct {
 	newRelic         *newrelic.Application
 }
 
-func NewServerServer(cfg *config.Config, activityService service.ActivityService, newRelic *newrelic.Application) *RPCServe2 {
+func NewServer(cfg *config.Config, activityService service.ActivityService, newRelic *newrelic.Application) *Server {
 
 	activityHandler := handlers.NewActivityHandler(activityService)
 	sc := supabase.CreateClient(cfg.SupabaseUrl, cfg.SupabaseKey)
 
-	return &RPCServe2{
+	return &Server{
 		activityHandler:  activityHandler,
 		config:           cfg,
 		supabaseClient:   sc,
@@ -40,12 +40,12 @@ func NewServerServer(cfg *config.Config, activityService service.ActivityService
 	}
 }
 
-func (s *RPCServe2) Handle(mux *http.ServeMux, path string, handler http.Handler) {
+func (s *Server) Handle(mux *http.ServeMux, path string, handler http.Handler) {
 	mux.Handle(path, handler)
 	s.registeredRoutes = append(s.registeredRoutes, path)
 }
 
-func (s *RPCServe2) Routes() http.Handler {
+func (s *Server) Routes() http.Handler {
 	mux := http.NewServeMux()
 
 	// Create the AuthMiddleware with supabase client
@@ -59,6 +59,7 @@ func (s *RPCServe2) Routes() http.Handler {
 	// Use New Relic's WrapHandleFunc for instrumentation
 	wrappedPath, wrappedHandler := newrelic.WrapHandleFunc(s.newRelic, path, chainedHandler.ServeHTTP)
 	mux.Handle(wrappedPath, http.HandlerFunc(wrappedHandler))
+	s.registeredRoutes = append(s.registeredRoutes, wrappedPath)
 
 	// Configure CORS
 	c := cors.New(cors.Options{
@@ -73,7 +74,7 @@ func (s *RPCServe2) Routes() http.Handler {
 	return c.Handler(mux)
 }
 
-func (s *RPCServe2) Start(ctx context.Context) error {
+func (s *Server) Start(ctx context.Context) error {
 
 	handler := h2c.NewHandler(s.Routes(), &http2.Server{})
 

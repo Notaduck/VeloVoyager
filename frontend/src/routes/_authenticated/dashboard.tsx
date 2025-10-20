@@ -70,6 +70,14 @@ function Dashboard() {
 
   const { data } = useQuery(getActivities);
 
+
+  let x = 1
+  let n = x
+
+  let y = [x, n].reduce((acc, curr) => acc + curr)
+
+
+
   // const { mutate } = useUploadActivities();
   // useEffect(() => {
   // console.log(data?.activities)
@@ -87,7 +95,7 @@ function Dashboard() {
     shouldUseNativeValidation: false,
   });
 
-  function handleFormSubmit() {}
+  function handleFormSubmit() { }
 
   async function handleOnDrop(acceptedFiles: FileList | null) {
     if (acceptedFiles && acceptedFiles.length > 0) {

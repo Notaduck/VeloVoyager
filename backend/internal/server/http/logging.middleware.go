@@ -16,10 +16,10 @@ func LoggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		start := time.Now()
 
 		// Generate a unique ID for the request.
-		traceId := uuid.New().String()
+		traceID := uuid.New().String()
 
 		// Store the request ID in the context of the request.
-		ctx := context.WithValue(r.Context(), TraceIdFromContext, traceId)
+		ctx := context.WithValue(r.Context(), TraceIdFromContext, traceID)
 		r = r.WithContext(ctx)
 
 		var userCtx = ctx.Value(UserFromContext)
@@ -32,7 +32,7 @@ func LoggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 					slog.String("method", r.Method),
 					slog.String("uri", r.RequestURI),
 					slog.String("user_id", user.ID),
-					slog.String("trace_id", traceId),
+					slog.String("trace_id", traceID),
 				)
 			}
 
@@ -40,7 +40,7 @@ func LoggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			slog.Info("request",
 				slog.String("method", r.Method),
 				slog.String("uri", r.RequestURI),
-				slog.String("trace_id", traceId),
+				slog.String("trace_id", traceID),
 			)
 		}
 
@@ -58,7 +58,7 @@ func LoggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			slog.String("uri:", r.RequestURI),
 			slog.Int("status:", rw.statusCode),
 			slog.Duration("duration", duration),
-			slog.String("trace_id", traceId),
+			slog.String("trace_id", traceID),
 		)
 
 	}

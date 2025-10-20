@@ -87,18 +87,14 @@ func (s *APIServer) handleLogin(w http.ResponseWriter, r *http.Request) error {
 }
 
 func AuthHandler(f apiFunc) http.HandlerFunc {
-	// Wrap the apiFunc with logRequest middleware.
-	handlerWithLogging := logRequest(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return LoggingMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		if err := f(w, r); err != nil {
-			// Log the error with the request ID for better traceability.
-			requestID, _ := r.Context().Value("requestID").(string)
-			slog.Error("Request error", "id", requestID, "error", err.Error())
+			traceID, _ := r.Context().Value(TraceIdFromContext).(string)
+			slog.Error("request error", "trace_id", traceID, "error", err.Error())
 
 			WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
 		}
-	}))
-
-	return handlerWithLogging
+	})
 }
 
 func (s *APIServer) AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
