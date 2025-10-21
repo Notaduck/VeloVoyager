@@ -1,8 +1,10 @@
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pencil2Icon } from "@radix-ui/react-icons";
 import { SupabaseClient } from "@supabase/supabase-js";
-import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { Suspense, lazy, useCallback, useMemo, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,6 +17,7 @@ import {
 import { getActivity } from "@/gen/activity/v1/activity-ActivityService_connectquery";
 import type { GetActivityResponse } from "@/gen/activity/v1/activity_pb";
 import { useQuery } from "@connectrpc/connect-query";
+import type { SurfaceSummary } from "@/components/map/lazyMap";
 
 import {
   Card,
@@ -23,13 +26,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   CartesianGrid,
   Legend,
@@ -42,11 +38,20 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  Clock,
+  Gauge,
+  HeartPulse,
+  Layers2,
+  MapPin,
+  TrendingUp,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 const LazyMap = lazy(() => import("../../../components/map/lazyMap"));
 
 export const Route = createFileRoute("/_authenticated/activity/$activityId")({
   component: Activity,
-  loader: async ({ context: { queryClient, supabase }, ...rest }) => {
+  loader: async ({ context: { supabase }, ...rest }) => {
     const activityId = Number(rest.params.activityId);
     const jwt = await (supabase as SupabaseClient).auth
       .getSession()
@@ -143,7 +148,7 @@ function Activity() {
 
   const routeInfo = useMemo(() => {
     const coordinateRecords = (activity?.records ?? []).filter(
-      (record) =>
+      (record): record is RecordWithCoordinates =>
         record.coordinates?.x !== undefined &&
         record.coordinates?.y !== undefined,
     );
@@ -167,6 +172,21 @@ function Activity() {
     return { route, centerLat, centerLng };
   }, [activity?.records]);
 
+  const mapboxRecords = useMemo(
+    () =>
+      (activity?.records ?? []).map((record) => ({
+        id: record.id,
+        distance: record.distance,
+        speed: record.speed,
+        heartRate: record.heartRate ?? undefined,
+        timeStamp: undefined,
+        coordinates: record.coordinates
+          ? { x: record.coordinates.x, y: record.coordinates.y }
+          : undefined,
+      })),
+    [activity?.records],
+  );
+
   const formMethods = useForm<z.infer<typeof formSchema>>({
     mode: "onBlur",
     resolver: zodResolver(formSchema),
@@ -177,6 +197,9 @@ function Activity() {
 
   const [editTitle, setEditTitle] = useState<boolean>(false);
   const [activeRecordId, setActiveRecordId] = useState<number | null>(null);
+  const [surfaceSummary, setSurfaceSummary] = useState<SurfaceSummary | null>(
+    null,
+  );
   const handleRecordHover = useCallback(
     (recordId: number | null) => {
       setActiveRecordId((prev) => {
@@ -188,129 +211,520 @@ function Activity() {
     },
     [setActiveRecordId],
   );
+  const handleSurfaceSummary = useCallback((summary: SurfaceSummary | null) => {
+    setSurfaceSummary(summary);
+  }, []);
   const activeSample = useMemo(() => {
     if (activeRecordId == null) {
       return null;
     }
     return sampleByRecordId.get(activeRecordId) ?? null;
   }, [activeRecordId, sampleByRecordId]);
-  const router = useRouter();
+  const totalDistanceKm =
+    metricsPoints.length > 0
+      ? metricsPoints[metricsPoints.length - 1].distanceKm
+      : 0;
+  const averageHeartRateValue = useMemo(() => {
+    const heartRecords = (activity?.records ?? []).filter(
+      (record) => record.heartRate != null,
+    );
+    if (!heartRecords.length) {
+      return null;
+    }
+    const total = heartRecords.reduce(
+      (sum, record) => sum + (record.heartRate ?? 0),
+      0,
+    );
+    return total / heartRecords.length;
+  }, [activity?.records]);
+  const maxHeartRateValue = useMemo(() => {
+    const heartRecords = (activity?.records ?? []).filter(
+      (record) => record.heartRate != null,
+    );
+    if (!heartRecords.length) {
+      return null;
+    }
+    return Math.max(
+      ...heartRecords.map((record) => record.heartRate ?? Number.NEGATIVE_INFINITY),
+    );
+  }, [activity?.records]);
+  const surfaceBreakdown = surfaceSummary?.breakdown ?? [];
+  const dominantSurface = surfaceBreakdown[0];
+  const distanceLabel =
+    totalDistanceKm > 0 ? formatDistance(totalDistanceKm) : "—";
+  const avgSpeedLabel =
+    typeof activity?.avgSpeed === "number"
+      ? `${activity.avgSpeed.toFixed(1)} km/h`
+      : "—";
+  const maxSpeedLabel =
+    typeof activity?.maxSpeed === "number"
+      ? `${activity.maxSpeed.toFixed(1)} km/h`
+      : "—";
+  const elapsedTimeLabel = activity?.elapsedTime ?? "—";
+  const averageHeartRateLabel =
+    averageHeartRateValue != null
+      ? `${Math.round(averageHeartRateValue)} bpm`
+      : "—";
+  const maxHeartRateLabel =
+    maxHeartRateValue != null ? `${maxHeartRateValue} bpm` : "—";
+  const recordCountLabel = (activity?.records?.length ?? 0).toLocaleString();
+  const recordedOnLabel = useMemo(() => {
+    if (!activity?.createdAt) {
+      return "—";
+    }
+    const parsed = new Date(activity.createdAt);
+    if (Number.isNaN(parsed.getTime())) {
+      return activity.createdAt;
+    }
+    return parsed.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }, [activity?.createdAt]);
+  const heroStats: StatItem[] = useMemo(() => {
+    const stats: StatItem[] = [
+      {
+        label: "Distance",
+        value: distanceLabel,
+        helper: "Total distance covered",
+        icon: MapPin,
+      },
+      {
+        label: "Elapsed time",
+        value: elapsedTimeLabel,
+        helper: "Recorded duration",
+        icon: Clock,
+      },
+      {
+        label: "Avg speed",
+        value: avgSpeedLabel,
+        helper: "Moving average speed",
+        icon: Gauge,
+      },
+      {
+        label: "Max speed",
+        value: maxSpeedLabel,
+        helper: "Top recorded speed",
+        icon: TrendingUp,
+      },
+    ];
+    if (averageHeartRateValue != null) {
+      stats.push({
+        label: "Avg heart rate",
+        value: averageHeartRateLabel,
+        helper: "Across recorded samples",
+        icon: HeartPulse,
+      });
+    }
+    if (dominantSurface) {
+      stats.push({
+        label: "Primary surface",
+        value: dominantSurface.label,
+        helper: `${Math.round(dominantSurface.percentage * 100)}% of route`,
+        icon: Layers2,
+      });
+    }
+    return stats;
+  }, [
+    averageHeartRateLabel,
+    averageHeartRateValue,
+    avgSpeedLabel,
+    distanceLabel,
+    elapsedTimeLabel,
+    maxSpeedLabel,
+    dominantSurface,
+  ]);
+  const detailItems = useMemo(
+    () => [
+      { label: "Activity ID", value: `#${activity?.id ?? activityId}` },
+      { label: "Recorded on", value: recordedOnLabel },
+      { label: "Samples", value: recordCountLabel },
+      {
+        label: "Max heart rate",
+        value: averageHeartRateValue != null ? maxHeartRateLabel : "—",
+      },
+      {
+        label: "Dominant surface",
+        value: dominantSurface
+          ? `${dominantSurface.label} (${Math.round(dominantSurface.percentage * 100)}%)`
+          : "—",
+      },
+    ],
+    [
+      activity?.id,
+      activityId,
+      averageHeartRateValue,
+      maxHeartRateLabel,
+      recordCountLabel,
+      recordedOnLabel,
+      dominantSurface,
+    ],
+  );
   const onSubmit = (data: z.infer<typeof formSchema>) => {
     if (data.activityName != activity?.activityName && authToken) {
-      const params = {
-        jwtToken: authToken,
-        activityId: activity?.id, // replace with actual activity id
-        activityName: data.activityName, // replace with the new activity name
-      };
-
-      // updateActivity.mutate(params, {
+      // updateActivity.mutate(
+      //   {
+      //     jwtToken: authToken,
+      //     activityId: activity?.id,
+      //     activityName: data.activityName,
+      //   },
       //   onSuccess: async () => {
-      //     await router?.invalidate();
       //   },
       //   onError: (error) => {
       //     console.error("Error updating activity:", error);
       //   },
-      // });
+      // );
     }
 
     setEditTitle(false);
   };
+  const handleCancelEdit = useCallback(() => {
+    formMethods.reset({ activityName: activity?.activityName });
+    setEditTitle(false);
+  }, [activity?.activityName, formMethods]);
+  useEffect(() => {
+    formMethods.reset({ activityName: activity?.activityName });
+  }, [activity?.activityName, formMethods]);
 
   return (
-    <div className="container p-4 mx-auto min-h-screen">
-      <div className="grid gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>
-              {editTitle ? (
-                <FormProvider {...formMethods}>
-                  <form className="w-full transition-all duration-300 ease-in-out">
+    <div className="space-y-10 pb-12">
+      <FormProvider {...formMethods}>
+        <section className="relative overflow-hidden rounded-3xl border bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-slate-50 shadow-2xl">
+          <div className="pointer-events-none absolute inset-0 opacity-60">
+            <div className="absolute -left-24 top-[-20%] h-64 w-64 rounded-full bg-sky-500/40 blur-3xl" />
+            <div className="absolute right-[-16%] bottom-[-30%] h-80 w-80 rounded-full bg-indigo-500/40 blur-3xl" />
+          </div>
+          <div className="relative space-y-8 p-8">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+              <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-wide text-slate-200/80">
+                <Badge variant="outline" className="border-white/30 text-white">
+                  Activity #{activity?.id ?? activityId}
+                </Badge>
+                <span className="rounded-full bg-white/10 px-3 py-1 text-white/80">
+                  {recordedOnLabel !== "—" ? recordedOnLabel : "Date unavailable"}
+                </span>
+                {dominantSurface && (
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-white/80">
+                    <Layers2 className="h-3.5 w-3.5" />
+                    {dominantSurface.label}
+                  </span>
+                )}
+              </div>
+                {editTitle ? (
+                  <form
+                    className="flex flex-col gap-3 md:flex-row md:items-center"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      onSubmit(formMethods.getValues());
+                    }}
+                  >
                     <FormField
                       control={formMethods.control}
                       name="activityName"
                       render={({ field }) => (
-                        <FormItem className="flex-grow">
+                        <FormItem className="w-full max-w-xl">
                           <FormControl>
                             <Input
                               {...field}
+                              autoFocus
                               onBlur={() => onSubmit(formMethods.getValues())}
-                              type="text"
-                              placeholder={activity?.activityName}
+                              placeholder="Name this ride"
+                              className="h-12 border-white/20 bg-white/10 text-lg text-white placeholder:text-white/60 focus-visible:ring-white"
                             />
                           </FormControl>
-                          <FormMessage />
+                          <FormMessage className="text-xs text-red-200" />
                         </FormItem>
                       )}
                     />
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="submit"
+                        size="sm"
+                        variant="secondary"
+                        className="bg-white text-slate-900 hover:bg-slate-100"
+                      >
+                        Save
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="text-white hover:bg-white/10"
+                        onClick={handleCancelEdit}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
                   </form>
-                </FormProvider>
-              ) : (
-                <div className="flex gap-2 items-center">
-                  <span>{activity?.activityName}</span>
-                  <Pencil2Icon
-                    className="transition-opacity duration-300 ease-in-out cursor-pointer hover:opacity-75"
-                    onClick={() => setEditTitle(true)}
-                  />
-                </div>
-              )}
-            </CardTitle>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+                      {activity?.activityName ?? "Untitled activity"}
+                    </h1>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="secondary"
+                      className="bg-white/20 text-white hover:bg-white/30"
+                      onClick={() => setEditTitle(true)}
+                    >
+                      <Pencil2Icon className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+                <p className="max-w-2xl text-sm text-slate-200/80 sm:text-base">
+                  Dive into the metrics for this ride. Hover the map or charts
+                  to explore each recorded sample and see how your speed and
+                  heart rate evolved across the route.
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              {heroStats.map((stat) => {
+                const Icon = stat.icon;
+                return (
+                  <div
+                    key={stat.label}
+                    className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-100"
+                  >
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <div className="space-y-0.5">
+                      <p className="text-xs uppercase tracking-wider text-slate-200/70">
+                        {stat.label}
+                      </p>
+                      <p className="text-sm font-semibold text-white">
+                        {stat.value}
+                      </p>
+                      {stat.helper && (
+                        <p className="text-xs text-slate-200/60">
+                          {stat.helper}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      </FormProvider>
+
+      <section className="grid gap-6 xl:grid-cols-[2fr,1fr]">
+        <Card className="overflow-hidden border border-border/60 shadow-lg">
+          <CardHeader className="space-y-1 border-b bg-muted/30 px-6 py-5">
+            <CardTitle className="text-lg">Route overview</CardTitle>
             <CardDescription>
-              Avg Speed: {activity?.avgSpeed}, Max Speed: {activity?.maxSpeed},
-              Elapsed Time: {activity?.elapsedTime}, Tour Date:{" "}
-              {/* {activity?.tourDate} */}
+              Hover the map to highlight samples and sync with charts.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            {routeInfo.route.length >= 2 && (
-              <Suspense fallback={<div className="h-64">Loading map...</div>}>
-                <LazyMap
-                  initialLat={routeInfo.centerLat}
-                  initialLng={routeInfo.centerLng}
-                  records={activity?.records ?? []}
-                  route={routeInfo.route}
-                  focusedRecordId={activeRecordId}
-                  onRecordHover={handleRecordHover}
-                />
+          <CardContent className="space-y-6 px-6 pb-6">
+            {routeInfo.route.length >= 2 ? (
+              <Suspense
+                fallback={
+                  <div className="flex h-[360px] w-full items-center justify-center rounded-2xl border border-dashed border-muted-foreground/20 bg-muted/40">
+                    <p className="text-sm text-muted-foreground">
+                      Loading map…
+                    </p>
+                  </div>
+                }
+              >
+                <div className="overflow-hidden rounded-2xl border border-border/60 bg-muted/40">
+                  <LazyMap
+                    initialLat={routeInfo.centerLat}
+                    initialLng={routeInfo.centerLng}
+                    records={mapboxRecords}
+                    route={routeInfo.route}
+                    focusedRecordId={activeRecordId}
+                    onRecordHover={handleRecordHover}
+                    onSurfaceSummary={handleSurfaceSummary}
+                  />
+                </div>
               </Suspense>
+            ) : (
+              <div className="flex h-[360px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-muted-foreground/30 bg-muted/40 text-center">
+                <p className="text-sm font-medium text-foreground">
+                  No route coordinates available
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Upload an activity with GPS data to view the map.
+                </p>
+              </div>
             )}
-
-            <div className="flex items-center">
-              <div className="my-8 w-1/12 h-[2px] bg-gray-600 rounded-lg" />
-              <h2 className="px-2">Speed</h2>
-              <div className="my-8 w-full h-[2px] bg-gray-800" />
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2">
+                <p className="text-xs text-muted-foreground">Total distance</p>
+                <p className="text-sm font-semibold text-foreground">
+                  {distanceLabel}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2">
+                <p className="text-xs text-muted-foreground">Samples</p>
+                <p className="text-sm font-semibold text-foreground">
+                  {recordCountLabel}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2">
+                <p className="text-xs text-muted-foreground">
+                  Focused record ID
+                </p>
+                <p className="text-sm font-semibold text-foreground">
+                  {activeSample ? `#${activeSample.recordId}` : "—"}
+                </p>
+              </div>
             </div>
-
-            <SpeedChart
-              points={metricsPoints}
-              activePoint={activeSample}
-              onHoverRecord={handleRecordHover}
-            />
-
-            <div className="flex items-center">
-              <div className="my-8 w-1/12 h-[2px] bg-gray-600 rounded-lg" />
-              <h2 className="px-2 text-nowrap">Heart Rate</h2>
-              <div className="my-8 w-full h-[2px] bg-gray-800" />
-            </div>
-
-            <HeartRateChart
-              records={activity?.records ?? []}
-              activePoint={activeSample}
-              onHoverRecord={handleRecordHover}
-            />
           </CardContent>
         </Card>
-      </div>
+
+        <Card className="border border-border/60 shadow-lg">
+          <CardHeader className="space-y-1 border-b bg-muted/30 px-6 py-5">
+            <CardTitle className="text-lg">Ride details</CardTitle>
+            <CardDescription>
+              Key metadata pulled from the activity file.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5 px-6 pb-6">
+            <div className="rounded-2xl border border-border/60 bg-background/70 px-4 py-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-foreground">
+                  Focused sample
+                </p>
+                {activeSample && (
+                  <Badge variant="outline" className="border-border/60">
+                    Record #{activeSample.recordId}
+                  </Badge>
+                )}
+              </div>
+              {activeSample ? (
+                <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+                  <div>
+                    <dt className="text-xs uppercase text-muted-foreground">
+                      Distance
+                    </dt>
+                    <dd className="font-medium text-foreground">
+                      {formatDistance(activeSample.distanceKm, totalDistanceKm)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs uppercase text-muted-foreground">
+                      Speed
+                    </dt>
+                    <dd className="font-medium text-foreground">
+                      {activeSample.speedKph.toFixed(1)} km/h
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs uppercase text-muted-foreground">
+                      Heart rate
+                    </dt>
+                    <dd className="font-medium text-foreground">
+                      {activeSample.heartRate != null
+                        ? `${activeSample.heartRate} bpm`
+                        : "—"}
+                    </dd>
+                  </div>
+                </dl>
+              ) : (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Hover the map or charts to inspect an individual sample.
+                </p>
+              )}
+            </div>
+            <div className="grid gap-3 text-sm">
+              {detailItems.map((item) => (
+                <div
+                  key={item.label}
+                  className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/40 px-3 py-2"
+                >
+                  <span className="text-muted-foreground">{item.label}</span>
+                  <span className="font-medium text-foreground">
+                    {item.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+            {surfaceBreakdown.length > 0 && (
+              <div className="space-y-3 rounded-2xl border border-border/60 bg-background/70 px-4 py-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-foreground">
+                    Surface mix
+                  </p>
+                  <span className="text-xs text-muted-foreground">
+                    {surfaceSummary?.total?.toLocaleString() ?? 0} samples
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  {surfaceBreakdown.map((entry) => (
+                    <div key={entry.label} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span className="flex items-center gap-2 font-medium text-foreground">
+                          <span
+                            className={`h-2 w-2 rounded-full ${SURFACE_COLOR_CLASSES[entry.label] ?? "bg-slate-400"}`}
+                          />
+                          {entry.label}
+                        </span>
+                        <span>{Math.round(entry.percentage * 100)}%</span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-muted">
+                        <div
+                          className={`h-full rounded-full ${SURFACE_COLOR_CLASSES[entry.label] ?? "bg-slate-400"}`}
+                          style={{ width: `${Math.max(entry.percentage * 100, 4)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="space-y-6">
+        <SpeedChart
+          points={metricsPoints}
+          activePoint={activeSample}
+          onHoverRecord={handleRecordHover}
+        />
+        <HeartRateChart
+          records={activity?.records ?? []}
+          activePoint={activeSample}
+          onHoverRecord={handleRecordHover}
+        />
+      </section>
     </div>
   );
 }
-
-type ActivityRecords = GetActivityResponse["records"];
 
 type MetricPoint = {
   recordId: number;
   distanceKm: number;
   speedKph: number;
   heartRate: number | null;
+};
+
+type StatItem = {
+  label: string;
+  value: string;
+  helper?: string;
+  icon: LucideIcon;
+};
+
+type ActivityRecords = GetActivityResponse["records"];
+type RecordWithCoordinates = ActivityRecords[number] & {
+  coordinates: NonNullable<ActivityRecords[number]["coordinates"]>;
+};
+
+const SURFACE_COLOR_CLASSES: Record<string, string> = {
+  Paved: "bg-sky-500",
+  Unpaved: "bg-slate-500",
+  Gravel: "bg-amber-500",
+  Dirt: "bg-amber-700",
+  Trail: "bg-emerald-500",
+  "Unknown surface": "bg-slate-400",
 };
 
 const formatDistance = (distance: number, maxTick?: number) =>
@@ -360,11 +774,12 @@ const SpeedChart = ({
     return total / points.length;
   }, [points]);
   const maxTick = distanceTicks.at(-1);
+  const summaryPoint = activePoint ?? points[0];
 
   if (!points.length) {
     return (
-      <Card className="opacity-60">
-        <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
+      <Card className="h-full border border-border/60 bg-muted/40 text-muted-foreground">
+        <CardHeader className="flex items-center gap-2 space-y-0 border-b bg-muted/30 px-6 py-5 sm:flex-row">
           <div className="grid flex-1 gap-1 text-center sm:text-left">
             <CardTitle>Speed over distance</CardTitle>
             <CardDescription>
@@ -380,8 +795,8 @@ const SpeedChart = ({
   }
 
   return (
-    <Card>
-      <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
+    <Card className="h-full border border-border/60 shadow-lg">
+      <CardHeader className="flex items-center gap-2 space-y-0 border-b bg-muted/30 px-6 py-5 sm:flex-row">
         <div className="grid flex-1 gap-1 text-center sm:text-left">
           <CardTitle>Speed over distance</CardTitle>
           <CardDescription>
@@ -389,7 +804,7 @@ const SpeedChart = ({
           </CardDescription>
         </div>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4 px-2 pt-4 sm:px-6 sm:pt-6 lg:flex-row lg:items-start">
+      <CardContent className="flex flex-col gap-6 px-6 py-6 lg:flex-row lg:items-start">
         <div className="flex-1">
           <ResponsiveContainer width="100%" height={320}>
             <LineChart
@@ -469,16 +884,16 @@ const SpeedChart = ({
           averageValue={`${averageSpeed.toFixed(1)} km/h`}
           currentLabel="Current"
           currentValue={
-            activePoint ? `${activePoint.speedKph.toFixed(1)} km/h` : "–"
+            summaryPoint ? `${summaryPoint.speedKph.toFixed(1)} km/h` : "No samples"
           }
           distance={
-            activePoint
-              ? formatDistance(activePoint.distanceKm, maxTick)
-              : "Hover chart or route"
+            summaryPoint
+              ? formatDistance(summaryPoint.distanceKm, maxTick)
+              : "No samples"
           }
           extra={
-            activePoint?.heartRate != null
-              ? `${activePoint.heartRate} bpm`
+            summaryPoint?.heartRate != null
+              ? `${summaryPoint.heartRate} bpm`
               : undefined
           }
         />
@@ -534,10 +949,29 @@ const HeartRateChart = ({
     const total = heartPoints.reduce((sum, point) => sum + point.heartRate!, 0);
     return total / heartPoints.length;
   }, [heartPoints]);
+  const summaryPoint = activePoint ?? heartPoints[0];
+
+  if (!heartPoints.length) {
+    return (
+      <Card className="h-full border border-border/60 bg-muted/40 text-muted-foreground">
+        <CardHeader className="flex items-center gap-2 space-y-0 border-b bg-muted/30 px-6 py-5 sm:flex-row">
+          <div className="grid flex-1 gap-1 text-center sm:text-left">
+            <CardTitle>Heart rate over distance</CardTitle>
+            <CardDescription>
+              Beats per minute plotted against distance covered.
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="px-6 py-10 text-sm text-muted-foreground">
+          No heart rate samples available for this activity.
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <Card className={!heartPoints.length ? "opacity-60" : undefined}>
-      <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
+    <Card className="h-full border border-border/60 shadow-lg">
+      <CardHeader className="flex items-center gap-2 space-y-0 border-b bg-muted/30 px-6 py-5 sm:flex-row">
         <div className="grid flex-1 gap-1 text-center sm:text-left">
           <CardTitle>Heart rate over distance</CardTitle>
           <CardDescription>
@@ -545,14 +979,13 @@ const HeartRateChart = ({
           </CardDescription>
         </div>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4 px-2 pt-4 sm:px-6 sm:pt-6 lg:flex-row lg:items-start">
+      <CardContent className="flex flex-col gap-6 px-6 py-6 lg:flex-row lg:items-start">
         <div className="flex-1">
           <ResponsiveContainer width="100%" height={300}>
             <LineChart
               data={heartPoints}
               margin={{ top: 16, right: 24, left: 8, bottom: 0 }}
               onMouseMove={(state) => {
-                if (!heartPoints.length) return;
                 const sample = state?.activePayload?.[0]?.payload as
                   | MetricPoint
                   | undefined;
@@ -631,14 +1064,16 @@ const HeartRateChart = ({
           }
           currentLabel="Current"
           currentValue={
-            activePoint?.heartRate != null
-              ? `${activePoint.heartRate} bpm`
-              : "–"
+            summaryPoint?.heartRate != null
+              ? `${summaryPoint.heartRate} bpm`
+              : heartPoints.length
+                ? "No heart rate"
+                : "No samples"
           }
           distance={
-            activePoint
-              ? formatDistance(activePoint.distanceKm, maxTick)
-              : "Hover chart or route"
+            summaryPoint
+              ? formatDistance(summaryPoint.distanceKm, maxTick)
+              : "No samples"
           }
         />
       </CardContent>
@@ -664,7 +1099,7 @@ function ChartSummary({
   extra,
 }: ChartSummaryProps) {
   return (
-    <div className="flex w-full flex-col gap-2 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground lg:w-56">
+    <div className="flex w-full flex-col gap-3 rounded-2xl border border-border/60 bg-muted/30 px-5 py-5 text-sm text-muted-foreground lg:w-56">
       <div>
         <p className="text-xs uppercase tracking-wide text-muted-foreground">
           {averageLabel}

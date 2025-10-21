@@ -1,5 +1,11 @@
 import { useRef, useEffect, useState } from "react";
 import mapboxgl from "mapbox-gl"; // eslint-disable-line import/no-webpack-loader-syntax
+import type { FeatureIdentifier, GeoJSONSourceSpecification } from "mapbox-gl";
+import type {
+  Feature as GeoJsonFeature,
+  FeatureCollection as GeoJsonFeatureCollection,
+  LineString as GeoJsonLineString,
+} from "geojson";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "./map.css";
 
@@ -7,19 +13,24 @@ mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN;
 
 type Props = {
   route: number[][];
-  records: Record[];
+  records: MapRecord[];
   initialLng: number;
   initialLat: number;
 };
 
-interface Record {
+interface MapRecord {
   id: number;
-  coordinates: Coordinates;
+  coordinates?: Coordinates;
   distance: number;
   speed: number;
-  timeStamp: number;
+  timeStamp?: number;
   heartRate?: number;
 }
+
+const hasCoordinates = (
+  record: MapRecord,
+): record is MapRecord & { coordinates: Coordinates } =>
+  record.coordinates?.x !== undefined && record.coordinates?.y !== undefined;
 
 export interface Coordinates {
   x: number;
@@ -33,6 +44,7 @@ export default function Map({ route, records, initialLat, initialLng }: Props) {
   const [lat, setLat] = useState(initialLat);
   const [zoom, setZoom] = useState(9);
   const [hoveredRecordId, setHoveredRecordId] = useState<number | null>(null);
+  const lastHoveredId = useRef<number | null>(null);
 
   useEffect(() => {
     if (map.current) return; // initialize map only once
@@ -52,7 +64,7 @@ export default function Map({ route, records, initialLat, initialLng }: Props) {
 
       // Add the route source
       map.current.on("load", () => {
-        const geojson: mapboxgl.GeoJSONSourceRaw = {
+        const geojson: GeoJSONSourceSpecification = {
           type: "geojson",
           data: {
             type: "Feature",
@@ -61,7 +73,7 @@ export default function Map({ route, records, initialLat, initialLng }: Props) {
               type: "LineString",
               coordinates: route,
             },
-          },
+          } as GeoJsonFeature<GeoJsonLineString>,
         };
 
         map.current!.addSource("route", geojson);
@@ -82,23 +94,25 @@ export default function Map({ route, records, initialLat, initialLng }: Props) {
         });
 
         // Add a circle layer for each record
-        const points = records.map((record) => ({
-          type: "Feature" as const,
-          properties: {
-            id: record.id,
-          },
-          geometry: {
-            type: "Point" as const,
-            coordinates: [record.coordinates.x, record.coordinates.y],
-          },
-        }));
+        const points = records
+          .filter(hasCoordinates)
+          .map((record) => ({
+            type: "Feature" as const,
+            properties: {
+              id: record.id,
+            },
+            geometry: {
+              type: "Point" as const,
+              coordinates: [record.coordinates.x, record.coordinates.y],
+            },
+          }));
 
-        const pointsSource: mapboxgl.GeoJSONSourceRaw = {
+        const pointsSource: GeoJSONSourceSpecification = {
           type: "geojson",
           data: {
             type: "FeatureCollection",
             features: points,
-          },
+          } as GeoJsonFeatureCollection,
         };
 
         map.current!.addSource("points", pointsSource);
@@ -108,22 +122,45 @@ export default function Map({ route, records, initialLat, initialLng }: Props) {
           type: "circle",
           source: "points",
           paint: {
-            "circle-radius": 5,
-            "circle-color": "rgba(0, 0, 0, 0)", // Make circles transparent
-          },
-        });
-
-        // Add a separate layer for the hovered point
-        map.current!.addLayer({
-          id: "hovered-point",
-          type: "circle",
-          source: "points",
-          paint: {
-            "circle-radius": 5,
-            "circle-color": "#3887be",
+            "circle-radius": [
+              "case",
+              ["boolean", ["feature-state", "focus"], false],
+              8,
+              ["boolean", ["feature-state", "hover"], false],
+              6,
+              0,
+            ],
+            "circle-color": [
+              "case",
+              ["boolean", ["feature-state", "focus"], false],
+              "#f97316",
+              ["boolean", ["feature-state", "hover"], false],
+              "#38bdf8",
+              "rgba(0,0,0,0)",
+            ],
+            "circle-stroke-width": [
+              "case",
+              ["boolean", ["feature-state", "focus"], false],
+              1.5,
+              ["boolean", ["feature-state", "hover"], false],
+              1.5,
+              0,
+            ],
+            "circle-stroke-color": [
+              "case",
+              ["boolean", ["feature-state", "focus"], false],
+              "#0f172a",
+              ["boolean", ["feature-state", "hover"], false],
+              "#ffffff",
+              "rgba(0,0,0,0)",
+            ],
             "circle-opacity": [
               "case",
-              ["boolean", ["feature-state", "hover"], false],
+              [
+                "any",
+                ["boolean", ["feature-state", "focus"], false],
+                ["boolean", ["feature-state", "hover"], false],
+              ],
               1,
               0,
             ],
@@ -134,14 +171,32 @@ export default function Map({ route, records, initialLat, initialLng }: Props) {
         map.current!.on(
           "mousemove",
           "points",
-          (e: mapboxgl.MapMouseEvent & mapboxgl.EventData) => {
+          (e: mapboxgl.MapMouseEvent) => {
             if (e.features && e.features.length > 0) {
               const feature = e.features[0];
-              setHoveredRecordId(feature.properties?.id);
+              const featureId =
+                (feature.id as number | undefined) ??
+                (feature.properties?.id as number | undefined);
+              if (featureId === undefined) {
+                return;
+              }
+
+              if (
+                lastHoveredId.current != null &&
+                lastHoveredId.current !== featureId
+              ) {
+                map.current!.setFeatureState(
+                  { source: "points", id: lastHoveredId.current } as FeatureIdentifier,
+                  { hover: false },
+                );
+              }
+
+              setHoveredRecordId(featureId);
               map.current!.setFeatureState(
-                { source: "points", id: feature.id },
+                { source: "points", id: featureId } as FeatureIdentifier,
                 { hover: true },
               );
+              lastHoveredId.current = featureId;
             }
           },
         );
@@ -154,7 +209,13 @@ export default function Map({ route, records, initialLat, initialLng }: Props) {
         map.current!.on("mouseleave", "points", () => {
           map.current!.getCanvas().style.cursor = "";
           setHoveredRecordId(null);
-          map.current!.removeFeatureState({ source: "points" });
+          if (lastHoveredId.current != null) {
+            map.current!.setFeatureState(
+              { source: "points", id: lastHoveredId.current } as FeatureIdentifier,
+              { hover: false },
+            );
+            lastHoveredId.current = null;
+          }
         });
       });
     }
