@@ -2,7 +2,7 @@ import { Input } from "@/components/ui/input";
 import { Pencil2Icon } from "@radix-ui/react-icons";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, useCallback, useMemo, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,6 +13,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { getActivity } from "@/gen/activity/v1/activity-ActivityService_connectquery";
+import type { GetActivityResponse } from "@/gen/activity/v1/activity_pb";
 import { useQuery } from "@connectrpc/connect-query";
 
 import {
@@ -21,23 +22,26 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart"
+} from "@/components/ui/card";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
+} from "@/components/ui/select";
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ReferenceDot,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 const LazyMap = lazy(() => import("../../../components/map/lazyMap"));
 
 export const Route = createFileRoute("/_authenticated/activity/$activityId")({
@@ -48,16 +52,12 @@ export const Route = createFileRoute("/_authenticated/activity/$activityId")({
       .getSession()
       .then((session) => session.data.session?.access_token);
 
-
-
-
-
     return {
       // activity: await queryClient.ensureQueryData(
-      // getActivity, {activityId: activityId} 
+      // getActivity, {activityId: activityId}
       // ),
       authToken: jwt,
-      activityId
+      activityId,
     };
   },
 });
@@ -69,60 +69,103 @@ const formSchema = z.object({
 function Activity() {
   const { activityId, authToken } = Route.useLoaderData();
 
-
   // const { updateActivity } = useActivity();
 
   const { data: activity } = useQuery(getActivity, {
-    activityId: activityId
-  })
+    activityId: activityId,
+  });
 
-
-
-
-
-
-
-  type Accumulator = {
-    x: number;
-    y: number;
-    distance: number[];
-    speed: number[];
-    heartRate: number[];
-    route: Array<[number, number]>;
-  };
-
-  const initialAcc: Accumulator = {
-    x: 0,
-    y: 0,
-    distance: [],
-    speed: [],
-    heartRate: [],
-    route: [],
-  };
-
-  const reducedAcc: Accumulator = activity?.records.reduce<Accumulator>((acc, record) => {
-    acc.distance.push(record.distance);
-    acc.speed.push(record.speed);
-
-    // Safely handle heartRate
-    if (record.heartRate !== undefined && record.heartRate !== null) {
-      acc.heartRate.push(record.heartRate);
+  const metricsPoints = useMemo<MetricPoint[]>(() => {
+    const records = activity?.records ?? [];
+    if (!records.length) {
+      return [];
     }
 
-    // Safely handle coordinates
-    if (record.coordinates?.x !== undefined && record.coordinates?.y !== undefined) {
-      acc.route.push([record.coordinates.x, record.coordinates.y]);
-      acc.x += record.coordinates.x;
-      acc.y += record.coordinates.y;
+    const maxPoints = 1000;
+    const step = Math.max(1, Math.floor(records.length / maxPoints));
+
+    return records
+      .filter((_, index) => index % step === 0)
+      .map((record) => ({
+        recordId: record.id,
+        distanceKm: record.distance / 100_000,
+        speedKph: record.speed,
+        heartRate:
+          record.heartRate !== undefined && record.heartRate !== null
+            ? record.heartRate
+            : null,
+      }));
+  }, [activity?.records]);
+
+  const sampleByRecordId = useMemo(() => {
+    const map = new Map<number, MetricPoint>();
+    const records = activity?.records ?? [];
+
+    if (!metricsPoints.length) {
+      return map;
     }
 
-    return acc;
-  }, initialAcc) ?? initialAcc;
+    for (const point of metricsPoints) {
+      map.set(point.recordId, point);
+    }
 
-  const { distance, speed, heartRate } = reducedAcc;
+    for (const record of records) {
+      if (map.has(record.id)) {
+        continue;
+      }
+      const distanceKm = record.distance / 100_000;
+      let nearest = metricsPoints[0];
+      let minDiff = Math.abs(nearest.distanceKm - distanceKm);
 
+      for (let i = 1; i < metricsPoints.length; i += 1) {
+        const candidate = metricsPoints[i];
+        const diff = Math.abs(candidate.distanceKm - distanceKm);
+        if (diff < minDiff) {
+          nearest = candidate;
+          minDiff = diff;
+        }
+      }
 
+      map.set(record.id, {
+        ...nearest,
+        recordId: record.id,
+        distanceKm,
+        speedKph: record.speed,
+        heartRate:
+          record.heartRate !== undefined && record.heartRate !== null
+            ? record.heartRate
+            : nearest.heartRate,
+      });
+    }
 
+    return map;
+  }, [metricsPoints, activity?.records]);
+
+  const routeInfo = useMemo(() => {
+    const coordinateRecords = (activity?.records ?? []).filter(
+      (record) =>
+        record.coordinates?.x !== undefined &&
+        record.coordinates?.y !== undefined,
+    );
+
+    if (!coordinateRecords.length) {
+      return { route: [] as number[][], centerLat: 0, centerLng: 0 };
+    }
+
+    const route = coordinateRecords.map((record) => [
+      record.coordinates.x,
+      record.coordinates.y,
+    ]);
+
+    const centerLat =
+      coordinateRecords.reduce((acc, record) => acc + record.coordinates.y, 0) /
+      coordinateRecords.length;
+    const centerLng =
+      coordinateRecords.reduce((acc, record) => acc + record.coordinates.x, 0) /
+      coordinateRecords.length;
+
+    return { route, centerLat, centerLng };
+  }, [activity?.records]);
 
   const formMethods = useForm<z.infer<typeof formSchema>>({
     mode: "onBlur",
@@ -133,8 +176,24 @@ function Activity() {
   });
 
   const [editTitle, setEditTitle] = useState<boolean>(false);
-
-  const syncGroup = 1;
+  const [activeRecordId, setActiveRecordId] = useState<number | null>(null);
+  const handleRecordHover = useCallback(
+    (recordId: number | null) => {
+      setActiveRecordId((prev) => {
+        if (prev === recordId) {
+          return prev;
+        }
+        return recordId;
+      });
+    },
+    [setActiveRecordId],
+  );
+  const activeSample = useMemo(() => {
+    if (activeRecordId == null) {
+      return null;
+    }
+    return sampleByRecordId.get(activeRecordId) ?? null;
+  }, [activeRecordId, sampleByRecordId]);
   const router = useRouter();
   const onSubmit = (data: z.infer<typeof formSchema>) => {
     if (data.activityName != activity?.activityName && authToken) {
@@ -202,14 +261,18 @@ function Activity() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Suspense fallback={<div>Loading map...</div>}>
-              {/* <LazyMap
-                initialLat={y / activity?.records?.length}
-                initialLng={x / activity?.records?.length}
-                records={activity.records}
-                route={route}
-              /> */}
-            </Suspense>
+            {routeInfo.route.length >= 2 && (
+              <Suspense fallback={<div className="h-64">Loading map...</div>}>
+                <LazyMap
+                  initialLat={routeInfo.centerLat}
+                  initialLng={routeInfo.centerLng}
+                  records={activity?.records ?? []}
+                  route={routeInfo.route}
+                  focusedRecordId={activeRecordId}
+                  onRecordHover={handleRecordHover}
+                />
+              </Suspense>
+            )}
 
             <div className="flex items-center">
               <div className="my-8 w-1/12 h-[2px] bg-gray-600 rounded-lg" />
@@ -217,21 +280,11 @@ function Activity() {
               <div className="my-8 w-full h-[2px] bg-gray-800" />
             </div>
 
-            <Chart
-              data={activity?.records.filter((_, i) => i % 2 == 0).map(e => ({
-                x: (e.distance / 100000).toFixed(2),
-                y: e.speed,
-                y1: e.heartRate,
-              }))}
+            <SpeedChart
+              points={metricsPoints}
+              activePoint={activeSample}
+              onHoverRecord={handleRecordHover}
             />
-            {/* <ELineChart
-              x={distance}
-              y={speed}
-              xLabel="km"
-              yLabel="km/h"
-              title="Speed"
-              syncGroup={syncGroup}
-            /> */}
 
             <div className="flex items-center">
               <div className="my-8 w-1/12 h-[2px] bg-gray-600 rounded-lg" />
@@ -239,15 +292,11 @@ function Activity() {
               <div className="my-8 w-full h-[2px] bg-gray-800" />
             </div>
 
-            {/* <ELineChart
-              x={distance}
-              y={heartRate}
-              xLabel="km"
-              yLabel="bpm"
-              title="Heart Rate"
-              syncGroup={syncGroup}
-
-            />  */}
+            <HeartRateChart
+              records={activity?.records ?? []}
+              activePoint={activeSample}
+              onHoverRecord={handleRecordHover}
+            />
           </CardContent>
         </Card>
       </div>
@@ -255,246 +304,387 @@ function Activity() {
   );
 }
 
+type ActivityRecords = GetActivityResponse["records"];
 
-type ChartData = Array<{ x: string | number, y: number, y1: number }>
+type MetricPoint = {
+  recordId: number;
+  distanceKm: number;
+  speedKph: number;
+  heartRate: number | null;
+};
 
-const chartData: ChartData = [
-  { x: "2024-04-01", y: 222, y1: 150 },
-  { x: "2024-04-02", y: 97, y1: 180 },
-  { x: "2024-04-03", y: 167, y1: 120 },
-  { x: "2024-04-04", y: 242, y1: 260 },
-  { x: "2024-04-05", y: 373, y1: 290 },
-  { x: "2024-04-06", y: 301, y1: 340 },
-  { x: "2024-04-07", y: 245, y1: 180 },
-  { x: "2024-04-08", y: 409, y1: 320 },
-  { x: "2024-04-09", y: 59, y1: 110 },
-  { x: "2024-04-10", y: 261, y1: 190 },
-  { x: "2024-04-11", y: 327, y1: 350 },
-  { x: "2024-04-12", y: 292, y1: 210 },
-  { x: "2024-04-13", y: 342, y1: 380 },
-  { x: "2024-04-14", y: 137, y1: 220 },
-  { x: "2024-04-15", y: 120, y1: 170 },
-  { x: "2024-04-16", y: 138, y1: 190 },
-  { x: "2024-04-17", y: 446, y1: 360 },
-  { x: "2024-04-18", y: 364, y1: 410 },
-  { x: "2024-04-19", y: 243, y1: 180 },
-  { x: "2024-04-20", y: 89, y1: 150 },
-  { x: "2024-04-21", y: 137, y1: 200 },
-  { x: "2024-04-22", y: 224, y1: 170 },
-  { x: "2024-04-23", y: 138, y1: 230 },
-  { x: "2024-04-24", y: 387, y1: 290 },
-  { x: "2024-04-25", y: 215, y1: 250 },
-  { x: "2024-04-26", y: 75, y1: 130 },
-  { x: "2024-04-27", y: 383, y1: 420 },
-  { x: "2024-04-28", y: 122, y1: 180 },
-  { x: "2024-04-29", y: 315, y1: 240 },
-  { x: "2024-04-30", y: 454, y1: 380 },
-  { x: "2024-05-01", y: 165, y1: 220 },
-  { x: "2024-05-02", y: 293, y1: 310 },
-  { x: "2024-05-03", y: 247, y1: 190 },
-  { x: "2024-05-04", y: 385, y1: 420 },
-  { x: "2024-05-05", y: 481, y1: 390 },
-  { x: "2024-05-06", y: 498, y1: 520 },
-  { x: "2024-05-07", y: 388, y1: 300 },
-  { x: "2024-05-08", y: 149, y1: 210 },
-  { x: "2024-05-09", y: 227, y1: 180 },
-  { x: "2024-05-10", y: 293, y1: 330 },
-  { x: "2024-05-11", y: 335, y1: 270 },
-  { x: "2024-05-12", y: 197, y1: 240 },
-  { x: "2024-05-13", y: 197, y1: 160 },
-  { x: "2024-05-14", y: 448, y1: 490 },
-  { x: "2024-05-15", y: 473, y1: 380 },
-  { x: "2024-05-16", y: 338, y1: 400 },
-  { x: "2024-05-17", y: 499, y1: 420 },
-  { x: "2024-05-18", y: 315, y1: 350 },
-  { x: "2024-05-19", y: 235, y1: 180 },
-  { x: "2024-05-20", y: 177, y1: 230 },
-  { x: "2024-05-21", y: 82, y1: 140 },
-  { x: "2024-05-22", y: 81, y1: 120 },
-  { x: "2024-05-23", y: 252, y1: 290 },
-  { x: "2024-05-24", y: 294, y1: 220 },
-  { x: "2024-05-25", y: 201, y1: 250 },
-  { x: "2024-05-26", y: 213, y1: 170 },
-  { x: "2024-05-27", y: 420, y1: 460 },
-  { x: "2024-05-28", y: 233, y1: 190 },
-  { x: "2024-05-29", y: 78, y1: 130 },
-  { x: "2024-05-30", y: 340, y1: 280 },
-  { x: "2024-05-31", y: 178, y1: 230 },
-  { x: "2024-06-01", y: 178, y1: 200 },
-  { x: "2024-06-02", y: 470, y1: 410 },
-  { x: "2024-06-03", y: 103, y1: 160 },
-  { x: "2024-06-04", y: 439, y1: 380 },
-  { x: "2024-06-05", y: 88, y1: 140 },
-  { x: "2024-06-06", y: 294, y1: 250 },
-  { x: "2024-06-07", y: 323, y1: 370 },
-  { x: "2024-06-08", y: 385, y1: 320 },
-  { x: "2024-06-09", y: 438, y1: 480 },
-  { x: "2024-06-10", y: 155, y1: 200 },
-  { x: "2024-06-11", y: 92, y1: 150 },
-  { x: "2024-06-12", y: 492, y1: 420 },
-  { x: "2024-06-13", y: 81, y1: 130 },
-  { x: "2024-06-14", y: 426, y1: 380 },
-  { x: "2024-06-15", y: 307, y1: 350 },
-  { x: "2024-06-16", y: 371, y1: 310 },
-  { x: "2024-06-17", y: 475, y1: 520 },
-  { x: "2024-06-18", y: 107, y1: 170 },
-  { x: "2024-06-19", y: 341, y1: 290 },
-  { x: "2024-06-20", y: 408, y1: 450 },
-  { x: "2024-06-21", y: 169, y1: 210 },
-  { x: "2024-06-22", y: 317, y1: 270 },
-  { x: "2024-06-23", y: 480, y1: 530 },
-  { x: "2024-06-24", y: 132, y1: 180 },
-  { x: "2024-06-25", y: 141, y1: 190 },
-  { x: "2024-06-26", y: 434, y1: 380 },
-  { x: "2024-06-27", y: 448, y1: 490 },
-  { x: "2024-06-28", y: 149, y1: 200 },
-  { x: "2024-06-29", y: 103, y1: 160 },
-  { x: "2024-06-30", y: 446, y1: 400 },
-]
+const formatDistance = (distance: number, maxTick?: number) =>
+  `${distance.toFixed(maxTick !== undefined && maxTick >= 100 ? 0 : 1)} km`;
 
-const chartConfig = {
-  visitors: {
-    label: "Visitors",
-  },
-  desktop: {
-    label: "Desktop",
-    color: "hsl(var(--chart-1))",
-  },
-  mobile: {
-    label: "Mobile",
-    color: "hsl(var(--chart-2))",
-  },
-} satisfies ChartConfig
+const createDistanceTicks = (points: MetricPoint[]): number[] => {
+  if (!points.length) {
+    return [];
+  }
 
+  const maxDistance = Math.max(...points.map((point) => point.distanceKm));
+  const step = maxDistance < 100 ? 5 : 10;
+  const topTick =
+    maxDistance < 100
+      ? Math.ceil(maxDistance / step) * step
+      : Math.max(step, Math.floor(maxDistance / step) * step);
 
+  const ticks: number[] = [];
+  for (let value = 0; value <= topTick + 1e-6; value += step) {
+    ticks.push(Number(value.toFixed(2)));
+  }
 
-const Chart = ({ data = chartData }: { data?: ChartData }) => {
-  const [timeRange, setTimeRange] = useState("90d")
+  if (!ticks.length) {
+    ticks.push(0);
+  }
 
-  // const filteredData = chartData.filter((item) => {
-  //   const referenceDate = new Date("2024-06-30")
-  //   let daysToSubtract = 90
-  //   if (timeRange === "30d") {
-  //     daysToSubtract = 30
-  //   } else if (timeRange === "7d") {
-  //     daysToSubtract = 7
-  //   }
-  //   const startDate = new Date(referenceDate)
-  //   startDate.setDate(startDate.getDate() - daysToSubtract)
-  //   return date >= startDate
-  // })
+  return ticks;
+};
+
+type MetricsChartProps = {
+  points: MetricPoint[];
+  activePoint: MetricPoint | null;
+  onHoverRecord: (recordId: number | null) => void;
+};
+
+const SpeedChart = ({
+  points,
+  activePoint,
+  onHoverRecord,
+}: MetricsChartProps) => {
+  const distanceTicks = useMemo(() => createDistanceTicks(points), [points]);
+  const averageSpeed = useMemo(() => {
+    if (!points.length) {
+      return 0;
+    }
+    const total = points.reduce((sum, point) => sum + point.speedKph, 0);
+    return total / points.length;
+  }, [points]);
+  const maxTick = distanceTicks.at(-1);
+
+  if (!points.length) {
+    return (
+      <Card className="opacity-60">
+        <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
+          <div className="grid flex-1 gap-1 text-center sm:text-left">
+            <CardTitle>Speed over distance</CardTitle>
+            <CardDescription>
+              Distance is plotted in kilometres; speed is shown in km/h.
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="px-6 py-10 text-sm text-muted-foreground">
+          No distance samples available for this activity.
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
       <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
         <div className="grid flex-1 gap-1 text-center sm:text-left">
-          <CardTitle>Area Chart - Interactive</CardTitle>
+          <CardTitle>Speed over distance</CardTitle>
           <CardDescription>
-            Showing total visitors for the last 3 months
+            Distance is plotted in kilometres; speed is shown in km/h.
           </CardDescription>
         </div>
-        <Select value={timeRange} onValueChange={setTimeRange}>
-          <SelectTrigger
-            className="w-[160px] rounded-lg sm:ml-auto"
-            aria-label="Select a value"
-          >
-            <SelectValue placeholder="Last 3 months" />
-          </SelectTrigger>
-          <SelectContent className="rounded-xl">
-            <SelectItem value="90d" className="rounded-lg">
-              Last 3 months
-            </SelectItem>
-            <SelectItem value="30d" className="rounded-lg">
-              Last 30 days
-            </SelectItem>
-            <SelectItem value="7d" className="rounded-lg">
-              Last 7 days
-            </SelectItem>
-          </SelectContent>
-        </Select>
       </CardHeader>
-      <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
-        <ChartContainer
-          config={chartConfig}
-          className="aspect-auto h-[250px] w-full"
-        >
-          <AreaChart data={data}>
-            <defs>
-              <linearGradient id="fillDesktop" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="red"
-                  stopOpacity={0.8}
+      <CardContent className="flex flex-col gap-4 px-2 pt-4 sm:px-6 sm:pt-6 lg:flex-row lg:items-start">
+        <div className="flex-1">
+          <ResponsiveContainer width="100%" height={320}>
+            <LineChart
+              data={points}
+              margin={{ top: 16, right: 24, left: 8, bottom: 0 }}
+              onMouseMove={(state) => {
+                const sample = state?.activePayload?.[0]?.payload as
+                  | MetricPoint
+                  | undefined;
+                if (sample?.recordId != null) {
+                  onHoverRecord(sample.recordId);
+                }
+              }}
+              onMouseLeave={() => onHoverRecord(null)}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis
+                dataKey="distanceKm"
+                type="number"
+                domain={
+                  maxTick !== undefined ? [0, maxTick] : [0, "dataMax" as const]
+                }
+                ticks={distanceTicks}
+                allowDecimals={false}
+                tickFormatter={(value) => `${Number(value).toFixed(0)} km`}
+                tickMargin={12}
+              />
+              <YAxis
+                dataKey="speedKph"
+                tickFormatter={(value) => `${value.toFixed(0)} km/h`}
+                width={64}
+              />
+              <Tooltip
+                formatter={(value, name) => {
+                  if (name === "speedKph") {
+                    return [`${Number(value).toFixed(1)} km/h`, "Speed"];
+                  }
+                  return value;
+                }}
+                labelFormatter={(value) =>
+                  formatDistance(Number(value), maxTick)
+                }
+              />
+              <Legend />
+              {activePoint && (
+                <ReferenceLine
+                  x={activePoint.distanceKm}
+                  stroke="#94a3b8"
+                  strokeDasharray="4 4"
                 />
-                <stop
-                  offset="95%"
-                  stopColor="red"
-                  stopOpacity={0.1}
+              )}
+              <Line
+                type="monotone"
+                dataKey="speedKph"
+                stroke="#3b82f6"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4 }}
+                name="Speed"
+                isAnimationActive={false}
+              />
+              {activePoint && (
+                <ReferenceDot
+                  x={activePoint.distanceKm}
+                  y={activePoint.speedKph}
+                  r={5}
+                  fill="#3b82f6"
+                  stroke="#1d4ed8"
+                  isFront
                 />
-              </linearGradient>
-              <linearGradient id="fillMobile" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="green"
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="green"
-                  stopOpacity={0.1}
-                />
-              </linearGradient>
-            </defs>
-            <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="x"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              minTickGap={32}
-            // tickFormatter={(value) => {
-            //   const date = new Date(value)
-            //   return date.toLocaleDateString("en-US", {
-            //     month: "short",
-            //     day: "numeric",
-            //   })
-            // }}
-            />
-            <ChartTooltip
-              cursor={false}
-              content={
-                <ChartTooltipContent
-                  labelFormatter={(value) => {
-                    return
-                    // return new Date(value).toLocaleDateString("en-US", {
-                    //   month: "short",
-                    //   day: "numeric",
-                    // })
-                  }}
-                  indicator="dot"
-                />
-              }
-            />
-            <Area
-              dataKey="y"
-              type="natural"
-              fill="url(#fillMobile)"
-              stroke="var(--color-mobile)"
-              stackId="a"
-            />
-            <Area
-              dataKey="y1"
-              type="natural"
-              fill="url(#fillDesktop)"
-              stroke="var(--color-desktop)"
-              stackId="a"
-            />
-            <ChartLegend content={<ChartLegendContent />} />
-          </AreaChart>
-        </ChartContainer>
+              )}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        <ChartSummary
+          averageLabel="Average"
+          averageValue={`${averageSpeed.toFixed(1)} km/h`}
+          currentLabel="Current"
+          currentValue={
+            activePoint ? `${activePoint.speedKph.toFixed(1)} km/h` : "–"
+          }
+          distance={
+            activePoint
+              ? formatDistance(activePoint.distanceKm, maxTick)
+              : "Hover chart or route"
+          }
+          extra={
+            activePoint?.heartRate != null
+              ? `${activePoint.heartRate} bpm`
+              : undefined
+          }
+        />
       </CardContent>
     </Card>
-  )
+  );
+};
+
+type HeartRateChartProps = {
+  records: ActivityRecords;
+  activePoint: MetricPoint | null;
+  onHoverRecord: (recordId: number | null) => void;
+};
+
+const HeartRateChart = ({
+  records,
+  activePoint,
+  onHoverRecord,
+}: HeartRateChartProps) => {
+  const heartRecords = useMemo(
+    () => (records ?? []).filter((record) => record.heartRate != null),
+    [records],
+  );
+
+  const heartPoints = useMemo(() => {
+    if (!heartRecords.length) {
+      return [] as MetricPoint[];
+    }
+
+    const maxPoints = 600;
+    const step = Math.max(1, Math.floor(heartRecords.length / maxPoints));
+
+    return heartRecords
+      .filter((_, index) => index % step === 0)
+      .map((record) => ({
+        recordId: record.id,
+        distanceKm: record.distance / 100_000,
+        speedKph: record.speed,
+        heartRate: record.heartRate!,
+      }));
+  }, [heartRecords]);
+
+  const distanceTicks = useMemo(
+    () => createDistanceTicks(heartPoints),
+    [heartPoints],
+  );
+  const maxTick = distanceTicks.at(-1);
+
+  const averageHeartRate = useMemo(() => {
+    if (!heartPoints.length) {
+      return null;
+    }
+    const total = heartPoints.reduce((sum, point) => sum + point.heartRate!, 0);
+    return total / heartPoints.length;
+  }, [heartPoints]);
+
+  return (
+    <Card className={!heartPoints.length ? "opacity-60" : undefined}>
+      <CardHeader className="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
+        <div className="grid flex-1 gap-1 text-center sm:text-left">
+          <CardTitle>Heart rate over distance</CardTitle>
+          <CardDescription>
+            Beats per minute plotted against distance covered.
+          </CardDescription>
+        </div>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4 px-2 pt-4 sm:px-6 sm:pt-6 lg:flex-row lg:items-start">
+        <div className="flex-1">
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart
+              data={heartPoints}
+              margin={{ top: 16, right: 24, left: 8, bottom: 0 }}
+              onMouseMove={(state) => {
+                if (!heartPoints.length) return;
+                const sample = state?.activePayload?.[0]?.payload as
+                  | MetricPoint
+                  | undefined;
+                if (sample?.recordId != null) {
+                  onHoverRecord(sample.recordId);
+                }
+              }}
+              onMouseLeave={() => onHoverRecord(null)}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis
+                dataKey="distanceKm"
+                type="number"
+                domain={
+                  maxTick !== undefined ? [0, maxTick] : [0, "dataMax" as const]
+                }
+                ticks={distanceTicks}
+                allowDecimals={false}
+                tickFormatter={(value) => `${Number(value).toFixed(0)} km`}
+                tickMargin={12}
+              />
+              <YAxis
+                dataKey="heartRate"
+                tickFormatter={(value) => `${value} bpm`}
+                width={60}
+              />
+              <Tooltip
+                formatter={(value, name) => {
+                  if (name === "heartRate") {
+                    return [`${Number(value).toFixed(0)} bpm`, "Heart rate"];
+                  }
+                  return value;
+                }}
+                labelFormatter={(value) =>
+                  formatDistance(Number(value), maxTick)
+                }
+              />
+              <Legend />
+              {activePoint && (
+                <ReferenceLine
+                  x={activePoint.distanceKm}
+                  stroke="#94a3b8"
+                  strokeDasharray="4 4"
+                />
+              )}
+              <Line
+                type="monotone"
+                dataKey="heartRate"
+                stroke="#ef4444"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 3 }}
+                name="Heart rate"
+                strokeOpacity={heartPoints.length ? 1 : 0.4}
+                isAnimationActive={false}
+              />
+              {activePoint?.heartRate != null && (
+                <ReferenceDot
+                  x={activePoint.distanceKm}
+                  y={activePoint.heartRate}
+                  r={4}
+                  fill="#ef4444"
+                  stroke="#991b1b"
+                  isFront
+                />
+              )}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        <ChartSummary
+          averageLabel="Average"
+          averageValue={
+            averageHeartRate != null
+              ? `${averageHeartRate.toFixed(0)} bpm`
+              : "–"
+          }
+          currentLabel="Current"
+          currentValue={
+            activePoint?.heartRate != null
+              ? `${activePoint.heartRate} bpm`
+              : "–"
+          }
+          distance={
+            activePoint
+              ? formatDistance(activePoint.distanceKm, maxTick)
+              : "Hover chart or route"
+          }
+        />
+      </CardContent>
+    </Card>
+  );
+};
+
+type ChartSummaryProps = {
+  averageLabel: string;
+  averageValue: string;
+  currentLabel: string;
+  currentValue: string;
+  distance: string;
+  extra?: string;
+};
+
+function ChartSummary({
+  averageLabel,
+  averageValue,
+  currentLabel,
+  currentValue,
+  distance,
+  extra,
+}: ChartSummaryProps) {
+  return (
+    <div className="flex w-full flex-col gap-2 rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground lg:w-56">
+      <div>
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          {averageLabel}
+        </p>
+        <p className="text-base font-semibold text-foreground">
+          {averageValue}
+        </p>
+      </div>
+      <div>
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">
+          {currentLabel}
+        </p>
+        <p className="text-base font-semibold text-foreground">
+          {currentValue}
+        </p>
+        <p className="text-xs text-muted-foreground">{distance}</p>
+        {extra && <p className="text-xs text-muted-foreground">{extra}</p>}
+      </div>
+    </div>
+  );
 }
 
 export default Activity;

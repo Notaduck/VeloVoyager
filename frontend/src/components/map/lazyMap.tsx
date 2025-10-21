@@ -10,6 +10,8 @@ type Props = {
   records: Record[];
   initialLng: number;
   initialLat: number;
+  focusedRecordId?: number | null;
+  onRecordHover?: (recordId: number | null) => void;
 };
 
 interface Record {
@@ -26,13 +28,96 @@ export interface Coordinates {
   y: number;
 }
 
-export default function LazyMap({ route, records, initialLat, initialLng }: Props) {
+const ensureArrowImage = (mapInstance: mapboxgl.Map) => {
+  if (mapInstance.hasImage("route-arrow")) {
+    return;
+  }
+
+  const size = 64;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return;
+  }
+
+  context.clearRect(0, 0, size, size);
+  context.fillStyle = "#ffffff";
+  context.strokeStyle = "#0f172a";
+  context.lineWidth = 6;
+  context.lineJoin = "round";
+  context.lineCap = "round";
+
+  context.save();
+  context.translate(size / 2, size / 2);
+  context.rotate(Math.PI / 2);
+  context.translate(-size / 2, -size / 2);
+
+  context.beginPath();
+  context.moveTo(size / 2, size * 0.12);
+  context.lineTo(size * 0.86, size * 0.84);
+  context.lineTo(size / 2, size * 0.64);
+  context.lineTo(size * 0.14, size * 0.84);
+  context.closePath();
+  context.fill();
+  context.stroke();
+  context.restore();
+
+  const imageData = context.getImageData(0, 0, size, size);
+  mapInstance.addImage("route-arrow", imageData, { pixelRatio: 2 });
+};
+
+const buildRouteMarkers = (route: number[][]) => {
+  if (!route.length) {
+    return [];
+  }
+
+  const start = route[0];
+  const finish = route[route.length - 1];
+
+  return [
+    {
+      type: "Feature" as const,
+      properties: { markerType: "start" },
+      geometry: {
+        type: "Point" as const,
+        coordinates: start,
+      },
+    },
+    {
+      type: "Feature" as const,
+      properties: { markerType: "finish" },
+      geometry: {
+        type: "Point" as const,
+        coordinates: finish,
+      },
+    },
+  ];
+};
+
+export default function LazyMap({
+  route,
+  records,
+  initialLat,
+  initialLng,
+  focusedRecordId,
+  onRecordHover,
+}: Props) {
   const mapContainer = useRef<HTMLDivElement | null>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [lng, setLng] = useState(initialLng);
   const [lat, setLat] = useState(initialLat);
   const [zoom, setZoom] = useState(9);
   const [hoveredRecordId, setHoveredRecordId] = useState<number | null>(null);
+  const mapReady = useRef(false);
+  const lastFocusedId = useRef<number | null>(null);
+  const lastHoveredId = useRef<number | null>(null);
+
+  useEffect(() => {
+    void focusedRecordId;
+  }, [focusedRecordId]);
 
   useEffect(() => {
     if (map.current) return; // initialize map only once
@@ -52,8 +137,11 @@ export default function LazyMap({ route, records, initialLat, initialLng }: Prop
 
       // Add the route source
       map.current.on("load", () => {
+        mapReady.current = true;
+        ensureArrowImage(map.current!);
         const geojson: mapboxgl.GeoJSONSourceRaw = {
           type: "geojson",
+          lineMetrics: true,
           data: {
             type: "Feature",
             properties: {},
@@ -66,9 +154,9 @@ export default function LazyMap({ route, records, initialLat, initialLng }: Prop
 
         map.current!.addSource("route", geojson);
 
-        // Add the route layer
+        // Add the route base/outline
         map.current!.addLayer({
-          id: "route",
+          id: "route-outline",
           type: "line",
           source: "route",
           layout: {
@@ -76,8 +164,72 @@ export default function LazyMap({ route, records, initialLat, initialLng }: Prop
             "line-cap": "round",
           },
           paint: {
-            "line-color": "#5E239D",
-            "line-width": 2,
+            "line-color": "#0f172a",
+            "line-width": 10,
+            "line-opacity": 0.45,
+          },
+        });
+
+        // Add the main route stroke
+        map.current!.addLayer({
+          id: "route-main",
+          type: "line",
+          source: "route",
+          layout: {
+            "line-join": "round",
+            "line-cap": "round",
+          },
+          paint: {
+            "line-color": "#38bdf8",
+            "line-width": 6,
+            "line-opacity": 0.95,
+          },
+        });
+
+        map.current!.addLayer({
+          id: "route-direction",
+          type: "symbol",
+          source: "route",
+          layout: {
+            "symbol-placement": "line",
+            "symbol-spacing": 90,
+            "icon-image": "route-arrow",
+            "icon-size": 0.38,
+            "icon-allow-overlap": true,
+            "icon-rotation-alignment": "map",
+            "icon-pitch-alignment": "map",
+            "icon-keep-upright": false,
+          },
+          paint: {
+            "icon-opacity": 0.92,
+          },
+        });
+
+        map.current!.addSource("route-markers", {
+          type: "geojson",
+          data: {
+            type: "FeatureCollection",
+            features: buildRouteMarkers(route),
+          },
+        });
+
+        map.current!.addLayer({
+          id: "route-markers",
+          type: "circle",
+          source: "route-markers",
+          paint: {
+            "circle-radius": 7,
+            "circle-color": [
+              "match",
+              ["get", "markerType"],
+              "start",
+              "#22c55e",
+              "finish",
+              "#ef4444",
+              "#3b82f6",
+            ],
+            "circle-stroke-color": "#0f172a",
+            "circle-stroke-width": 1.5,
           },
         });
 
@@ -123,7 +275,11 @@ export default function LazyMap({ route, records, initialLat, initialLng }: Prop
             "circle-color": "#3887be",
             "circle-opacity": [
               "case",
-              ["boolean", ["feature-state", "hover"], false],
+              [
+                "any",
+                ["boolean", ["feature-state", "hover"], false],
+                ["boolean", ["feature-state", "focus"], false],
+              ],
               1,
               0,
             ],
@@ -131,16 +287,39 @@ export default function LazyMap({ route, records, initialLat, initialLng }: Prop
         });
 
         // Handle hover events
-        map.current!.on("mousemove", "points", (e: mapboxgl.MapMouseEvent & mapboxgl.EventData) => {
-          if (e.features && e.features.length > 0) {
-            const feature = e.features[0];
-            setHoveredRecordId(feature.properties?.id);
-            map.current!.setFeatureState(
-              { source: "points", id: feature.id },
-              { hover: true }
-            );
+        map.current!.on(
+          "mousemove",
+          "points",
+          (e: mapboxgl.MapMouseEvent & mapboxgl.EventData) => {
+            if (e.features && e.features.length > 0) {
+              const feature = e.features[0];
+              const featureId =
+                (feature.id as number | undefined) ??
+                (feature.properties?.id as number | undefined);
+              if (featureId === undefined) {
+                return;
+              }
+
+              if (
+                lastHoveredId.current != null &&
+                lastHoveredId.current !== featureId
+              ) {
+                map.current!.setFeatureState(
+                  { source: "points", id: lastHoveredId.current },
+                  { hover: false }
+                );
+              }
+
+              setHoveredRecordId(featureId);
+              onRecordHover?.(featureId);
+              map.current!.setFeatureState(
+                { source: "points", id: featureId },
+                { hover: true }
+              );
+              lastHoveredId.current = featureId;
+            }
           }
-        });
+        );
 
         // Change cursor to pointer when hovering over points
         map.current!.on("mouseenter", "points", () => {
@@ -150,11 +329,103 @@ export default function LazyMap({ route, records, initialLat, initialLng }: Prop
         map.current!.on("mouseleave", "points", () => {
           map.current!.getCanvas().style.cursor = "";
           setHoveredRecordId(null);
-          map.current!.removeFeatureState({ source: "points" });
+          onRecordHover?.(null);
+          if (lastHoveredId.current != null) {
+            map.current!.setFeatureState(
+              { source: "points", id: lastHoveredId.current },
+              { hover: false }
+            );
+            lastHoveredId.current = null;
+          }
         });
       });
     }
-  }, [lng, lat, zoom, route, records]);
+  }, [lng, lat, zoom, route, records, onRecordHover]);
+
+  useEffect(() => {
+    if (!map.current || !mapReady.current) {
+      return;
+    }
+
+    const routeSource = map.current.getSource("route") as
+      | mapboxgl.GeoJSONSource
+      | undefined;
+    if (routeSource) {
+      routeSource.setData({
+        type: "Feature",
+        properties: {},
+        geometry: {
+          type: "LineString",
+          coordinates: route,
+        },
+      });
+    }
+
+    const pointsSource = map.current.getSource("points") as
+      | mapboxgl.GeoJSONSource
+      | undefined;
+    if (pointsSource) {
+      pointsSource.setData({
+        type: "FeatureCollection",
+        features: records.map((record) => ({
+          type: "Feature" as const,
+          id: record.id,
+          properties: { id: record.id },
+          geometry: {
+            type: "Point" as const,
+            coordinates: [record.coordinates.x, record.coordinates.y],
+          },
+        })),
+      });
+    }
+
+    const markersSource = map.current.getSource("route-markers") as
+      | mapboxgl.GeoJSONSource
+      | undefined;
+    if (markersSource) {
+      markersSource.setData({
+        type: "FeatureCollection",
+        features: buildRouteMarkers(route),
+      });
+    }
+
+    lastHoveredId.current = null;
+    lastFocusedId.current = null;
+  }, [route, records]);
+
+  useEffect(() => {
+    if (!map.current || !mapReady.current) {
+      return;
+    }
+
+    if (lastFocusedId.current != null) {
+      map.current.setFeatureState(
+        { source: "points", id: lastFocusedId.current },
+        { focus: false }
+      );
+    }
+
+    if (focusedRecordId != null) {
+      map.current.setFeatureState(
+        { source: "points", id: focusedRecordId },
+        { focus: true }
+      );
+    }
+
+    lastFocusedId.current = focusedRecordId ?? null;
+  }, [focusedRecordId]);
+
+  useEffect(() => {
+    if (!map.current || !mapReady.current) {
+      return;
+    }
+
+    if (route.length === 0) {
+      return;
+    }
+
+    map.current.setCenter([initialLng, initialLat]);
+  }, [initialLng, initialLat, route.length]);
 
   return (
     <div className="relative">
