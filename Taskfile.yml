@@ -62,3 +62,20 @@ tasks:
     desc: "Regenerate Go and TypeScript clients from protobuf definitions"
     cmds:
       - "{{.BUFCMD}} generate"
+
+  db-migrate:
+    desc: "Apply database migrations using golang-migrate"
+    cmds:
+      - |
+        if [ -z "{{ .DB_CONNECTION_STRING | default .DB_URL }}" ]; then \
+          echo "DB_CONNECTION_STRING environment variable is required"; \
+          exit 1; \
+        fi
+      - "cd backend && migrate -path misc/migrations -database \"{{ .DB_CONNECTION_STRING | default .DB_URL }}\" up"
+
+  sqlc-generate:
+    desc: "Run database migrations and regenerate sqlc code"
+    deps:
+      - db-migrate
+    cmds:
+      - "cd backend && sqlc generate"

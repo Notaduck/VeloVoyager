@@ -133,21 +133,21 @@ CREATE TABLE public.activities (
 	activity_name varchar(255) NOT NULL,
 	avg_speed numeric NOT NULL,
 	max_speed numeric NOT NULL,
-	elapsed_time time NOT NULL,
-	total_time time NOT NULL,
+	elapsed_time interval NOT NULL,
+	total_time interval NOT NULL,
 	CONSTRAINT activities_pkey PRIMARY KEY (id)
 );
 -- CREATE INDEX idx_id_user_id ON pubklic.activities USING btree (id, user_id);
 
 INSERT INTO public.activities (created_at,user_id,distance,activity_name,avg_speed,max_speed,elapsed_time,total_time) VALUES
-	 ('2024-03-30 12:29:12.019','04961e85-8280-4fb3-80d4-a5072bcec9b1',28.852728,'7 PM Neon Night Riders - When your bike lights are the main show.',32.18,235.93,'00:53:49','00:55:09'),
-	 ('2024-03-30 12:31:01.000','04961e85-8280-4fb3-80d4-a5072bcec9b1',28.852728,'7 PM Neon Night Riders - When your bike lights are the main show.',32.18,235.93,'00:53:49','00:55:09'),
-	 ('2024-03-30 12:31:02.250','04961e85-8280-4fb3-80d4-a5072bcec9b1',28.852728,'7 PM Neon Night Riders - When your bike lights are the main show.',32.18,235.93,'00:53:49','00:55:09'),
-	 ('2024-03-30 12:31:03.537','04961e85-8280-4fb3-80d4-a5072bcec9b1',28.852728,'7 PM Neon Night Riders - When your bike lights are the main show.',32.18,235.93,'00:53:49','00:55:09'),
-	 ('2024-03-30 12:31:04.745','04961e85-8280-4fb3-80d4-a5072bcec9b1',28.852728,'7 PM Neon Night Riders - When your bike lights are the main show.',32.18,235.93,'00:53:49','00:55:09'),
-	 ('2024-03-30 12:33:40.197','04961e85-8280-4fb3-80d4-a5072bcec9b1',28.852728,'7 PM Neon Night Riders - When your bike lights are the main show.',32.18,235.93,'00:53:49','00:55:09'),
-	 ('2024-04-03 22:31:50.826','04961e85-8280-4fb3-80d4-a5072bcec9b1',28.852728,'7 PM Neon Night Riders - When your bike lights are the main show.',32.18,235.93,'00:53:49','00:55:09'),
-	 ('2024-04-03 22:32:48.828','04961e85-8280-4fb3-80d4-a5072bcec9b1',28.852728,'7 PM Neon Night Riders - When your bike lights are the main show.',32.18,235.93,'00:53:49','00:55:09');
+	 ('2024-03-30 12:29:12.019','04961e85-8280-4fb3-80d4-a5072bcec9b1',28.852728,'7 PM Neon Night Riders - When your bike lights are the main show.',32.18,235.93,'00:53:49'::interval,'00:55:09'::interval),
+	 ('2024-03-30 12:31:01.000','04961e85-8280-4fb3-80d4-a5072bcec9b1',28.852728,'7 PM Neon Night Riders - When your bike lights are the main show.',32.18,235.93,'00:53:49'::interval,'00:55:09'::interval),
+	 ('2024-03-30 12:31:02.250','04961e85-8280-4fb3-80d4-a5072bcec9b1',28.852728,'7 PM Neon Night Riders - When your bike lights are the main show.',32.18,235.93,'00:53:49'::interval,'00:55:09'::interval),
+	 ('2024-03-30 12:31:03.537','04961e85-8280-4fb3-80d4-a5072bcec9b1',28.852728,'7 PM Neon Night Riders - When your bike lights are the main show.',32.18,235.93,'00:53:49'::interval,'00:55:09'::interval),
+	 ('2024-03-30 12:31:04.745','04961e85-8280-4fb3-80d4-a5072bcec9b1',28.852728,'7 PM Neon Night Riders - When your bike lights are the main show.',32.18,235.93,'00:53:49'::interval,'00:55:09'::interval),
+	 ('2024-03-30 12:33:40.197','04961e85-8280-4fb3-80d4-a5072bcec9b1',28.852728,'7 PM Neon Night Riders - When your bike lights are the main show.',32.18,235.93,'00:53:49'::interval,'00:55:09'::interval),
+	 ('2024-04-03 22:31:50.826','04961e85-8280-4fb3-80d4-a5072bcec9b1',28.852728,'7 PM Neon Night Riders - When your bike lights are the main show.',32.18,235.93,'00:53:49'::interval,'00:55:09'::interval),
+	 ('2024-04-03 22:32:48.828','04961e85-8280-4fb3-80d4-a5072bcec9b1',28.852728,'7 PM Neon Night Riders - When your bike lights are the main show.',32.18,235.93,'00:53:49'::interval,'00:55:09'::interval);
 
 
 

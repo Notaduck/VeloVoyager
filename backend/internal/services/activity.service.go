@@ -22,15 +22,17 @@ import (
 )
 
 type Activity struct {
-	ID           int32     `json:"id"`
-	CreatedAt    time.Time `json:"createdAt"`
-	Distance     float64   `json:"distance"`
-	ActivityName string    `json:"activityName"`
-	AvgSpeed     float64   `json:"avgSpeed"`
-	MaxSpeed     float64   `json:"maxSpeed"`
-	ElapsedTime  string    `json:"elapsedTime"`
-	TotalTime    string    `json:"totalTime"`
-	Records      []Record  `json:"records"`
+	ID              int32         `json:"id"`
+	CreatedAt       time.Time     `json:"createdAt"`
+	Distance        float64       `json:"distance"`
+	ActivityName    string        `json:"activityName"`
+	AvgSpeed        float64       `json:"avgSpeed"`
+	MaxSpeed        float64       `json:"maxSpeed"`
+	ElapsedTime     string        `json:"elapsedTime"`
+	TotalTime       string        `json:"totalTime"`
+	ElapsedDuration time.Duration `json:"-"`
+	TotalDuration   time.Duration `json:"-"`
+	Records         []Record      `json:"records"`
 }
 
 type Point struct {
@@ -54,10 +56,20 @@ type ActivityFilePayload struct {
 	LastModified time.Time
 }
 
+type ActivitySummary struct {
+	ID              int32         `json:"id"`
+	ActivityName    string        `json:"activityName"`
+	Distance        float64       `json:"distance"`
+	ElapsedTime     string        `json:"elapsedTime"`
+	TotalTime       string        `json:"totalTime"`
+	ElapsedDuration time.Duration `json:"-"`
+	TotalDuration   time.Duration `json:"-"`
+}
+
 type ActivityService interface {
 	UpdateActivity(ctx context.Context, activityData db.UpdateActivityParams) (*Activity, error)
 	GetSingleActivityById(ctx context.Context, activityId int32, userId string) (*Activity, error)
-	GetActivities(ctx context.Context, userId string) ([]db.GetActivitiesRow, error)
+	GetActivities(ctx context.Context, userId string) ([]ActivitySummary, error)
 	CreateActivities(ctx context.Context, files []*multipart.FileHeader, userID string) ([]*Activity, error)
 	CreateActivitiesFromBytes(ctx context.Context, files []ActivityFilePayload, userID string) ([]*Activity, error)
 	GetActivityStats(ctx context.Context, userID string) (*db.GetActivityStatsRow, error)
@@ -75,7 +87,7 @@ func NewActivityService(ar repositories.ActivityRepository, rr repositories.Reco
 	}
 }
 
-func (s *activityService) GetActivities(ctx context.Context, userId string) ([]db.GetActivitiesRow, error) {
+func (s *activityService) GetActivities(ctx context.Context, userId string) ([]ActivitySummary, error) {
 
 	activities, err := s.activityRepo.GetActivities(ctx, userId)
 
@@ -84,9 +96,7 @@ func (s *activityService) GetActivities(ctx context.Context, userId string) ([]d
 		return nil, err
 	}
 
-	// activityDetails := convertActivityEntityToDomainModel(&activityEntity)
-
-	return activities, nil
+	return convertActivitySummaries(activities), nil
 }
 
 func (s *activityService) UpdateActivity(ctx context.Context, activityData db.UpdateActivityParams) (*Activity, error) {
@@ -212,8 +222,8 @@ func (s *activityService) createActivityRecord(ctx context.Context, activity *fi
 		return nil, err
 	}
 
-	totalRideTime := time.Unix(0, (time.Duration(activity.Sessions[0].TotalElapsedTime) * time.Microsecond).Nanoseconds())
-	elapsedTime := time.Unix(0, (time.Duration(activity.Sessions[0].TotalTimerTime) * time.Microsecond).Nanoseconds())
+	totalRideDuration := time.Duration(activity.Sessions[0].TotalElapsedTime) * time.Microsecond
+	elapsedDuration := time.Duration(activity.Sessions[0].TotalTimerTime) * time.Microsecond
 
 	dateOfActivity := pgtype.Timestamptz{
 		Time:  activity.Activity.LocalTimestamp,
@@ -223,8 +233,8 @@ func (s *activityService) createActivityRecord(ctx context.Context, activity *fi
 	activityId, err := s.activityRepo.CreateActivity(ctx, db.CreateActivityParams{
 		Distance:       stats.Distance,
 		UserID:         userId,
-		TotalTime:      totalRideTime,
-		ElapsedTime:    elapsedTime,
+		TotalTime:      totalRideDuration,
+		ElapsedTime:    elapsedDuration,
 		AvgSpeed:       stats.AvgSpeed,
 		MaxSpeed:       stats.MaxSpeed,
 		ActivityName:   getActivityName(activity.Activity.LocalTimestamp),
@@ -345,17 +355,35 @@ func (s *activityService) GetActivityStats(ctx context.Context, userId string) (
 func convertActivityEntityToDomainModel(activityEntity *db.ActivityWithRecordsView) *Activity {
 
 	activity := &Activity{
-		ID:           activityEntity.ID,
-		CreatedAt:    activityEntity.CreatedAt.Time,
-		Distance:     activityEntity.Distance.InexactFloat64(),
-		ActivityName: activityEntity.ActivityName,
-		AvgSpeed:     activityEntity.AvgSpeed.InexactFloat64(),
-		MaxSpeed:     activityEntity.MaxSpeed.InexactFloat64(),
-		ElapsedTime:  activityEntity.ElapsedTimeChar,
-		TotalTime:    activityEntity.TotalTimeChar,
-		Records:      convertRecords(activityEntity.Records),
+		ID:              activityEntity.ID,
+		CreatedAt:       activityEntity.CreatedAt.Time,
+		Distance:        activityEntity.Distance.InexactFloat64(),
+		ActivityName:    activityEntity.ActivityName,
+		AvgSpeed:        activityEntity.AvgSpeed.InexactFloat64(),
+		MaxSpeed:        activityEntity.MaxSpeed.InexactFloat64(),
+		ElapsedTime:     activityEntity.ElapsedTimeChar,
+		TotalTime:       activityEntity.TotalTimeChar,
+		ElapsedDuration: activityEntity.ElapsedTime,
+		TotalDuration:   activityEntity.TotalTime,
+		Records:         convertRecords(activityEntity.Records),
 	}
 	return activity
+}
+
+func convertActivitySummaries(activityEntities []db.GetActivitiesRow) []ActivitySummary {
+	summaries := make([]ActivitySummary, len(activityEntities))
+	for i, activity := range activityEntities {
+		summaries[i] = ActivitySummary{
+			ID:              activity.ID,
+			ActivityName:    activity.ActivityName,
+			Distance:        activity.Distance.InexactFloat64(),
+			ElapsedTime:     activity.ElapsedTimeChar,
+			TotalTime:       activity.TotalTimeChar,
+			ElapsedDuration: activity.ElapsedTime,
+			TotalDuration:   activity.TotalTime,
+		}
+	}
+	return summaries
 }
 
 func convertRecords(recordEntities []db.Record) []Record {
