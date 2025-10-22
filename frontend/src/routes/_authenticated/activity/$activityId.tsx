@@ -15,9 +15,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { getActivity } from "@/gen/activity/v1/activity-ActivityService_connectquery";
-import type { GetActivityResponse } from "@/gen/activity/v1/activity_pb";
 import { useQuery } from "@connectrpc/connect-query";
-import type { SurfaceSummary } from "@/components/map/lazyMap";
 
 import {
   Card,
@@ -38,15 +36,13 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import {
-  Clock,
-  Gauge,
-  HeartPulse,
-  Layers2,
-  MapPin,
-  TrendingUp,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Clock, Gauge, HeartPulse, MapPin, TrendingUp } from "lucide-react";
+
+import { MAX_HEART_RATE_POINTS, UNKNOWN_VALUE } from "@/features/activity/constants";
+import type { ActivityRecords, MetricPoint, StatItem } from "@/features/activity/types";
+import { createDistanceTicks, formatDistance } from "@/features/activity/utils";
+import { useActivityDerivedData } from "@/features/activity/hooks/useActivityDerivedData";
+
 const LazyMap = lazy(() => import("../../../components/map/lazyMap"));
 
 export const Route = createFileRoute("/_authenticated/activity/$activityId")({
@@ -71,6 +67,9 @@ const formSchema = z.object({
   activityName: z.string().min(2).max(50),
 });
 
+/**
+ * Activity detail page displaying route metrics, charts, and an interactive map.
+ */
 function Activity() {
   const { activityId, authToken } = Route.useLoaderData();
 
@@ -80,112 +79,25 @@ function Activity() {
     activityId: activityId,
   });
 
-  const metricsPoints = useMemo<MetricPoint[]>(() => {
-    const records = activity?.records ?? [];
-    if (!records.length) {
-      return [];
-    }
-
-    const maxPoints = 1000;
-    const step = Math.max(1, Math.floor(records.length / maxPoints));
-
-    return records
-      .filter((_, index) => index % step === 0)
-      .map((record) => ({
-        recordId: record.id,
-        distanceKm: record.distance / 100_000,
-        speedKph: record.speed,
-        heartRate:
-          record.heartRate !== undefined && record.heartRate !== null
-            ? record.heartRate
-            : null,
-      }));
-  }, [activity?.records]);
-
-  const sampleByRecordId = useMemo(() => {
-    const map = new Map<number, MetricPoint>();
-    const records = activity?.records ?? [];
-
-    if (!metricsPoints.length) {
-      return map;
-    }
-
-    for (const point of metricsPoints) {
-      map.set(point.recordId, point);
-    }
-
-    for (const record of records) {
-      if (map.has(record.id)) {
-        continue;
-      }
-      const distanceKm = record.distance / 100_000;
-      let nearest = metricsPoints[0];
-      let minDiff = Math.abs(nearest.distanceKm - distanceKm);
-
-      for (let i = 1; i < metricsPoints.length; i += 1) {
-        const candidate = metricsPoints[i];
-        const diff = Math.abs(candidate.distanceKm - distanceKm);
-        if (diff < minDiff) {
-          nearest = candidate;
-          minDiff = diff;
-        }
-      }
-
-      map.set(record.id, {
-        ...nearest,
-        recordId: record.id,
-        distanceKm,
-        speedKph: record.speed,
-        heartRate:
-          record.heartRate !== undefined && record.heartRate !== null
-            ? record.heartRate
-            : nearest.heartRate,
-      });
-    }
-
-    return map;
-  }, [metricsPoints, activity?.records]);
-
-  const routeInfo = useMemo(() => {
-    const coordinateRecords = (activity?.records ?? []).filter(
-      (record): record is RecordWithCoordinates =>
-        record.coordinates?.x !== undefined &&
-        record.coordinates?.y !== undefined,
-    );
-
-    if (!coordinateRecords.length) {
-      return { route: [] as number[][], centerLat: 0, centerLng: 0 };
-    }
-
-    const route = coordinateRecords.map((record) => [
-      record.coordinates.x,
-      record.coordinates.y,
-    ]);
-
-    const centerLat =
-      coordinateRecords.reduce((acc, record) => acc + record.coordinates.y, 0) /
-      coordinateRecords.length;
-    const centerLng =
-      coordinateRecords.reduce((acc, record) => acc + record.coordinates.x, 0) /
-      coordinateRecords.length;
-
-    return { route, centerLat, centerLng };
-  }, [activity?.records]);
-
-  const mapboxRecords = useMemo(
-    () =>
-      (activity?.records ?? []).map((record) => ({
-        id: record.id,
-        distance: record.distance,
-        speed: record.speed,
-        heartRate: record.heartRate ?? undefined,
-        timeStamp: undefined,
-        coordinates: record.coordinates
-          ? { x: record.coordinates.x, y: record.coordinates.y }
-          : undefined,
-      })),
-    [activity?.records],
-  );
+  const {
+    metricsPoints,
+    sampleByRecordId,
+    routeInfo,
+    mapboxRecords,
+    totalDistanceKm,
+    distanceLabel,
+    avgSpeedLabel,
+    maxSpeedLabel,
+    elapsedTimeLabel,
+    averageHeartRateValue,
+    averageHeartRateLabel,
+    maxHeartRateValue,
+    maxHeartRateLabel,
+    recordCountLabel,
+    recordedOnLabel,
+    detailItems,
+    distanceTicks,
+  } = useActivityDerivedData(activity, activityId);
 
   const formMethods = useForm<z.infer<typeof formSchema>>({
     mode: "onBlur",
@@ -197,9 +109,9 @@ function Activity() {
 
   const [editTitle, setEditTitle] = useState<boolean>(false);
   const [activeRecordId, setActiveRecordId] = useState<number | null>(null);
-  const [surfaceSummary, setSurfaceSummary] = useState<SurfaceSummary | null>(
-    null,
-  );
+  /**
+   * Synchronises hover state between the map and charts.
+   */
   const handleRecordHover = useCallback(
     (recordId: number | null) => {
       setActiveRecordId((prev) => {
@@ -211,77 +123,12 @@ function Activity() {
     },
     [setActiveRecordId],
   );
-  const handleSurfaceSummary = useCallback((summary: SurfaceSummary | null) => {
-    setSurfaceSummary(summary);
-  }, []);
   const activeSample = useMemo(() => {
     if (activeRecordId == null) {
       return null;
     }
     return sampleByRecordId.get(activeRecordId) ?? null;
   }, [activeRecordId, sampleByRecordId]);
-  const totalDistanceKm =
-    metricsPoints.length > 0
-      ? metricsPoints[metricsPoints.length - 1].distanceKm
-      : 0;
-  const averageHeartRateValue = useMemo(() => {
-    const heartRecords = (activity?.records ?? []).filter(
-      (record) => record.heartRate != null,
-    );
-    if (!heartRecords.length) {
-      return null;
-    }
-    const total = heartRecords.reduce(
-      (sum, record) => sum + (record.heartRate ?? 0),
-      0,
-    );
-    return total / heartRecords.length;
-  }, [activity?.records]);
-  const maxHeartRateValue = useMemo(() => {
-    const heartRecords = (activity?.records ?? []).filter(
-      (record) => record.heartRate != null,
-    );
-    if (!heartRecords.length) {
-      return null;
-    }
-    return Math.max(
-      ...heartRecords.map((record) => record.heartRate ?? Number.NEGATIVE_INFINITY),
-    );
-  }, [activity?.records]);
-  const surfaceBreakdown = surfaceSummary?.breakdown ?? [];
-  const dominantSurface = surfaceBreakdown[0];
-  const distanceLabel =
-    totalDistanceKm > 0 ? formatDistance(totalDistanceKm) : "—";
-  const avgSpeedLabel =
-    typeof activity?.avgSpeed === "number"
-      ? `${activity.avgSpeed.toFixed(1)} km/h`
-      : "—";
-  const maxSpeedLabel =
-    typeof activity?.maxSpeed === "number"
-      ? `${activity.maxSpeed.toFixed(1)} km/h`
-      : "—";
-  const elapsedTimeLabel = activity?.elapsedTime ?? "—";
-  const averageHeartRateLabel =
-    averageHeartRateValue != null
-      ? `${Math.round(averageHeartRateValue)} bpm`
-      : "—";
-  const maxHeartRateLabel =
-    maxHeartRateValue != null ? `${maxHeartRateValue} bpm` : "—";
-  const recordCountLabel = (activity?.records?.length ?? 0).toLocaleString();
-  const recordedOnLabel = useMemo(() => {
-    if (!activity?.createdAt) {
-      return "—";
-    }
-    const parsed = new Date(activity.createdAt);
-    if (Number.isNaN(parsed.getTime())) {
-      return activity.createdAt;
-    }
-    return parsed.toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-  }, [activity?.createdAt]);
   const heroStats: StatItem[] = useMemo(() => {
     const stats: StatItem[] = [
       {
@@ -317,14 +164,6 @@ function Activity() {
         icon: HeartPulse,
       });
     }
-    if (dominantSurface) {
-      stats.push({
-        label: "Primary surface",
-        value: dominantSurface.label,
-        helper: `${Math.round(dominantSurface.percentage * 100)}% of route`,
-        icon: Layers2,
-      });
-    }
     return stats;
   }, [
     averageHeartRateLabel,
@@ -333,34 +172,7 @@ function Activity() {
     distanceLabel,
     elapsedTimeLabel,
     maxSpeedLabel,
-    dominantSurface,
   ]);
-  const detailItems = useMemo(
-    () => [
-      { label: "Activity ID", value: `#${activity?.id ?? activityId}` },
-      { label: "Recorded on", value: recordedOnLabel },
-      { label: "Samples", value: recordCountLabel },
-      {
-        label: "Max heart rate",
-        value: averageHeartRateValue != null ? maxHeartRateLabel : "—",
-      },
-      {
-        label: "Dominant surface",
-        value: dominantSurface
-          ? `${dominantSurface.label} (${Math.round(dominantSurface.percentage * 100)}%)`
-          : "—",
-      },
-    ],
-    [
-      activity?.id,
-      activityId,
-      averageHeartRateValue,
-      maxHeartRateLabel,
-      recordCountLabel,
-      recordedOnLabel,
-      dominantSurface,
-    ],
-  );
   const onSubmit = (data: z.infer<typeof formSchema>) => {
     if (data.activityName != activity?.activityName && authToken) {
       // updateActivity.mutate(
@@ -403,14 +215,10 @@ function Activity() {
                   Activity #{activity?.id ?? activityId}
                 </Badge>
                 <span className="rounded-full bg-white/10 px-3 py-1 text-white/80">
-                  {recordedOnLabel !== "—" ? recordedOnLabel : "Date unavailable"}
+                  {recordedOnLabel !== UNKNOWN_VALUE
+                    ? recordedOnLabel
+                    : "Date unavailable"}
                 </span>
-                {dominantSurface && (
-                  <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-white/80">
-                    <Layers2 className="h-3.5 w-3.5" />
-                    {dominantSurface.label}
-                  </span>
-                )}
               </div>
                 {editTitle ? (
                   <form
@@ -540,7 +348,6 @@ function Activity() {
                     route={routeInfo.route}
                     focusedRecordId={activeRecordId}
                     onRecordHover={handleRecordHover}
-                    onSurfaceSummary={handleSurfaceSummary}
                   />
                 </div>
               </Suspense>
@@ -646,39 +453,6 @@ function Activity() {
                 </div>
               ))}
             </div>
-            {surfaceBreakdown.length > 0 && (
-              <div className="space-y-3 rounded-2xl border border-border/60 bg-background/70 px-4 py-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-foreground">
-                    Surface mix
-                  </p>
-                  <span className="text-xs text-muted-foreground">
-                    {surfaceSummary?.total?.toLocaleString() ?? 0} samples
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {surfaceBreakdown.map((entry) => (
-                    <div key={entry.label} className="space-y-1">
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span className="flex items-center gap-2 font-medium text-foreground">
-                          <span
-                            className={`h-2 w-2 rounded-full ${SURFACE_COLOR_CLASSES[entry.label] ?? "bg-slate-400"}`}
-                          />
-                          {entry.label}
-                        </span>
-                        <span>{Math.round(entry.percentage * 100)}%</span>
-                      </div>
-                      <div className="h-2 w-full rounded-full bg-muted">
-                        <div
-                          className={`h-full rounded-full ${SURFACE_COLOR_CLASSES[entry.label] ?? "bg-slate-400"}`}
-                          style={{ width: `${Math.max(entry.percentage * 100, 4)}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
       </section>
@@ -686,6 +460,7 @@ function Activity() {
       <section className="space-y-6">
         <SpeedChart
           points={metricsPoints}
+          distanceTicks={distanceTicks}
           activePoint={activeSample}
           onHoverRecord={handleRecordHover}
         />
@@ -698,74 +473,22 @@ function Activity() {
     </div>
   );
 }
-
-type MetricPoint = {
-  recordId: number;
-  distanceKm: number;
-  speedKph: number;
-  heartRate: number | null;
-};
-
-type StatItem = {
-  label: string;
-  value: string;
-  helper?: string;
-  icon: LucideIcon;
-};
-
-type ActivityRecords = GetActivityResponse["records"];
-type RecordWithCoordinates = ActivityRecords[number] & {
-  coordinates: NonNullable<ActivityRecords[number]["coordinates"]>;
-};
-
-const SURFACE_COLOR_CLASSES: Record<string, string> = {
-  Paved: "bg-sky-500",
-  Unpaved: "bg-slate-500",
-  Gravel: "bg-amber-500",
-  Dirt: "bg-amber-700",
-  Trail: "bg-emerald-500",
-  "Unknown surface": "bg-slate-400",
-};
-
-const formatDistance = (distance: number, maxTick?: number) =>
-  `${distance.toFixed(maxTick !== undefined && maxTick >= 100 ? 0 : 1)} km`;
-
-const createDistanceTicks = (points: MetricPoint[]): number[] => {
-  if (!points.length) {
-    return [];
-  }
-
-  const maxDistance = Math.max(...points.map((point) => point.distanceKm));
-  const step = maxDistance < 100 ? 5 : 10;
-  const topTick =
-    maxDistance < 100
-      ? Math.ceil(maxDistance / step) * step
-      : Math.max(step, Math.floor(maxDistance / step) * step);
-
-  const ticks: number[] = [];
-  for (let value = 0; value <= topTick + 1e-6; value += step) {
-    ticks.push(Number(value.toFixed(2)));
-  }
-
-  if (!ticks.length) {
-    ticks.push(0);
-  }
-
-  return ticks;
-};
-
 type MetricsChartProps = {
   points: MetricPoint[];
+  distanceTicks: number[];
   activePoint: MetricPoint | null;
   onHoverRecord: (recordId: number | null) => void;
 };
 
+/**
+ * Renders the speed-over-distance line chart with hover synchronisation.
+ */
 const SpeedChart = ({
   points,
+  distanceTicks,
   activePoint,
   onHoverRecord,
 }: MetricsChartProps) => {
-  const distanceTicks = useMemo(() => createDistanceTicks(points), [points]);
   const averageSpeed = useMemo(() => {
     if (!points.length) {
       return 0;
@@ -923,7 +646,7 @@ const HeartRateChart = ({
       return [] as MetricPoint[];
     }
 
-    const maxPoints = 600;
+    const maxPoints = MAX_HEART_RATE_POINTS;
     const step = Math.max(1, Math.floor(heartRecords.length / maxPoints));
 
     return heartRecords
@@ -1060,7 +783,7 @@ const HeartRateChart = ({
           averageValue={
             averageHeartRate != null
               ? `${averageHeartRate.toFixed(0)} bpm`
-              : "–"
+              : UNKNOWN_VALUE
           }
           currentLabel="Current"
           currentValue={
@@ -1090,6 +813,9 @@ type ChartSummaryProps = {
   extra?: string;
 };
 
+/**
+ * Displays the compact summary card next to the charts.
+ */
 function ChartSummary({
   averageLabel,
   averageValue,
