@@ -100,6 +100,11 @@ func (s *APIServer) handleGetActivities(w http.ResponseWriter, r *http.Request) 
 
 	user := RetrieveUserFromContext(r.Context())
 
+	if user == nil {
+		slog.Error("user not found in context while listing activities")
+		return WriteJSON(w, http.StatusInternalServerError, ApiError{Error: "user not found in the request context."})
+	}
+
 	activities, err := s.activityService.GetActivities(r.Context(), user.ID)
 
 	if err != nil {

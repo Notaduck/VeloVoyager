@@ -1,0 +1,9 @@
+ALTER TABLE activities
+    ALTER COLUMN headwind SET DEFAULT 0,
+    ALTER COLUMN longest_headwind SET DEFAULT '00:00:00'::time,
+    ALTER COLUMN air_speed SET DEFAULT 0,
+    ALTER COLUMN temp SET DEFAULT 0;
+
+ALTER TABLE records
+    ALTER COLUMN bearing SET DEFAULT 0;
+

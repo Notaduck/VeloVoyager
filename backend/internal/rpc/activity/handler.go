@@ -178,6 +178,10 @@ func (h *ActivityHandler) GetActivities(
 ) (*connect.Response[activityv1.GetActivitiesResponse], error) {
 
 	user := middleware.RetrieveUserFromContext(ctx)
+	if user == nil {
+		err := fmt.Errorf("user not authenticated")
+		return nil, connect.NewError(connect.CodeUnauthenticated, err)
+	}
 
 	activities, err := h.service.GetActivities(ctx, user.ID)
 	if err != nil {
@@ -190,9 +194,9 @@ func (h *ActivityHandler) GetActivities(
 		activityList[i] = &activityv1.ActivitySummary{
 			Id:           activity.ID,
 			ActivityName: activity.ActivityName,
-			TotalTime:    activity.TotalTimeChar,
-			Distance:     activity.Distance.InexactFloat64(),
-			ElapsedTime:  activity.ElapsedTimeChar,
+			TotalTime:    activity.TotalTime,
+			Distance:     activity.Distance,
+			ElapsedTime:  activity.ElapsedTime,
 		}
 	}
 

@@ -8,8 +8,8 @@ CREATE TABLE IF NOT EXISTS activities (
     activity_name VARCHAR(255) NOT NULL,
     avg_speed NUMERIC NOT NULL,
     max_speed NUMERIC NOT NULL,
-    elapsed_time TIME NOT NULL,
-    total_time TIME NOT NULL
+    elapsed_time INTERVAL NOT NULL,
+    total_time INTERVAL NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS "idx_id_user_id" ON "activities" ("id", "user_id");

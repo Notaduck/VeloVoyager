@@ -1,0 +1,9 @@
+ALTER TABLE activities
+    ALTER COLUMN headwind DROP DEFAULT,
+    ALTER COLUMN longest_headwind DROP DEFAULT,
+    ALTER COLUMN air_speed DROP DEFAULT,
+    ALTER COLUMN temp DROP DEFAULT;
+
+ALTER TABLE records
+    ALTER COLUMN bearing DROP DEFAULT;
+
