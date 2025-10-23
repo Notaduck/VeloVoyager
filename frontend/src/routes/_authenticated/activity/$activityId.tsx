@@ -36,7 +36,14 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Clock, Gauge, HeartPulse, MapPin, TrendingUp } from "lucide-react";
+import {
+  Activity as CadenceIcon,
+  Clock,
+  Gauge,
+  HeartPulse,
+  MapPin,
+  TrendingUp,
+} from "lucide-react";
 
 import { MAX_HEART_RATE_POINTS, UNKNOWN_VALUE } from "@/features/activity/constants";
 import type { ActivityRecords, MetricPoint, StatItem } from "@/features/activity/types";
@@ -93,6 +100,10 @@ function Activity() {
     averageHeartRateLabel,
     maxHeartRateValue,
     maxHeartRateLabel,
+    averageCadenceValue,
+    averageCadenceLabel,
+    maxCadenceValue,
+    maxCadenceLabel,
     recordCountLabel,
     recordedOnLabel,
     detailItems,
@@ -164,8 +175,18 @@ function Activity() {
         icon: HeartPulse,
       });
     }
+    if (averageCadenceValue != null) {
+      stats.push({
+        label: "Avg cadence",
+        value: averageCadenceLabel,
+        helper: "Average pedal rpm",
+        icon: CadenceIcon,
+      });
+    }
     return stats;
   }, [
+    averageCadenceLabel,
+    averageCadenceValue,
     averageHeartRateLabel,
     averageHeartRateValue,
     avgSpeedLabel,
@@ -406,7 +427,7 @@ function Activity() {
                 )}
               </div>
               {activeSample ? (
-                <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+                <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-4">
                   <div>
                     <dt className="text-xs uppercase text-muted-foreground">
                       Distance
@@ -430,6 +451,16 @@ function Activity() {
                     <dd className="font-medium text-foreground">
                       {activeSample.heartRate != null
                         ? `${activeSample.heartRate} bpm`
+                        : "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs uppercase text-muted-foreground">
+                      Cadence
+                    </dt>
+                    <dd className="font-medium text-foreground">
+                      {activeSample.cadence != null
+                        ? `${activeSample.cadence} rpm`
                         : "—"}
                     </dd>
                   </div>

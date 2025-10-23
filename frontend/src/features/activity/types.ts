@@ -12,6 +12,7 @@ export type MetricPoint = {
   distanceKm: number;
   speedKph: number;
   heartRate: number | null;
+  cadence: number | null;
 };
 
 export type MapRecord = {
@@ -19,6 +20,7 @@ export type MapRecord = {
   distance: number;
   speed: number;
   heartRate?: number;
+  cadence?: number;
   timeStamp?: number;
   coordinates?: {
     x: number;

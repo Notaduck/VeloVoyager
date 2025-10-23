@@ -10,6 +10,7 @@ export interface ActivityRecord {
   speed: number;
   timeStamp?: number;
   heartRate?: number;
+  cadence?: number;
 }
 
 export type RouteGeometry = number[][];

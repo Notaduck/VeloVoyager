@@ -25,6 +25,7 @@ interface MapRecord {
   speed: number;
   timeStamp?: number;
   heartRate?: number;
+  cadence?: number;
 }
 
 const hasCoordinates = (

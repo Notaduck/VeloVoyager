@@ -8,7 +8,9 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@bufbuild/protobuf": ["../node_modules/@bufbuild/protobuf"],
+      "@bufbuild/protobuf/*": ["../node_modules/@bufbuild/protobuf/*"]
     },
 
     /* Bundler mode */

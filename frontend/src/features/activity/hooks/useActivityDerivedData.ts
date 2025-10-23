@@ -48,6 +48,7 @@ const buildMetricsPoints = (activity?: GetActivityResponse): MetricPoint[] => {
       distanceKm: record.distance / 100_000,
       speedKph: record.speed,
       heartRate: record.heartRate ?? null,
+      cadence: record.cadence ?? null,
     }));
 };
 
@@ -93,6 +94,7 @@ const buildSampleLookup = (
       distanceKm,
       speedKph: record.speed,
       heartRate: record.heartRate ?? nearest.heartRate,
+      cadence: record.cadence ?? nearest.cadence ?? null,
     });
   }
 
@@ -138,6 +140,7 @@ const buildMapRecords = (activity?: GetActivityResponse): MapRecord[] =>
     distance: record.distance,
     speed: record.speed,
     heartRate: record.heartRate ?? undefined,
+    cadence: record.cadence ?? undefined,
     timeStamp: undefined,
     coordinates: record.coordinates
       ? { x: record.coordinates.x, y: record.coordinates.y }
@@ -152,6 +155,9 @@ const formatSpeedLabel = (value: number | undefined | null) =>
 const formatHeartRateLabel = (value: number | null | undefined) =>
   value != null ? `${Math.round(value)} bpm` : UNKNOWN_VALUE;
 
+const formatCadenceLabel = (value: number | null | undefined) =>
+  value != null ? `${Math.round(value)} rpm` : UNKNOWN_VALUE;
+
 /**
  * Constructs the key-value summary list shown beneath the hero stats.
  */
@@ -161,12 +167,14 @@ const buildDetailItems = (
   recordedOnLabel: string,
   recordCountLabel: string,
   maxHeartRateLabel: string,
+  maxCadenceLabel: string,
 ) =>
   [
     { label: "Activity ID", value: `#${activity?.id ?? activityId}` },
     { label: "Recorded on", value: recordedOnLabel },
     { label: "Samples", value: recordCountLabel },
     { label: "Max heart rate", value: maxHeartRateLabel },
+    { label: "Max cadence", value: maxCadenceLabel },
   ] satisfies DetailItem[];
 
 /**
@@ -198,6 +206,11 @@ export const useActivityDerivedData = (
     [activity?.records],
   );
 
+  const cadenceRecords = useMemo(
+    () => (activity?.records ?? []).filter((record) => record.cadence != null),
+    [activity?.records],
+  );
+
   const averageHeartRateValue = heartRecords.length
     ? heartRecords.reduce((sum, record) => sum + (record.heartRate ?? 0), 0) /
       heartRecords.length
@@ -214,6 +227,22 @@ export const useActivityDerivedData = (
   const maxHeartRateLabel =
     maxHeartRateValue != null ? `${maxHeartRateValue} bpm` : UNKNOWN_VALUE;
 
+  const averageCadenceValue = cadenceRecords.length
+    ? cadenceRecords.reduce((sum, record) => sum + (record.cadence ?? 0), 0) /
+      cadenceRecords.length
+    : null;
+  const averageCadenceLabel = formatCadenceLabel(averageCadenceValue);
+
+  const maxCadenceValue = cadenceRecords.length
+    ? Math.max(
+        ...cadenceRecords.map(
+          (record) => record.cadence ?? Number.NEGATIVE_INFINITY,
+        ),
+      )
+    : null;
+  const maxCadenceLabel =
+    maxCadenceValue != null ? `${maxCadenceValue} rpm` : UNKNOWN_VALUE;
+
   const recordCountLabel = (activity?.records?.length ?? 0).toLocaleString();
   const recordedOnLabel = formatRecordedOn(activity?.createdAt);
 
@@ -225,8 +254,16 @@ export const useActivityDerivedData = (
         recordedOnLabel,
         recordCountLabel,
         maxHeartRateLabel,
+        maxCadenceLabel,
       ),
-    [activity, activityId, maxHeartRateLabel, recordCountLabel, recordedOnLabel],
+    [
+      activity,
+      activityId,
+      maxCadenceLabel,
+      maxHeartRateLabel,
+      recordCountLabel,
+      recordedOnLabel,
+    ],
   );
 
   const distanceTicks = useMemo(() => createDistanceTicks(metricsPoints), [metricsPoints]);
@@ -245,6 +282,10 @@ export const useActivityDerivedData = (
     averageHeartRateLabel,
     maxHeartRateValue,
     maxHeartRateLabel,
+    averageCadenceValue,
+    averageCadenceLabel,
+    maxCadenceValue,
+    maxCadenceLabel,
     recordCountLabel,
     recordedOnLabel,
     detailItems,
