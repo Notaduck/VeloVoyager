@@ -20,6 +20,7 @@ INSERT INTO activities (
     activity_name,
     avg_speed,
     max_speed,
+    ride_type,
     elapsed_time,
     total_time,
     date_of_activity
@@ -32,7 +33,8 @@ INSERT INTO activities (
     $5,
     $6,
     $7,
-    $8
+    $8,
+    $9
 )
 RETURNING id
 `
@@ -43,6 +45,7 @@ type CreateActivityParams struct {
 	ActivityName   string             `json:"activityName"`
 	AvgSpeed       decimal.Decimal    `json:"avgSpeed"`
 	MaxSpeed       decimal.Decimal    `json:"maxSpeed"`
+	RideType       string             `json:"rideType"`
 	ElapsedTime    time.Duration      `json:"elapsedTime"`
 	TotalTime      time.Duration      `json:"totalTime"`
 	DateOfActivity pgtype.Timestamptz `json:"dateOfActivity"`
@@ -55,6 +58,7 @@ func (q *Queries) CreateActivity(ctx context.Context, arg CreateActivityParams) 
 		arg.ActivityName,
 		arg.AvgSpeed,
 		arg.MaxSpeed,
+		arg.RideType,
 		arg.ElapsedTime,
 		arg.TotalTime,
 		arg.DateOfActivity,
@@ -69,6 +73,7 @@ SELECT
     id,
     activity_name,
     distance,
+    ride_type,
     elapsed_time::interval AS elapsed_time,
     total_time::interval AS total_time,
     TO_CHAR(elapsed_time::time, 'HH24:MI:SS') AS elapsed_time_char,
@@ -82,6 +87,7 @@ type GetActivitiesRow struct {
 	ID              int32           `json:"id"`
 	ActivityName    string          `json:"activityName"`
 	Distance        decimal.Decimal `json:"distance"`
+	RideType        string          `json:"rideType"`
 	ElapsedTime     time.Duration   `json:"elapsedTime"`
 	TotalTime       time.Duration   `json:"totalTime"`
 	ElapsedTimeChar string          `json:"elapsedTimeChar"`
@@ -101,6 +107,7 @@ func (q *Queries) GetActivities(ctx context.Context, userID string) ([]GetActivi
 			&i.ID,
 			&i.ActivityName,
 			&i.Distance,
+			&i.RideType,
 			&i.ElapsedTime,
 			&i.TotalTime,
 			&i.ElapsedTimeChar,
@@ -127,6 +134,7 @@ SELECT
     a.activity_name,
     a.avg_speed,
     a.max_speed,
+    a.ride_type,
     a.elapsed_time::interval AS elapsed_time,
     a.total_time::interval AS total_time,
     TO_CHAR(a.elapsed_time::time, 'HH24:MI:SS') AS elapsed_time_char,
@@ -146,6 +154,7 @@ type GetActivityRow struct {
 	ActivityName    string             `json:"activityName"`
 	AvgSpeed        decimal.Decimal    `json:"avgSpeed"`
 	MaxSpeed        decimal.Decimal    `json:"maxSpeed"`
+	RideType        string             `json:"rideType"`
 	ElapsedTime     time.Duration      `json:"elapsedTime"`
 	TotalTime       time.Duration      `json:"totalTime"`
 	ElapsedTimeChar string             `json:"elapsedTimeChar"`
@@ -165,6 +174,7 @@ func (q *Queries) GetActivity(ctx context.Context, id int32) (GetActivityRow, er
 		&i.ActivityName,
 		&i.AvgSpeed,
 		&i.MaxSpeed,
+		&i.RideType,
 		&i.ElapsedTime,
 		&i.TotalTime,
 		&i.ElapsedTimeChar,
@@ -242,6 +252,7 @@ SELECT
     activity_name,
     avg_speed,
     max_speed,
+    ride_type,
     elapsed_time,
     total_time,
     elapsed_time_char,
@@ -262,6 +273,7 @@ func (q *Queries) GetActivityWithRecordsView(ctx context.Context, id int32) (Act
 		&i.ActivityName,
 		&i.AvgSpeed,
 		&i.MaxSpeed,
+		&i.RideType,
 		&i.ElapsedTime,
 		&i.TotalTime,
 		&i.ElapsedTimeChar,
@@ -274,25 +286,33 @@ func (q *Queries) GetActivityWithRecordsView(ctx context.Context, id int32) (Act
 const updateActivity = `-- name: UpdateActivity :one
 WITH updated_activity AS (
     UPDATE activities 
-    SET activity_name = $1
+    SET 
+        activity_name = COALESCE($1, activity_name),
+        ride_type = COALESCE($2, ride_type)
     WHERE 
-        activities.id = $2 
-        AND activities.user_id = $3
+        activities.id = $3 
+        AND activities.user_id = $4
     RETURNING activities.id
 )
-SELECT id, created_at, user_id, distance, activity_name, avg_speed, max_speed, elapsed_time, total_time, elapsed_time_char, total_time_char, records
+SELECT id, created_at, user_id, distance, activity_name, avg_speed, max_speed, ride_type, elapsed_time, total_time, elapsed_time_char, total_time_char, records
 FROM activity_with_records_view awrv
 WHERE awrv.id = (SELECT updated_activity.id FROM updated_activity)
 `
 
 type UpdateActivityParams struct {
-	ActivityName string `json:"activityName"`
-	ID           int32  `json:"id"`
-	UserID       string `json:"userId"`
+	ActivityName pgtype.Text `json:"activityName"`
+	RideType     pgtype.Text `json:"rideType"`
+	ID           int32       `json:"id"`
+	UserID       string      `json:"userId"`
 }
 
 func (q *Queries) UpdateActivity(ctx context.Context, arg UpdateActivityParams) (ActivityWithRecordsView, error) {
-	row := q.db.QueryRow(ctx, updateActivity, arg.ActivityName, arg.ID, arg.UserID)
+	row := q.db.QueryRow(ctx, updateActivity,
+		arg.ActivityName,
+		arg.RideType,
+		arg.ID,
+		arg.UserID,
+	)
 	var i ActivityWithRecordsView
 	err := row.Scan(
 		&i.ID,
@@ -302,6 +322,7 @@ func (q *Queries) UpdateActivity(ctx context.Context, arg UpdateActivityParams) 
 		&i.ActivityName,
 		&i.AvgSpeed,
 		&i.MaxSpeed,
+		&i.RideType,
 		&i.ElapsedTime,
 		&i.TotalTime,
 		&i.ElapsedTimeChar,
@@ -312,11 +333,13 @@ func (q *Queries) UpdateActivity(ctx context.Context, arg UpdateActivityParams) 
 }
 
 const updateActivityname = `-- name: UpdateActivityname :one
-UPDATE activities 
-SET activity_name = $1
+UPDATE activities
+SET 
+    activity_name = COALESCE($1, activity_name),
+    ride_type = COALESCE($2, ride_type)
 WHERE 
-    id = $2 
-    AND user_id = $3
+    id = $3
+    AND user_id = $4
 RETURNING 
     id,
     created_at,
@@ -327,14 +350,16 @@ RETURNING
     activity_name,
     avg_speed,
     max_speed,
+    ride_type,
     elapsed_time::interval AS elapsed_time,
     total_time::interval AS total_time
 `
 
 type UpdateActivitynameParams struct {
-	ActivityName string `json:"activityName"`
-	ID           int32  `json:"id"`
-	UserID       string `json:"userId"`
+	ActivityName pgtype.Text `json:"activityName"`
+	RideType     pgtype.Text `json:"rideType"`
+	ID           int32       `json:"id"`
+	UserID       string      `json:"userId"`
 }
 
 type UpdateActivitynameRow struct {
@@ -347,12 +372,18 @@ type UpdateActivitynameRow struct {
 	ActivityName   string             `json:"activityName"`
 	AvgSpeed       decimal.Decimal    `json:"avgSpeed"`
 	MaxSpeed       decimal.Decimal    `json:"maxSpeed"`
+	RideType       string             `json:"rideType"`
 	ElapsedTime    time.Duration      `json:"elapsedTime"`
 	TotalTime      time.Duration      `json:"totalTime"`
 }
 
 func (q *Queries) UpdateActivityname(ctx context.Context, arg UpdateActivitynameParams) (UpdateActivitynameRow, error) {
-	row := q.db.QueryRow(ctx, updateActivityname, arg.ActivityName, arg.ID, arg.UserID)
+	row := q.db.QueryRow(ctx, updateActivityname,
+		arg.ActivityName,
+		arg.RideType,
+		arg.ID,
+		arg.UserID,
+	)
 	var i UpdateActivitynameRow
 	err := row.Scan(
 		&i.ID,
@@ -364,6 +395,7 @@ func (q *Queries) UpdateActivityname(ctx context.Context, arg UpdateActivityname
 		&i.ActivityName,
 		&i.AvgSpeed,
 		&i.MaxSpeed,
+		&i.RideType,
 		&i.ElapsedTime,
 		&i.TotalTime,
 	)

@@ -4,7 +4,15 @@ import { Input } from "@/components/ui/input";
 import { Pencil2Icon } from "@radix-ui/react-icons";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { createFileRoute } from "@tanstack/react-router";
-import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
+import clsx from "clsx";
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,8 +22,14 @@ import {
   FormControl,
   FormMessage,
 } from "@/components/ui/form";
-import { getActivity } from "@/gen/activity/v1/activity-ActivityService_connectquery";
-import { useQuery } from "@connectrpc/connect-query";
+import {
+  getActivity,
+  updateActivity,
+} from "@/gen/activity/v1/activity-ActivityService_connectquery";
+import { useQuery, useMutation } from "@connectrpc/connect-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { create } from "@bufbuild/protobuf";
+import { UpdateActivityRequestSchema } from "@/gen/activity/v1/activity_pb";
 
 import {
   Card,
@@ -36,21 +50,43 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import {
-  Activity as CadenceIcon,
-  Clock,
-  Gauge,
-  HeartPulse,
-  MapPin,
-  TrendingUp,
-} from "lucide-react";
 
-import { MAX_HEART_RATE_POINTS, UNKNOWN_VALUE } from "@/features/activity/constants";
-import type { ActivityRecords, MetricPoint, StatItem } from "@/features/activity/types";
+import {
+  MAX_CADENCE_POINTS,
+  MAX_HEART_RATE_POINTS,
+  UNKNOWN_VALUE,
+} from "@/features/activity/constants";
+import type {
+  ActivityRecords,
+  DetailItem,
+  MetricPoint,
+  StatItem,
+} from "@/features/activity/types";
 import { createDistanceTicks, formatDistance } from "@/features/activity/utils";
 import { useActivityDerivedData } from "@/features/activity/hooks/useActivityDerivedData";
 
 const LazyMap = lazy(() => import("../../../components/map/lazyMap"));
+
+const rideTypeOptions = [
+  { value: "road", label: "Road", icon: Bike },
+  { value: "gravel", label: "Gravel", icon: Mountain },
+  { value: "mtb", label: "MTB", icon: TreePine },
+  { value: "tt", label: "TT", icon: Wind },
+];
+
+import {
+  Activity as CadenceIcon,
+  Bike,
+  Clock,
+  Gauge,
+  HeartPulse,
+  MapPin,
+  Mountain,
+  Timer,
+  TreePine,
+  TrendingUp,
+  Wind,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/activity/$activityId")({
   component: Activity,
@@ -61,9 +97,6 @@ export const Route = createFileRoute("/_authenticated/activity/$activityId")({
       .then((session) => session.data.session?.access_token);
 
     return {
-      // activity: await queryClient.ensureQueryData(
-      // getActivity, {activityId: activityId}
-      // ),
       authToken: jwt,
       activityId,
     };
@@ -78,9 +111,11 @@ const formSchema = z.object({
  * Activity detail page displaying route metrics, charts, and an interactive map.
  */
 function Activity() {
-  const { activityId, authToken } = Route.useLoaderData();
+  const { activityId } = Route.useLoaderData();
+  const queryClient = useQueryClient();
 
   // const { updateActivity } = useActivity();
+  const updateActivityMutation = useMutation(updateActivity);
 
   const { data: activity } = useQuery(getActivity, {
     activityId: activityId,
@@ -96,19 +131,65 @@ function Activity() {
     avgSpeedLabel,
     maxSpeedLabel,
     elapsedTimeLabel,
+    totalTimeLabel,
     averageHeartRateValue,
     averageHeartRateLabel,
-    maxHeartRateValue,
     maxHeartRateLabel,
     averageCadenceValue,
     averageCadenceLabel,
-    maxCadenceValue,
     maxCadenceLabel,
     recordCountLabel,
     recordedOnLabel,
     detailItems,
     distanceTicks,
   } = useActivityDerivedData(activity, activityId);
+
+  const rideType = (activity?.rideType ?? "road").toLowerCase();
+  const [pendingRideType, setPendingRideType] = useState<string | null>(null);
+
+  const handleRideTypeChange = useCallback(
+    async (value: string) => {
+      if (value === rideType || pendingRideType === value) {
+        return;
+      }
+
+      setPendingRideType(value);
+
+      try {
+        const request = create(UpdateActivityRequestSchema, {
+          activityId: Number(activityId),
+          rideType: value,
+        });
+
+        console.log("Sending update request:", request);
+        const response = await updateActivityMutation.mutateAsync(request);
+        console.log("Update response:", response);
+
+        // Invalidate all queries to force refetch
+        await queryClient.invalidateQueries();
+
+        console.log("Ride type updated successfully");
+        setPendingRideType(null);
+      } catch (error) {
+        console.error("Failed to update ride type", error);
+        setPendingRideType(null);
+      }
+    },
+    [activityId, pendingRideType, rideType, updateActivityMutation, queryClient]
+  );
+
+  const rideTypeLabel = useMemo(() => {
+    const match = rideTypeOptions.find((option) => option.value === rideType);
+    return match?.label ?? rideType;
+  }, [rideType]);
+
+  const detailItemsWithRideType = useMemo(
+    () => [
+      { label: "Ride type", value: rideTypeLabel } satisfies DetailItem,
+      ...detailItems,
+    ],
+    [detailItems, rideTypeLabel]
+  );
 
   const formMethods = useForm<z.infer<typeof formSchema>>({
     mode: "onBlur",
@@ -132,7 +213,7 @@ function Activity() {
         return recordId;
       });
     },
-    [setActiveRecordId],
+    [setActiveRecordId]
   );
   const activeSample = useMemo(() => {
     if (activeRecordId == null) {
@@ -140,19 +221,46 @@ function Activity() {
     }
     return sampleByRecordId.get(activeRecordId) ?? null;
   }, [activeRecordId, sampleByRecordId]);
-  const heroStats: StatItem[] = useMemo(() => {
-    const stats: StatItem[] = [
+  type HeroMetric = StatItem;
+  const heroStats: HeroMetric[] = useMemo(
+    () => [
       {
         label: "Distance",
         value: distanceLabel,
         helper: "Total distance covered",
         icon: MapPin,
+        rowSpan: 2,
       },
       {
-        label: "Elapsed time",
-        value: elapsedTimeLabel,
-        helper: "Recorded duration",
+        label: "Total time",
+        value: totalTimeLabel,
+        helper: "Overall recorded duration",
         icon: Clock,
+      },
+      {
+        label: "Ride time",
+        value: elapsedTimeLabel,
+        helper: "Moving time while recording",
+        icon: Timer,
+      },
+      {
+        label: "Max cadence",
+        value: maxCadenceLabel,
+        helper: "Peak pedal rpm",
+        icon: CadenceIcon,
+      },
+      {
+        label: "Avg cadence",
+        value:
+          averageCadenceValue != null ? averageCadenceLabel : UNKNOWN_VALUE,
+        helper: "Average pedal rpm",
+        icon: CadenceIcon,
+      },
+      {
+        label: "Max speed",
+        value: maxSpeedLabel,
+        helper: "Top recorded speed",
+        icon: TrendingUp,
       },
       {
         label: "Avg speed",
@@ -161,53 +269,50 @@ function Activity() {
         icon: Gauge,
       },
       {
-        label: "Max speed",
-        value: maxSpeedLabel,
-        helper: "Top recorded speed",
-        icon: TrendingUp,
+        label: "Max heart rate",
+        value: maxHeartRateLabel,
+        helper: "Peak recorded bpm",
+        icon: HeartPulse,
       },
-    ];
-    if (averageHeartRateValue != null) {
-      stats.push({
+      {
         label: "Avg heart rate",
-        value: averageHeartRateLabel,
+        value:
+          averageHeartRateValue != null ? averageHeartRateLabel : UNKNOWN_VALUE,
         helper: "Across recorded samples",
         icon: HeartPulse,
-      });
-    }
-    if (averageCadenceValue != null) {
-      stats.push({
-        label: "Avg cadence",
-        value: averageCadenceLabel,
-        helper: "Average pedal rpm",
-        icon: CadenceIcon,
-      });
-    }
-    return stats;
-  }, [
-    averageCadenceLabel,
-    averageCadenceValue,
-    averageHeartRateLabel,
-    averageHeartRateValue,
-    avgSpeedLabel,
-    distanceLabel,
-    elapsedTimeLabel,
-    maxSpeedLabel,
-  ]);
-  const onSubmit = (data: z.infer<typeof formSchema>) => {
-    if (data.activityName != activity?.activityName && authToken) {
-      // updateActivity.mutate(
-      //   {
-      //     jwtToken: authToken,
-      //     activityId: activity?.id,
-      //     activityName: data.activityName,
-      //   },
-      //   onSuccess: async () => {
-      //   },
-      //   onError: (error) => {
-      //     console.error("Error updating activity:", error);
-      //   },
-      // );
+      },
+    ],
+    [
+      averageCadenceLabel,
+      averageCadenceValue,
+      averageHeartRateLabel,
+      averageHeartRateValue,
+      avgSpeedLabel,
+      distanceLabel,
+      elapsedTimeLabel,
+      maxCadenceLabel,
+      maxHeartRateLabel,
+      maxSpeedLabel,
+      totalTimeLabel,
+    ]
+  );
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    if (data.activityName != activity?.activityName && activity?.id) {
+      try {
+        const request = create(UpdateActivityRequestSchema, {
+          activityId: activity.id,
+          activityName: data.activityName,
+        });
+
+        await updateActivityMutation.mutateAsync(request);
+
+        // Invalidate all queries to force refetch
+        await queryClient.invalidateQueries();
+
+        console.log("Activity updated successfully");
+      } catch (error) {
+        console.error("Error updating activity:", error);
+      }
     }
 
     setEditTitle(false);
@@ -231,16 +336,19 @@ function Activity() {
           <div className="relative space-y-8 p-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div className="space-y-4">
-              <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-wide text-slate-200/80">
-                <Badge variant="outline" className="border-white/30 text-white">
-                  Activity #{activity?.id ?? activityId}
-                </Badge>
-                <span className="rounded-full bg-white/10 px-3 py-1 text-white/80">
-                  {recordedOnLabel !== UNKNOWN_VALUE
-                    ? recordedOnLabel
-                    : "Date unavailable"}
-                </span>
-              </div>
+                <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-wide text-slate-200/80">
+                  <Badge
+                    variant="outline"
+                    className="border-white/30 text-white"
+                  >
+                    Activity #{activity?.id ?? activityId}
+                  </Badge>
+                  <span className="rounded-full bg-white/10 px-3 py-1 text-white/80">
+                    {recordedOnLabel !== UNKNOWN_VALUE
+                      ? recordedOnLabel
+                      : "Date unavailable"}
+                  </span>
+                </div>
                 {editTitle ? (
                   <form
                     className="flex flex-col gap-3 md:flex-row md:items-center"
@@ -310,33 +418,86 @@ function Activity() {
                 </p>
               </div>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-              {heroStats.map((stat) => {
-                const Icon = stat.icon;
-                return (
-                  <div
-                    key={stat.label}
-                    className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-100"
-                  >
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
-                      <Icon className="h-4 w-4" />
-                    </span>
-                    <div className="space-y-0.5">
-                      <p className="text-xs uppercase tracking-wider text-slate-200/70">
-                        {stat.label}
-                      </p>
-                      <p className="text-sm font-semibold text-white">
-                        {stat.value}
-                      </p>
-                      {stat.helper && (
-                        <p className="text-xs text-slate-200/60">
-                          {stat.helper}
-                        </p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 lg:auto-rows-[minmax(0,1fr)]">
+              {heroStats.map(
+                ({ colSpan, rowSpan, icon: Icon, label, value, helper }) => {
+                  const colClass =
+                    colSpan === 2
+                      ? "lg:col-span-2"
+                      : colSpan === 3
+                        ? "lg:col-span-3"
+                        : "";
+                  const rowClass = rowSpan === 2 ? "lg:row-span-2" : "";
+                  return (
+                    <div
+                      key={label}
+                      className={clsx(
+                        "flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-100",
+                        colClass,
+                        rowClass
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <div className="space-y-0.5">
+                          <p className="text-xs uppercase tracking-wider text-slate-200/70">
+                            {label}
+                          </p>
+                          <p className="text-sm font-semibold text-white">
+                            {value}
+                          </p>
+                          {helper && (
+                            <p className="text-xs text-slate-200/60">
+                              {helper}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      {label === "Distance" && (
+                        <div className="mt-1 space-y-2 text-xs text-slate-200/70">
+                          <p className="uppercase tracking-wider">Ride type</p>
+                          <div className="flex flex-wrap gap-2">
+                            {rideTypeOptions.map((option) => {
+                              const OptionIcon = option.icon;
+                              const isActive =
+                                pendingRideType != null
+                                  ? pendingRideType === option.value
+                                  : rideType === option.value;
+                              return (
+                                <button
+                                  key={option.value}
+                                  type="button"
+                                  onClick={() =>
+                                    handleRideTypeChange(option.value)
+                                  }
+                                  disabled={
+                                    pendingRideType != null &&
+                                    pendingRideType !== option.value
+                                  }
+                                  className={clsx(
+                                    "flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] transition",
+                                    isActive
+                                      ? "border-white bg-white/20 text-white"
+                                      : "border-white/20 text-slate-200 hover:border-white/40",
+                                    pendingRideType !== null &&
+                                      pendingRideType !== option.value &&
+                                      "opacity-60"
+                                  )}
+                                >
+                                  <OptionIcon className="h-3.5 w-3.5" />
+                                  <span>{option.label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
                       )}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                }
+              )}
             </div>
           </div>
         </section>
@@ -472,7 +633,7 @@ function Activity() {
               )}
             </div>
             <div className="grid gap-3 text-sm">
-              {detailItems.map((item) => (
+              {detailItemsWithRideType.map((item) => (
                 <div
                   key={item.label}
                   className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/40 px-3 py-2"
@@ -496,6 +657,11 @@ function Activity() {
           onHoverRecord={handleRecordHover}
         />
         <HeartRateChart
+          records={activity?.records ?? []}
+          activePoint={activeSample}
+          onHoverRecord={handleRecordHover}
+        />
+        <CadenceChart
           records={activity?.records ?? []}
           activePoint={activeSample}
           onHoverRecord={handleRecordHover}
@@ -638,7 +804,9 @@ const SpeedChart = ({
           averageValue={`${averageSpeed.toFixed(1)} km/h`}
           currentLabel="Current"
           currentValue={
-            summaryPoint ? `${summaryPoint.speedKph.toFixed(1)} km/h` : "No samples"
+            summaryPoint
+              ? `${summaryPoint.speedKph.toFixed(1)} km/h`
+              : "No samples"
           }
           distance={
             summaryPoint
@@ -669,7 +837,7 @@ const HeartRateChart = ({
 }: HeartRateChartProps) => {
   const heartRecords = useMemo(
     () => (records ?? []).filter((record) => record.heartRate != null),
-    [records],
+    [records]
   );
 
   const heartPoints = useMemo(() => {
@@ -687,12 +855,13 @@ const HeartRateChart = ({
         distanceKm: record.distance / 100_000,
         speedKph: record.speed,
         heartRate: record.heartRate!,
+        cadence: record.cadence ?? null,
       }));
   }, [heartRecords]);
 
   const distanceTicks = useMemo(
     () => createDistanceTicks(heartPoints),
-    [heartPoints],
+    [heartPoints]
   );
   const maxTick = distanceTicks.at(-1);
 
@@ -828,6 +997,193 @@ const HeartRateChart = ({
             summaryPoint
               ? formatDistance(summaryPoint.distanceKm, maxTick)
               : "No samples"
+          }
+        />
+      </CardContent>
+    </Card>
+  );
+};
+
+type CadenceChartProps = {
+  records: ActivityRecords;
+  activePoint: MetricPoint | null;
+  onHoverRecord: (recordId: number | null) => void;
+};
+
+const CadenceChart = ({
+  records,
+  activePoint,
+  onHoverRecord,
+}: CadenceChartProps) => {
+  const cadenceRecords = useMemo(
+    () => (records ?? []).filter((record) => record.cadence != null),
+    [records]
+  );
+
+  const cadencePoints = useMemo(() => {
+    if (!cadenceRecords.length) {
+      return [] as MetricPoint[];
+    }
+
+    const maxPoints = MAX_CADENCE_POINTS;
+    const step = Math.max(1, Math.floor(cadenceRecords.length / maxPoints));
+
+    return cadenceRecords
+      .filter((_, index) => index % step === 0)
+      .map((record) => ({
+        recordId: record.id,
+        distanceKm: record.distance / 100_000,
+        speedKph: record.speed,
+        cadence: record.cadence!,
+        heartRate: record.heartRate ?? null,
+      }));
+  }, [cadenceRecords]);
+
+  const distanceTicks = useMemo(
+    () => createDistanceTicks(cadencePoints),
+    [cadencePoints]
+  );
+  const maxTick = distanceTicks.at(-1);
+
+  const averageCadence = useMemo(() => {
+    if (!cadencePoints.length) {
+      return null;
+    }
+    const total = cadencePoints.reduce(
+      (sum, point) => sum + (point.cadence ?? 0),
+      0
+    );
+    return total / cadencePoints.length;
+  }, [cadencePoints]);
+  const summaryPoint = activePoint ?? cadencePoints[0];
+
+  if (!cadencePoints.length) {
+    return (
+      <Card className="h-full border border-border/60 bg-muted/40 text-muted-foreground">
+        <CardHeader className="flex items-center gap-2 space-y-0 border-b bg-muted/30 px-6 py-5 sm:flex-row">
+          <div className="grid flex-1 gap-1 text-center sm:text-left">
+            <CardTitle>Cadence over distance</CardTitle>
+            <CardDescription>
+              Pedal revolutions per minute plotted against distance.
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="px-6 py-10 text-sm text-muted-foreground">
+          No cadence samples available for this activity.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="h-full border border-border/60 shadow-lg">
+      <CardHeader className="flex items-center gap-2 space-y-0 border-b bg-muted/30 px-6 py-5 sm:flex-row">
+        <div className="grid flex-1 gap-1 text-center sm:text-left">
+          <CardTitle>Cadence over distance</CardTitle>
+          <CardDescription>
+            Pedal cadence shown in rpm alongside the recorded distance.
+          </CardDescription>
+        </div>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-6 px-6 py-6 lg:flex-row lg:items-start">
+        <div className="flex-1">
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart
+              data={cadencePoints}
+              margin={{ top: 16, right: 24, left: 8, bottom: 0 }}
+              onMouseMove={(state) => {
+                const sample = state?.activePayload?.[0]?.payload as
+                  | MetricPoint
+                  | undefined;
+                if (sample?.recordId != null) {
+                  onHoverRecord(sample.recordId);
+                }
+              }}
+              onMouseLeave={() => onHoverRecord(null)}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis
+                dataKey="distanceKm"
+                type="number"
+                domain={
+                  maxTick !== undefined ? [0, maxTick] : [0, "dataMax" as const]
+                }
+                ticks={distanceTicks}
+                allowDecimals={false}
+                tickFormatter={(value) => `${Number(value).toFixed(0)} km`}
+                tickMargin={12}
+              />
+              <YAxis
+                dataKey="cadence"
+                tickFormatter={(value) => `${value} rpm`}
+                width={60}
+              />
+              <Tooltip
+                formatter={(value, name) => {
+                  if (name === "cadence") {
+                    return [`${Number(value).toFixed(0)} rpm`, "Cadence"];
+                  }
+                  return value;
+                }}
+                labelFormatter={(value) =>
+                  formatDistance(Number(value), maxTick)
+                }
+              />
+              <Legend />
+              {activePoint && (
+                <ReferenceLine
+                  x={activePoint.distanceKm}
+                  stroke="#94a3b8"
+                  strokeDasharray="4 4"
+                />
+              )}
+              <Line
+                type="monotone"
+                dataKey="cadence"
+                stroke="#22c55e"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4 }}
+                name="Cadence"
+                isAnimationActive={false}
+              />
+              {activePoint && activePoint.cadence != null && (
+                <ReferenceDot
+                  x={activePoint.distanceKm}
+                  y={activePoint.cadence}
+                  r={5}
+                  fill="#22c55e"
+                  stroke="#15803d"
+                  isFront
+                />
+              )}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        <ChartSummary
+          averageLabel="Average"
+          averageValue={
+            averageCadence != null
+              ? `${averageCadence.toFixed(0)} rpm`
+              : UNKNOWN_VALUE
+          }
+          currentLabel="Current"
+          currentValue={
+            summaryPoint?.cadence != null
+              ? `${summaryPoint.cadence} rpm`
+              : cadencePoints.length
+                ? "No cadence"
+                : "No samples"
+          }
+          distance={
+            summaryPoint
+              ? formatDistance(summaryPoint.distanceKm, maxTick)
+              : "No samples"
+          }
+          extra={
+            summaryPoint?.speedKph != null
+              ? `${summaryPoint.speedKph.toFixed(1)} km/h`
+              : undefined
           }
         />
       </CardContent>

@@ -3,6 +3,7 @@ syntax = "proto3";
 package activity.v1;
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
 
 option go_package = "github.com/notaduck/backend/gen/activity/v1;activityv1";
 
@@ -20,6 +21,7 @@ message Record {
   google.protobuf.Timestamp time_stamp = 4;
   int32 distance = 5;
   int32 heart_rate = 6;
+  int32 cadence = 7;
 }
 
 // Activity represents the detailed information of a single activity.
@@ -33,6 +35,11 @@ message GetActivityResponse {
   string elapsed_time = 7;
   string total_time = 8;
   repeated Record records = 9;
+  double avg_heart_rate = 10;
+  double max_heart_rate = 11;
+  double avg_cadence = 12;
+  double max_cadence = 13;
+  string ride_type = 14;
 }
 
 // ActivitySummary provides a summarized view of an activity.
@@ -82,12 +89,19 @@ message GetActivitiesRequest {}
 // GetActivityRequest specifies the ID of the activity to retrieve.
 message GetActivityRequest { int32 activity_id = 1; }
 
+message UpdateActivityRequest {
+  int32 activity_id = 1;
+  google.protobuf.StringValue activity_name = 2;
+  google.protobuf.StringValue ride_type = 3;
+}
+
 service ActivityService {
   // Fetch all activities without records.
   rpc GetActivities(GetActivitiesRequest) returns (GetActivitiesResponse) {}
 
   // Fetch a single activity by ID with records.
   rpc GetActivity(GetActivityRequest) returns (GetActivityResponse) {}
+  rpc UpdateActivity(UpdateActivityRequest) returns (GetActivityResponse) {}
   // Upload multiple fit files
   rpc UploadActivities(stream UploadActivitiesRequest)
       returns (UploadActivitiesResponse);

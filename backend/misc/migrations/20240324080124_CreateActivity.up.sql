@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS activities (
     activity_name VARCHAR(255) NOT NULL,
     avg_speed NUMERIC NOT NULL,
     max_speed NUMERIC NOT NULL,
+    ride_type TEXT NOT NULL DEFAULT 'road',
     elapsed_time INTERVAL NOT NULL,
     total_time INTERVAL NOT NULL
 );

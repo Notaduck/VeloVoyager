@@ -47,8 +47,8 @@ const buildMetricsPoints = (activity?: GetActivityResponse): MetricPoint[] => {
       recordId: record.id,
       distanceKm: record.distance / 100_000,
       speedKph: record.speed,
-      heartRate: record.heartRate ?? null,
-      cadence: record.cadence ?? null,
+      heartRate: record.heartRate && record.heartRate > 0 ? record.heartRate : null,
+      cadence: record.cadence && record.cadence > 0 ? record.cadence : null,
     }));
 };
 
@@ -166,14 +166,18 @@ const buildDetailItems = (
   activityId: number,
   recordedOnLabel: string,
   recordCountLabel: string,
+  averageHeartRateLabel: string,
   maxHeartRateLabel: string,
+  averageCadenceLabel: string,
   maxCadenceLabel: string,
 ) =>
   [
     { label: "Activity ID", value: `#${activity?.id ?? activityId}` },
     { label: "Recorded on", value: recordedOnLabel },
     { label: "Samples", value: recordCountLabel },
+    { label: "Avg heart rate", value: averageHeartRateLabel },
     { label: "Max heart rate", value: maxHeartRateLabel },
+    { label: "Avg cadence", value: averageCadenceLabel },
     { label: "Max cadence", value: maxCadenceLabel },
   ] satisfies DetailItem[];
 
@@ -200,6 +204,7 @@ export const useActivityDerivedData = (
   const avgSpeedLabel = formatSpeedLabel(activity?.avgSpeed);
   const maxSpeedLabel = formatSpeedLabel(activity?.maxSpeed);
   const elapsedTimeLabel = activity?.elapsedTime ?? UNKNOWN_VALUE;
+  const totalTimeLabel = activity?.totalTime ?? UNKNOWN_VALUE;
 
   const heartRecords = useMemo(
     () => (activity?.records ?? []).filter((record) => record.heartRate != null),
@@ -211,37 +216,53 @@ export const useActivityDerivedData = (
     [activity?.records],
   );
 
-  const averageHeartRateValue = heartRecords.length
+  const derivedAverageHeartRate = heartRecords.length
     ? heartRecords.reduce((sum, record) => sum + (record.heartRate ?? 0), 0) /
       heartRecords.length
     : null;
-  const averageHeartRateLabel = formatHeartRateLabel(averageHeartRateValue);
 
-  const maxHeartRateValue = heartRecords.length
+  const derivedMaxHeartRate = heartRecords.length
     ? Math.max(
         ...heartRecords.map(
           (record) => record.heartRate ?? Number.NEGATIVE_INFINITY,
         ),
       )
     : null;
-  const maxHeartRateLabel =
-    maxHeartRateValue != null ? `${maxHeartRateValue} bpm` : UNKNOWN_VALUE;
 
-  const averageCadenceValue = cadenceRecords.length
+  const derivedAverageCadence = cadenceRecords.length
     ? cadenceRecords.reduce((sum, record) => sum + (record.cadence ?? 0), 0) /
       cadenceRecords.length
     : null;
-  const averageCadenceLabel = formatCadenceLabel(averageCadenceValue);
 
-  const maxCadenceValue = cadenceRecords.length
+  const derivedMaxCadence = cadenceRecords.length
     ? Math.max(
         ...cadenceRecords.map(
           (record) => record.cadence ?? Number.NEGATIVE_INFINITY,
         ),
       )
     : null;
-  const maxCadenceLabel =
-    maxCadenceValue != null ? `${maxCadenceValue} rpm` : UNKNOWN_VALUE;
+
+  const averageHeartRateValue =
+    activity && activity.avgHeartRate > 0
+      ? activity.avgHeartRate
+      : derivedAverageHeartRate;
+  const maxHeartRateValue =
+    activity && activity.maxHeartRate > 0
+      ? activity.maxHeartRate
+      : derivedMaxHeartRate;
+  const averageCadenceValue =
+    activity && activity.avgCadence > 0
+      ? activity.avgCadence
+      : derivedAverageCadence;
+  const maxCadenceValue =
+    activity && activity.maxCadence > 0
+      ? activity.maxCadence
+      : derivedMaxCadence;
+
+  const averageHeartRateLabel = formatHeartRateLabel(averageHeartRateValue);
+  const maxHeartRateLabel = formatHeartRateLabel(maxHeartRateValue);
+  const averageCadenceLabel = formatCadenceLabel(averageCadenceValue);
+  const maxCadenceLabel = formatCadenceLabel(maxCadenceValue);
 
   const recordCountLabel = (activity?.records?.length ?? 0).toLocaleString();
   const recordedOnLabel = formatRecordedOn(activity?.createdAt);
@@ -253,12 +274,16 @@ export const useActivityDerivedData = (
         activityId,
         recordedOnLabel,
         recordCountLabel,
+        averageHeartRateLabel,
         maxHeartRateLabel,
+        averageCadenceLabel,
         maxCadenceLabel,
       ),
     [
       activity,
       activityId,
+      averageCadenceLabel,
+      averageHeartRateLabel,
       maxCadenceLabel,
       maxHeartRateLabel,
       recordCountLabel,
@@ -278,6 +303,7 @@ export const useActivityDerivedData = (
     avgSpeedLabel,
     maxSpeedLabel,
     elapsedTimeLabel,
+    totalTimeLabel,
     averageHeartRateValue,
     averageHeartRateLabel,
     maxHeartRateValue,

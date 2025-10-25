@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState } from "react"
 import {
   Activity as ActivityIcon,
   Calendar,
@@ -8,15 +8,15 @@ import {
   Target,
   TrendingUp,
   Upload,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
 import {
   Card,
   CardHeader,
   CardTitle,
   CardDescription,
   CardContent,
-} from "@/components/ui/card";
+} from "@/components/ui/card"
 import {
   Table,
   TableHeader,
@@ -24,7 +24,7 @@ import {
   TableHead,
   TableBody,
   TableCell,
-} from "@/components/ui/table";
+} from "@/components/ui/table"
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -32,23 +32,23 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuCheckboxItem,
-} from "@radix-ui/react-dropdown-menu";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@radix-ui/react-tabs";
-import { SupabaseClient } from "@supabase/supabase-js";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { FormProvider, useForm } from "react-hook-form";
+} from "@radix-ui/react-dropdown-menu"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@radix-ui/react-tabs"
+import { SupabaseClient } from "@supabase/supabase-js"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { FormProvider, useForm } from "react-hook-form"
 import {
   FormControl,
   FormItem,
   FormField,
   FormMessage,
-} from "@/components/ui/form";
-import { Dropzone } from "@/components/ui/dropzone";
-import { Progress } from "@/components/ui/progress";
-import { getActivities } from "@/gen/activity/v1/activity-ActivityService_connectquery";
-import { useQuery } from "@connectrpc/connect-query";
-import { useUploadActivities } from "@/hooks/uploadActivity";
-import { cn } from "@/lib/utils";
+} from "@/components/ui/form"
+import { Dropzone } from "@/components/ui/dropzone"
+import { Progress } from "@/components/ui/progress"
+import { getActivities } from "@/gen/activity/v1/activity-ActivityService_connectquery"
+import { useQuery } from "@connectrpc/connect-query"
+import { useUploadActivities } from "@/hooks/uploadActivity"
+import { cn } from "@/lib/utils"
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: Dashboard,
@@ -56,108 +56,113 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
   loader: async ({ context: { supabase } }) => {
     const jwt = await (supabase as SupabaseClient).auth
       .getSession()
-      .then((session) => session.data.session?.access_token);
+      .then((session) => session.data.session?.access_token)
     return {
       authToken: jwt,
-    };
+    }
   },
-});
+})
 
 function Dashboard() {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
-  const [weeklyProgress] = useState<number>(0);
-  const [monthlyProgress] = useState<number>(0);
+  const [weeklyProgress] = useState<number>(0)
+  const [monthlyProgress] = useState<number>(0)
 
-  const { data } = useQuery(getActivities);
+  const { data } = useQuery(getActivities)
 
-  type FormValues = { files: undefined | FileList };
+  type FormValues = { files: undefined | FileList }
 
   const defaultValues: FormValues = {
     files: undefined,
-  };
+  }
 
   const methods = useForm<FormValues>({
     defaultValues,
     shouldFocusError: true,
     shouldUnregister: false,
     shouldUseNativeValidation: false,
-  });
+  })
 
-  const { uploadActivities, status } = useUploadActivities();
-  const activities = data?.activities ?? [];
-  const totalActivities = activities.length;
-  const latestActivity = activities[0];
+  const { uploadActivities, status } = useUploadActivities()
+  const activities = data?.activities ?? []
+  const totalActivities = activities.length
+  const latestActivity = activities[0]
   const latestSubtitle = latestActivity
-    ? [latestActivity.totalTime, latestActivity.distance != null ? `${latestActivity.distance} (unit)` : null]
-        .filter(Boolean)
-        .join(" • ")
-    : "Your next upload will appear here.";
-  const weeklyProgressValue = Math.min(Math.max(weeklyProgress, 0), 100);
-  const monthlyProgressValue = Math.min(Math.max(monthlyProgress, 0), 100);
-  const selectedFiles = methods.watch("files");
+    ? [
+      latestActivity.totalTime,
+      latestActivity.distance != null
+        ? `${latestActivity.distance} (unit)`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(" • ")
+    : "Your next upload will appear here."
+  const weeklyProgressValue = Math.min(Math.max(weeklyProgress, 0), 100)
+  const monthlyProgressValue = Math.min(Math.max(monthlyProgress, 0), 100)
+  const selectedFiles = methods.watch("files")
 
   async function handleFormSubmit(values: FormValues) {
     if (!values.files || values.files.length === 0) {
       methods.setError("files", {
         message: "File is required",
         type: "typeError",
-      });
-      return;
+      })
+      return
     }
 
-    const success = await uploadActivities(values.files);
+    const success = await uploadActivities(values.files)
     if (success) {
-      methods.reset(defaultValues);
+      methods.reset(defaultValues)
     }
   }
 
-  const allowedMimeTypes = ["application/fits"];
-  const allowedExtensions = ["fit", "fits"];
+  const allowedMimeTypes = ["application/fits"]
+  const allowedExtensions = ["fit", "fits"]
   const allowedExtensionsLabel = allowedExtensions
     .map((extension) => `.${extension}`)
-    .join(", ");
+    .join(", ")
   const acceptExtensions = allowedExtensions
     .map((extension) => `.${extension}`)
-    .join(",");
+    .join(",")
 
   function handleOnDrop(acceptedFiles: FileList | null) {
     if (!acceptedFiles || acceptedFiles.length === 0) {
-      methods.setValue("files", undefined);
+      methods.setValue("files", undefined)
       methods.setError("files", {
         message: "File is required",
         type: "typeError",
-      });
-      return;
+      })
+      return
     }
 
     const containsInvalidFile = Array.from(acceptedFiles).some((file) => {
       if (file.type && allowedMimeTypes.includes(file.type)) {
-        return false;
+        return false
       }
 
-      const fileExtension = file.name.split(".").pop()?.toLowerCase()?.trim();
+      const fileExtension = file.name.split(".").pop()?.toLowerCase()?.trim()
 
-      return !fileExtension || !allowedExtensions.includes(fileExtension);
-    });
+      return !fileExtension || !allowedExtensions.includes(fileExtension)
+    })
 
     if (containsInvalidFile) {
-      methods.setValue("files", undefined);
+      methods.setValue("files", undefined)
       methods.setError("files", {
         message: `File type is not valid. Allowed extensions: ${allowedExtensionsLabel}`,
         type: "typeError",
-      });
-      return;
+      })
+      return
     }
 
-    methods.setValue("files", acceptedFiles);
-    methods.clearErrors("files");
+    methods.setValue("files", acceptedFiles)
+    methods.clearErrors("files")
     void (async () => {
-      const success = await uploadActivities(acceptedFiles);
+      const success = await uploadActivities(acceptedFiles)
       if (success) {
-        methods.reset(defaultValues);
+        methods.reset(defaultValues)
       }
-    })();
+    })()
   }
 
   // useLayoutEffect(() => {
@@ -271,16 +276,6 @@ function Dashboard() {
                     Upload complete
                   </div>
                 )}
-                <div className="flex items-center justify-end">
-                  <Button
-                    type="submit"
-                    size="sm"
-                    variant="secondary"
-                    className="bg-white text-slate-900 hover:bg-slate-100"
-                  >
-                    Upload now
-                  </Button>
-                </div>
               </form>
             </FormProvider>
           </div>
@@ -379,7 +374,11 @@ function Dashboard() {
           <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="h-8 gap-1 text-sm">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1 text-sm"
+                >
                   <ListFilter className="h-3.5 w-3.5" />
                   Filter
                 </Button>
@@ -514,5 +513,5 @@ function Dashboard() {
         </Tabs>
       </section>
     </div>
-  );
+  )
 }

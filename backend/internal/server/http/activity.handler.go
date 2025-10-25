@@ -7,8 +7,17 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/jackc/pgx/v5/pgtype"
+
 	"github.com/notaduck/backend/internal/db"
 )
+
+var allowedRideTypes = map[string]struct{}{
+	"road":   {},
+	"gravel": {},
+	"mtb":    {},
+	"tt":     {},
+}
 
 func (s *APIServer) handlePatchActivity(w http.ResponseWriter, r *http.Request) error {
 
@@ -26,23 +35,45 @@ func (s *APIServer) handlePatchActivity(w http.ResponseWriter, r *http.Request) 
 	// Cast the int to int32
 	activityId := int32(activityIdInt)
 
-	req := new(db.UpdateActivitynameParams)
+	var payload struct {
+		ActivityName *string `json:"activityName,omitempty"`
+		RideType     *string `json:"rideType,omitempty"`
+	}
 
-	// Parse the body into req
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		slog.Error("failed to parse request body", "error", err)
 		return WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
 	}
 
-	slog.Info("activity id received", "activityId", activityId)
-	slog.Info("activity name received", "activityName", req.ActivityName)
+	if payload.ActivityName == nil && payload.RideType == nil {
+		return WriteJSON(w, http.StatusBadRequest, ApiError{Error: "no fields provided"})
+	}
+
 	user := RetrieveUserFromContext(r.Context())
 
-	activity, err := s.activityService.UpdateActivity(r.Context(), db.UpdateActivityParams{
-		ActivityName: req.ActivityName,
+	params := db.UpdateActivityParams{
+		ActivityName: pgtype.Text{Valid: false},
+		RideType:     pgtype.Text{Valid: false},
 		ID:           activityId,
 		UserID:       user.ID,
-	})
+	}
+
+	if payload.ActivityName != nil {
+		trimmed := strings.TrimSpace(*payload.ActivityName)
+		if trimmed != "" {
+			params.ActivityName = pgtype.Text{String: trimmed, Valid: true}
+		}
+	}
+
+	if payload.RideType != nil {
+		rideType := strings.ToLower(strings.TrimSpace(*payload.RideType))
+		if _, ok := allowedRideTypes[rideType]; !ok {
+			return WriteJSON(w, http.StatusBadRequest, ApiError{Error: "invalid ride type"})
+		}
+		params.RideType = pgtype.Text{String: rideType, Valid: true}
+	}
+
+	activity, err := s.activityService.UpdateActivity(r.Context(), params)
 
 	if err != nil {
 		slog.Error("failed to update activity", "error", err)

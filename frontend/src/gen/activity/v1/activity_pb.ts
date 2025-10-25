@@ -5,14 +5,14 @@
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
-import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_timestamp, file_google_protobuf_wrappers } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file activity/v1/activity.proto.
  */
 export const file_activity_v1_activity: GenFile = /*@__PURE__*/
-  fileDesc("ChphY3Rpdml0eS92MS9hY3Rpdml0eS5wcm90bxILYWN0aXZpdHkudjEiHQoFUG9pbnQSCQoBeBgBIAEoARIJCgF5GAIgASgBIrMBCgZSZWNvcmQSCgoCaWQYASABKAUSJwoLY29vcmRpbmF0ZXMYAiABKAsyEi5hY3Rpdml0eS52MS5Qb2ludBINCgVzcGVlZBgDIAEoARIuCgp0aW1lX3N0YW1wGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIQCghkaXN0YW5jZRgFIAEoBRISCgpoZWFydF9yYXRlGAYgASgFEg8KB2NhZGVuY2UYByABKAUi1AEKE0dldEFjdGl2aXR5UmVzcG9uc2USCgoCaWQYASABKAUSEgoKY3JlYXRlZF9hdBgCIAEoCRIQCghkaXN0YW5jZRgDIAEoARIVCg1hY3Rpdml0eV9uYW1lGAQgASgJEhEKCWF2Z19zcGVlZBgFIAEoARIRCgltYXhfc3BlZWQYBiABKAESFAoMZWxhcHNlZF90aW1lGAcgASgJEhIKCnRvdGFsX3RpbWUYCCABKAkSJAoHcmVjb3JkcxgJIAMoCzITLmFjdGl2aXR5LnYxLlJlY29yZCLGAQoPQWN0aXZpdHlTdW1tYXJ5EgoKAmlkGAEgASgFEi4KCmNyZWF0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhAKCGRpc3RhbmNlGAMgASgBEhUKDWFjdGl2aXR5X25hbWUYBCABKAkSEQoJYXZnX3NwZWVkGAUgASgBEhEKCW1heF9zcGVlZBgGIAEoARIUCgxlbGFwc2VkX3RpbWUYByABKAkSEgoKdG90YWxfdGltZRgIIAEoCSJOChdVcGxvYWRBY3Rpdml0aWVzUmVxdWVzdBIUCgpmaWxlX2NodW5rGAEgASgMSAASEgoIbWV0YWRhdGEYAiABKAlIAEIJCgdwYXlsb2FkIioKGFVwbG9hZEFjdGl2aXRpZXNSZXNwb25zZRIOCgZzdGF0dXMYASABKAkiaAoZVXBsb2FkQWN0aXZpdGllc1VuYXJ5RmlsZRIMCgRkYXRhGAEgASgMEhAKCGZpbGVuYW1lGAIgASgJEhQKDGNvbnRlbnRfdHlwZRgDIAEoCRIVCg1sYXN0X21vZGlmaWVkGAQgASgDIlUKHFVwbG9hZEFjdGl2aXRpZXNVbmFyeVJlcXVlc3QSNQoFZmlsZXMYASADKAsyJi5hY3Rpdml0eS52MS5VcGxvYWRBY3Rpdml0aWVzVW5hcnlGaWxlIkkKFUdldEFjdGl2aXRpZXNSZXNwb25zZRIwCgphY3Rpdml0aWVzGAEgAygLMhwuYWN0aXZpdHkudjEuQWN0aXZpdHlTdW1tYXJ5IhYKFEdldEFjdGl2aXRpZXNSZXF1ZXN0IikKEkdldEFjdGl2aXR5UmVxdWVzdBITCgthY3Rpdml0eV9pZBgBIAEoBTKNAwoPQWN0aXZpdHlTZXJ2aWNlElgKDUdldEFjdGl2aXRpZXMSIS5hY3Rpdml0eS52MS5HZXRBY3Rpdml0aWVzUmVxdWVzdBoiLmFjdGl2aXR5LnYxLkdldEFjdGl2aXRpZXNSZXNwb25zZSIAElIKC0dldEFjdGl2aXR5Eh8uYWN0aXZpdHkudjEuR2V0QWN0aXZpdHlSZXF1ZXN0GiAuYWN0aXZpdHkudjEuR2V0QWN0aXZpdHlSZXNwb25zZSIAEmEKEFVwbG9hZEFjdGl2aXRpZXMSJC5hY3Rpdml0eS52MS5VcGxvYWRBY3Rpdml0aWVzUmVxdWVzdBolLmFjdGl2aXR5LnYxLlVwbG9hZEFjdGl2aXRpZXNSZXNwb25zZSgBEmkKFVVwbG9hZEFjdGl2aXRpZXNVbmFyeRIpLmFjdGl2aXR5LnYxLlVwbG9hZEFjdGl2aXRpZXNVbmFyeVJlcXVlc3QaJS5hY3Rpdml0eS52MS5VcGxvYWRBY3Rpdml0aWVzUmVzcG9uc2VCOFo2Z2l0aHViLmNvbS9ub3RhZHVjay9iYWNrZW5kL2dlbi9hY3Rpdml0eS92MTthY3Rpdml0eXYxYgZwcm90bzM", [file_google_protobuf_timestamp]);
+  fileDesc("ChphY3Rpdml0eS92MS9hY3Rpdml0eS5wcm90bxILYWN0aXZpdHkudjEiHQoFUG9pbnQSCQoBeBgBIAEoARIJCgF5GAIgASgBIrMBCgZSZWNvcmQSCgoCaWQYASABKAUSJwoLY29vcmRpbmF0ZXMYAiABKAsyEi5hY3Rpdml0eS52MS5Qb2ludBINCgVzcGVlZBgDIAEoARIuCgp0aW1lX3N0YW1wGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIQCghkaXN0YW5jZRgFIAEoBRISCgpoZWFydF9yYXRlGAYgASgFEg8KB2NhZGVuY2UYByABKAUiwQIKE0dldEFjdGl2aXR5UmVzcG9uc2USCgoCaWQYASABKAUSEgoKY3JlYXRlZF9hdBgCIAEoCRIQCghkaXN0YW5jZRgDIAEoARIVCg1hY3Rpdml0eV9uYW1lGAQgASgJEhEKCWF2Z19zcGVlZBgFIAEoARIRCgltYXhfc3BlZWQYBiABKAESFAoMZWxhcHNlZF90aW1lGAcgASgJEhIKCnRvdGFsX3RpbWUYCCABKAkSJAoHcmVjb3JkcxgJIAMoCzITLmFjdGl2aXR5LnYxLlJlY29yZBIWCg5hdmdfaGVhcnRfcmF0ZRgKIAEoARIWCg5tYXhfaGVhcnRfcmF0ZRgLIAEoARITCgthdmdfY2FkZW5jZRgMIAEoARITCgttYXhfY2FkZW5jZRgNIAEoARIRCglyaWRlX3R5cGUYDiABKAkixgEKD0FjdGl2aXR5U3VtbWFyeRIKCgJpZBgBIAEoBRIuCgpjcmVhdGVkX2F0GAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIQCghkaXN0YW5jZRgDIAEoARIVCg1hY3Rpdml0eV9uYW1lGAQgASgJEhEKCWF2Z19zcGVlZBgFIAEoARIRCgltYXhfc3BlZWQYBiABKAESFAoMZWxhcHNlZF90aW1lGAcgASgJEhIKCnRvdGFsX3RpbWUYCCABKAkiTgoXVXBsb2FkQWN0aXZpdGllc1JlcXVlc3QSFAoKZmlsZV9jaHVuaxgBIAEoDEgAEhIKCG1ldGFkYXRhGAIgASgJSABCCQoHcGF5bG9hZCIqChhVcGxvYWRBY3Rpdml0aWVzUmVzcG9uc2USDgoGc3RhdHVzGAEgASgJImgKGVVwbG9hZEFjdGl2aXRpZXNVbmFyeUZpbGUSDAoEZGF0YRgBIAEoDBIQCghmaWxlbmFtZRgCIAEoCRIUCgxjb250ZW50X3R5cGUYAyABKAkSFQoNbGFzdF9tb2RpZmllZBgEIAEoAyJVChxVcGxvYWRBY3Rpdml0aWVzVW5hcnlSZXF1ZXN0EjUKBWZpbGVzGAEgAygLMiYuYWN0aXZpdHkudjEuVXBsb2FkQWN0aXZpdGllc1VuYXJ5RmlsZSJJChVHZXRBY3Rpdml0aWVzUmVzcG9uc2USMAoKYWN0aXZpdGllcxgBIAMoCzIcLmFjdGl2aXR5LnYxLkFjdGl2aXR5U3VtbWFyeSIWChRHZXRBY3Rpdml0aWVzUmVxdWVzdCIpChJHZXRBY3Rpdml0eVJlcXVlc3QSEwoLYWN0aXZpdHlfaWQYASABKAUikgEKFVVwZGF0ZUFjdGl2aXR5UmVxdWVzdBITCgthY3Rpdml0eV9pZBgBIAEoBRIzCg1hY3Rpdml0eV9uYW1lGAIgASgLMhwuZ29vZ2xlLnByb3RvYnVmLlN0cmluZ1ZhbHVlEi8KCXJpZGVfdHlwZRgDIAEoCzIcLmdvb2dsZS5wcm90b2J1Zi5TdHJpbmdWYWx1ZTLnAwoPQWN0aXZpdHlTZXJ2aWNlElgKDUdldEFjdGl2aXRpZXMSIS5hY3Rpdml0eS52MS5HZXRBY3Rpdml0aWVzUmVxdWVzdBoiLmFjdGl2aXR5LnYxLkdldEFjdGl2aXRpZXNSZXNwb25zZSIAElIKC0dldEFjdGl2aXR5Eh8uYWN0aXZpdHkudjEuR2V0QWN0aXZpdHlSZXF1ZXN0GiAuYWN0aXZpdHkudjEuR2V0QWN0aXZpdHlSZXNwb25zZSIAElgKDlVwZGF0ZUFjdGl2aXR5EiIuYWN0aXZpdHkudjEuVXBkYXRlQWN0aXZpdHlSZXF1ZXN0GiAuYWN0aXZpdHkudjEuR2V0QWN0aXZpdHlSZXNwb25zZSIAEmEKEFVwbG9hZEFjdGl2aXRpZXMSJC5hY3Rpdml0eS52MS5VcGxvYWRBY3Rpdml0aWVzUmVxdWVzdBolLmFjdGl2aXR5LnYxLlVwbG9hZEFjdGl2aXRpZXNSZXNwb25zZSgBEmkKFVVwbG9hZEFjdGl2aXRpZXNVbmFyeRIpLmFjdGl2aXR5LnYxLlVwbG9hZEFjdGl2aXRpZXNVbmFyeVJlcXVlc3QaJS5hY3Rpdml0eS52MS5VcGxvYWRBY3Rpdml0aWVzUmVzcG9uc2VCOFo2Z2l0aHViLmNvbS9ub3RhZHVjay9iYWNrZW5kL2dlbi9hY3Rpdml0eS92MTthY3Rpdml0eXYxYgZwcm90bzM", [file_google_protobuf_timestamp, file_google_protobuf_wrappers]);
 
 /**
  * Point represents a coordinate point.
@@ -137,6 +137,31 @@ export type GetActivityResponse = Message<"activity.v1.GetActivityResponse"> & {
    * @generated from field: repeated activity.v1.Record records = 9;
    */
   records: Record[];
+
+  /**
+   * @generated from field: double avg_heart_rate = 10;
+   */
+  avgHeartRate: number;
+
+  /**
+   * @generated from field: double max_heart_rate = 11;
+   */
+  maxHeartRate: number;
+
+  /**
+   * @generated from field: double avg_cadence = 12;
+   */
+  avgCadence: number;
+
+  /**
+   * @generated from field: double max_cadence = 13;
+   */
+  maxCadence: number;
+
+  /**
+   * @generated from field: string ride_type = 14;
+   */
+  rideType: string;
 };
 
 /**
@@ -363,6 +388,33 @@ export const GetActivityRequestSchema: GenMessage<GetActivityRequest> = /*@__PUR
   messageDesc(file_activity_v1_activity, 10);
 
 /**
+ * @generated from message activity.v1.UpdateActivityRequest
+ */
+export type UpdateActivityRequest = Message<"activity.v1.UpdateActivityRequest"> & {
+  /**
+   * @generated from field: int32 activity_id = 1;
+   */
+  activityId: number;
+
+  /**
+   * @generated from field: google.protobuf.StringValue activity_name = 2;
+   */
+  activityName?: string;
+
+  /**
+   * @generated from field: google.protobuf.StringValue ride_type = 3;
+   */
+  rideType?: string;
+};
+
+/**
+ * Describes the message activity.v1.UpdateActivityRequest.
+ * Use `create(UpdateActivityRequestSchema)` to create a new message.
+ */
+export const UpdateActivityRequestSchema: GenMessage<UpdateActivityRequest> = /*@__PURE__*/
+  messageDesc(file_activity_v1_activity, 11);
+
+/**
  * @generated from service activity.v1.ActivityService
  */
 export const ActivityService: GenService<{
@@ -384,6 +436,14 @@ export const ActivityService: GenService<{
   getActivity: {
     methodKind: "unary";
     input: typeof GetActivityRequestSchema;
+    output: typeof GetActivityResponseSchema;
+  },
+  /**
+   * @generated from rpc activity.v1.ActivityService.UpdateActivity
+   */
+  updateActivity: {
+    methodKind: "unary";
+    input: typeof UpdateActivityRequestSchema;
     output: typeof GetActivityResponseSchema;
   },
   /**

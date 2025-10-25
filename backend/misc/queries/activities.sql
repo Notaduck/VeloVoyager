@@ -9,6 +9,7 @@ SELECT
     a.activity_name,
     a.avg_speed,
     a.max_speed,
+    a.ride_type,
     a.elapsed_time::interval AS elapsed_time,
     a.total_time::interval AS total_time,
     TO_CHAR(a.elapsed_time::time, 'HH24:MI:SS') AS elapsed_time_char,
@@ -22,6 +23,7 @@ SELECT
     id,
     activity_name,
     distance,
+    ride_type,
     elapsed_time::interval AS elapsed_time,
     total_time::interval AS total_time,
     TO_CHAR(elapsed_time::time, 'HH24:MI:SS') AS elapsed_time_char,
@@ -39,6 +41,7 @@ SELECT
     activity_name,
     avg_speed,
     max_speed,
+    ride_type,
     elapsed_time,
     total_time,
     elapsed_time_char,
@@ -54,6 +57,7 @@ INSERT INTO activities (
     activity_name,
     avg_speed,
     max_speed,
+    ride_type,
     elapsed_time,
     total_time,
     date_of_activity
@@ -66,7 +70,8 @@ INSERT INTO activities (
     $5,
     $6,
     $7,
-    $8
+    $8,
+    $9
 )
 RETURNING id; 
 
@@ -107,11 +112,13 @@ FROM activities
 WHERE user_id = $1;
 
 -- name: UpdateActivityname :one
-UPDATE activities 
-SET activity_name = $1
+UPDATE activities
+SET 
+    activity_name = COALESCE(sqlc.narg('activity_name'), activity_name),
+    ride_type = COALESCE(sqlc.narg('ride_type'), ride_type)
 WHERE 
-    id = $2 
-    AND user_id = $3
+    id = sqlc.arg('id')
+    AND user_id = sqlc.arg('user_id')
 RETURNING 
     id,
     created_at,
@@ -122,16 +129,19 @@ RETURNING
     activity_name,
     avg_speed,
     max_speed,
+    ride_type,
     elapsed_time::interval AS elapsed_time,
     total_time::interval AS total_time;
 
 -- name: UpdateActivity :one
 WITH updated_activity AS (
     UPDATE activities 
-    SET activity_name = $1
+    SET 
+        activity_name = COALESCE(sqlc.narg('activity_name'), activity_name),
+        ride_type = COALESCE(sqlc.narg('ride_type'), ride_type)
     WHERE 
-        activities.id = $2 
-        AND activities.user_id = $3
+        activities.id = sqlc.arg('id') 
+        AND activities.user_id = sqlc.arg('user_id')
     RETURNING activities.id
 )
 SELECT *

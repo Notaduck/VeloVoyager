@@ -9,20 +9,34 @@
   dependencies:
     stable-hash "^0.0.3"
 
-"@bufbuild/protobuf@2.2.3", "@bufbuild/protobuf@^2.2.1", "@bufbuild/protobuf@^2.2.3":
+"@bufbuild/protobuf@2.10.0", "@bufbuild/protobuf@^2.2.1", "@bufbuild/protobuf@^2.2.4":
+  version "2.10.0"
+  resolved "https://registry.yarnpkg.com/@bufbuild/protobuf/-/protobuf-2.10.0.tgz#b444f8aafdfa8c497313c8c0f0e7e2e978c53df5"
+  integrity sha512-fdRs9PSrBF7QUntpZpq6BTw58fhgGJojgg39m9oFOJGZT+nip9b0so5cYY1oWl5pvemDLr0cPPsH46vwThEbpQ==
+
+"@bufbuild/protobuf@2.2.3":
   version "2.2.3"
   resolved "https://registry.yarnpkg.com/@bufbuild/protobuf/-/protobuf-2.2.3.tgz#9cd136f6b687e63e9b517b3a54211ece942897ee"
   integrity sha512-tFQoXHJdkEOSwj5tRIZSPNUuXK3RaR7T1nUrPgbYX1pUbvqqaaZAsfo+NXBPsz5rZMSKVFrgK1WL8Q/MSLvprg==
 
-"@bufbuild/protoc-gen-es@^2.2.3":
-  version "2.2.3"
-  resolved "https://registry.yarnpkg.com/@bufbuild/protoc-gen-es/-/protoc-gen-es-2.2.3.tgz#248fdde46ca895cc1756f51b4d4cebd7e1b625ea"
-  integrity sha512-hdhIV9NmwXXy24DcbnArauv6L5Dv2PjkO9gz2DUhiZ9HPRpP+rmpT8zo5LohjJiuA7YIQGGKKWSKpRg+xcdLSQ==
+"@bufbuild/protoc-gen-es@^2.2.4":
+  version "2.10.0"
+  resolved "https://registry.yarnpkg.com/@bufbuild/protoc-gen-es/-/protoc-gen-es-2.10.0.tgz#99a64c31331279f3f09a7abbec59d1e848c988b1"
+  integrity sha512-g3xtuxeMkbacn8/qWQ8NbHBA8unLAvGD7sjcXV1/lfO4iCfd6hYL1Z+rn2yLQZE/JEkG+GPZoIs7m5KI5VYaMw==
   dependencies:
-    "@bufbuild/protobuf" "^2.2.3"
-    "@bufbuild/protoplugin" "2.2.3"
+    "@bufbuild/protobuf" "2.10.0"
+    "@bufbuild/protoplugin" "2.10.0"
 
-"@bufbuild/protoplugin@2.2.3", "@bufbuild/protoplugin@^2.2.1":
+"@bufbuild/protoplugin@2.10.0":
+  version "2.10.0"
+  resolved "https://registry.yarnpkg.com/@bufbuild/protoplugin/-/protoplugin-2.10.0.tgz#c02ff1dbdd34effad60b5024be19cd834d781519"
+  integrity sha512-GPJOZ1Gp9/Ci3MXP3yI7+q4G7IhB5cSpbLjsfnBILxtNx69I9+ix3r9P7JfewHvqMjtPe6L+YWX1LPBGNfZMGw==
+  dependencies:
+    "@bufbuild/protobuf" "2.10.0"
+    "@typescript/vfs" "^1.5.2"
+    typescript "5.4.5"
+
+"@bufbuild/protoplugin@^2.2.1":
   version "2.2.3"
   resolved "https://registry.yarnpkg.com/@bufbuild/protoplugin/-/protoplugin-2.2.3.tgz#9f14cdbf6bbc0761be0314fcd249f9f1ef19495c"
   integrity sha512-UsV7mj6NJTZrqIYJK+jNFnnj5tOS7wgNXKyMjebFEpf+OX6pfXE+nx+QPjumOfu4GxdVPfEDnKuwISgqlXSQqw==

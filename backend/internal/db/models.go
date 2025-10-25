@@ -21,6 +21,7 @@ type Activity struct {
 	ActivityName    string             `json:"activityName"`
 	AvgSpeed        decimal.Decimal    `json:"avgSpeed"`
 	MaxSpeed        decimal.Decimal    `json:"maxSpeed"`
+	RideType        string             `json:"rideType"`
 	ElapsedTime     time.Duration      `json:"elapsedTime"`
 	TotalTime       time.Duration      `json:"totalTime"`
 	WeatherImpact   decimal.Decimal    `json:"weatherImpact"`
@@ -38,6 +39,7 @@ type ActivityWithRecordsView struct {
 	ActivityName    string             `json:"activityName"`
 	AvgSpeed        decimal.Decimal    `json:"avgSpeed"`
 	MaxSpeed        decimal.Decimal    `json:"maxSpeed"`
+	RideType        string             `json:"rideType"`
 	ElapsedTime     time.Duration      `json:"elapsedTime"`
 	TotalTime       time.Duration      `json:"totalTime"`
 	ElapsedTimeChar string             `json:"elapsedTimeChar"`

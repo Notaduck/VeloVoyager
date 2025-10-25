@@ -28,6 +28,11 @@ type Activity struct {
 	ActivityName    string        `json:"activityName"`
 	AvgSpeed        float64       `json:"avgSpeed"`
 	MaxSpeed        float64       `json:"maxSpeed"`
+	RideType        string        `json:"rideType"`
+	AvgHeartRate    *float64      `json:"avgHeartRate,omitempty"`
+	MaxHeartRate    *float64      `json:"maxHeartRate,omitempty"`
+	AvgCadence      *float64      `json:"avgCadence,omitempty"`
+	MaxCadence      *float64      `json:"maxCadence,omitempty"`
 	ElapsedTime     string        `json:"elapsedTime"`
 	TotalTime       string        `json:"totalTime"`
 	ElapsedDuration time.Duration `json:"-"`
@@ -47,6 +52,7 @@ type Record struct {
 	TimeStamp   time.Time `json:"timeStamp"`
 	Distance    int32     `json:"distance"`
 	HeartRate   int16     `json:"heartRate"`
+	Cadence     int16     `json:"cadence"`
 }
 
 type ActivityFilePayload struct {
@@ -100,19 +106,30 @@ func (s *activityService) GetActivities(ctx context.Context, userId string) ([]A
 }
 
 func (s *activityService) UpdateActivity(ctx context.Context, activityData db.UpdateActivityParams) (*Activity, error) {
+	name := ""
+	if activityData.ActivityName.Valid {
+		name = activityData.ActivityName.String
+	}
+	rideType := ""
+	if activityData.RideType.Valid {
+		rideType = activityData.RideType.String
+	}
 
-	slog.Info(activityData.ActivityName, slog.Int("id", int(activityData.ID)), slog.String("userID", activityData.UserID))
+	slog.Info("updating activity",
+		slog.Int("id", int(activityData.ID)),
+		slog.String("userID", activityData.UserID),
+		slog.String("activityName", name),
+		slog.String("rideType", rideType),
+	)
 
 	activity, err := s.activityRepo.UpdateActivity(ctx, activityData)
-
-	activityDetails := convertActivityEntityToDomainModel(&activity)
-
 	if err != nil {
 		return nil, err
 	}
 
-	return activityDetails, nil
+	activityDetails := convertActivityEntityToDomainModel(&activity)
 
+	return activityDetails, nil
 }
 
 func (s *activityService) GetSingleActivityById(ctx context.Context, activityId int32, userId string) (*Activity, error) {
@@ -237,6 +254,7 @@ func (s *activityService) createActivityRecord(ctx context.Context, activity *fi
 		ElapsedTime:    elapsedDuration,
 		AvgSpeed:       stats.AvgSpeed,
 		MaxSpeed:       stats.MaxSpeed,
+		RideType:       "road",
 		ActivityName:   getActivityName(activity.Activity.LocalTimestamp),
 		DateOfActivity: dateOfActivity,
 	})
@@ -353,6 +371,7 @@ func (s *activityService) GetActivityStats(ctx context.Context, userId string) (
 }
 
 func convertActivityEntityToDomainModel(activityEntity *db.ActivityWithRecordsView) *Activity {
+	avgHeartRate, maxHeartRate, avgCadence, maxCadence := calculateAggregateMetrics(activityEntity.Records)
 
 	activity := &Activity{
 		ID:              activityEntity.ID,
@@ -361,13 +380,73 @@ func convertActivityEntityToDomainModel(activityEntity *db.ActivityWithRecordsVi
 		ActivityName:    activityEntity.ActivityName,
 		AvgSpeed:        activityEntity.AvgSpeed.InexactFloat64(),
 		MaxSpeed:        activityEntity.MaxSpeed.InexactFloat64(),
+		RideType:        activityEntity.RideType,
 		ElapsedTime:     activityEntity.ElapsedTimeChar,
 		TotalTime:       activityEntity.TotalTimeChar,
+		AvgHeartRate:    avgHeartRate,
+		MaxHeartRate:    maxHeartRate,
+		AvgCadence:      avgCadence,
+		MaxCadence:      maxCadence,
 		ElapsedDuration: activityEntity.ElapsedTime,
 		TotalDuration:   activityEntity.TotalTime,
 		Records:         convertRecords(activityEntity.Records),
 	}
 	return activity
+}
+
+func calculateAggregateMetrics(records []db.Record) (avgHeartRate, maxHeartRate, avgCadence, maxCadence *float64) {
+	var (
+		heartRateSum  float64
+		heartRateMax  float64
+		heartRateCnt  int
+		heartRateSeen bool
+
+		cadenceSum  float64
+		cadenceMax  float64
+		cadenceCnt  int
+		cadenceSeen bool
+	)
+
+	for _, record := range records {
+		if record.HeartRate.Valid {
+			val := float64(record.HeartRate.Int16)
+			heartRateSum += val
+			heartRateCnt++
+			if !heartRateSeen || val > heartRateMax {
+				heartRateMax = val
+				heartRateSeen = true
+			}
+		}
+
+		if record.Cadence.Valid {
+			val := float64(record.Cadence.Int16)
+			cadenceSum += val
+			cadenceCnt++
+			if !cadenceSeen || val > cadenceMax {
+				cadenceMax = val
+				cadenceSeen = true
+			}
+		}
+	}
+
+	if heartRateCnt > 0 {
+		avg := heartRateSum / float64(heartRateCnt)
+		avgHeartRate = &avg
+	}
+	if heartRateSeen {
+		max := heartRateMax
+		maxHeartRate = &max
+	}
+	if cadenceCnt > 0 {
+		avg := cadenceSum / float64(cadenceCnt)
+		avgCadence = &avg
+	}
+	if cadenceSeen {
+		max := cadenceMax
+		maxCadence = &max
+	}
+
+	return
 }
 
 func convertActivitySummaries(activityEntities []db.GetActivitiesRow) []ActivitySummary {
@@ -389,13 +468,27 @@ func convertActivitySummaries(activityEntities []db.GetActivitiesRow) []Activity
 func convertRecords(recordEntities []db.Record) []Record {
 	records := make([]Record, len(recordEntities))
 	for i, record := range recordEntities {
+		var heartRate int16
+		if record.HeartRate.Valid {
+			heartRate = record.HeartRate.Int16
+		} else {
+			heartRate = 0 // or handle NULL case appropriately
+		}
+
+		var cadence int16
+		if record.Cadence.Valid {
+			cadence = record.Cadence.Int16
+		} else {
+			cadence = 0 // or handle NULL case appropriately
+		}
 
 		records[i] = Record{
 			ID:        record.ID,
 			Speed:     utils.ConvertSpeed(record.Speed.Int32),
 			TimeStamp: record.TimeStamp.Time,
-			HeartRate: record.HeartRate.Int16,
+			HeartRate: heartRate,
 			Distance:  record.Distance.Int32,
+			Cadence:   cadence,
 			Coordinates: Point{
 				X: record.Position.P.X,
 				Y: record.Position.P.Y,

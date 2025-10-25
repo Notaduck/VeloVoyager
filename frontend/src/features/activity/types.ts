@@ -39,6 +39,8 @@ export type StatItem = {
   value: string;
   helper?: string;
   icon: LucideIcon;
+  colSpan?: number;
+  rowSpan?: number;
 };
 
 export type DetailItem = {

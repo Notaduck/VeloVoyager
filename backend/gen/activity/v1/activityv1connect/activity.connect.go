@@ -39,6 +39,9 @@ const (
 	// ActivityServiceGetActivityProcedure is the fully-qualified name of the ActivityService's
 	// GetActivity RPC.
 	ActivityServiceGetActivityProcedure = "/activity.v1.ActivityService/GetActivity"
+	// ActivityServiceUpdateActivityProcedure is the fully-qualified name of the ActivityService's
+	// UpdateActivity RPC.
+	ActivityServiceUpdateActivityProcedure = "/activity.v1.ActivityService/UpdateActivity"
 	// ActivityServiceUploadActivitiesProcedure is the fully-qualified name of the ActivityService's
 	// UploadActivities RPC.
 	ActivityServiceUploadActivitiesProcedure = "/activity.v1.ActivityService/UploadActivities"
@@ -47,21 +50,13 @@ const (
 	ActivityServiceUploadActivitiesUnaryProcedure = "/activity.v1.ActivityService/UploadActivitiesUnary"
 )
 
-// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
-var (
-	activityServiceServiceDescriptor                     = v1.File_activity_v1_activity_proto.Services().ByName("ActivityService")
-	activityServiceGetActivitiesMethodDescriptor         = activityServiceServiceDescriptor.Methods().ByName("GetActivities")
-	activityServiceGetActivityMethodDescriptor           = activityServiceServiceDescriptor.Methods().ByName("GetActivity")
-	activityServiceUploadActivitiesMethodDescriptor      = activityServiceServiceDescriptor.Methods().ByName("UploadActivities")
-	activityServiceUploadActivitiesUnaryMethodDescriptor = activityServiceServiceDescriptor.Methods().ByName("UploadActivitiesUnary")
-)
-
 // ActivityServiceClient is a client for the activity.v1.ActivityService service.
 type ActivityServiceClient interface {
 	// Fetch all activities without records.
 	GetActivities(context.Context, *connect.Request[v1.GetActivitiesRequest]) (*connect.Response[v1.GetActivitiesResponse], error)
 	// Fetch a single activity by ID with records.
 	GetActivity(context.Context, *connect.Request[v1.GetActivityRequest]) (*connect.Response[v1.GetActivityResponse], error)
+	UpdateActivity(context.Context, *connect.Request[v1.UpdateActivityRequest]) (*connect.Response[v1.GetActivityResponse], error)
 	// Upload multiple fit files
 	UploadActivities(context.Context) *connect.ClientStreamForClient[v1.UploadActivitiesRequest, v1.UploadActivitiesResponse]
 	// Upload fit files using a unary request (for clients without streaming support)
@@ -77,29 +72,36 @@ type ActivityServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewActivityServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) ActivityServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	activityServiceMethods := v1.File_activity_v1_activity_proto.Services().ByName("ActivityService").Methods()
 	return &activityServiceClient{
 		getActivities: connect.NewClient[v1.GetActivitiesRequest, v1.GetActivitiesResponse](
 			httpClient,
 			baseURL+ActivityServiceGetActivitiesProcedure,
-			connect.WithSchema(activityServiceGetActivitiesMethodDescriptor),
+			connect.WithSchema(activityServiceMethods.ByName("GetActivities")),
 			connect.WithClientOptions(opts...),
 		),
 		getActivity: connect.NewClient[v1.GetActivityRequest, v1.GetActivityResponse](
 			httpClient,
 			baseURL+ActivityServiceGetActivityProcedure,
-			connect.WithSchema(activityServiceGetActivityMethodDescriptor),
+			connect.WithSchema(activityServiceMethods.ByName("GetActivity")),
+			connect.WithClientOptions(opts...),
+		),
+		updateActivity: connect.NewClient[v1.UpdateActivityRequest, v1.GetActivityResponse](
+			httpClient,
+			baseURL+ActivityServiceUpdateActivityProcedure,
+			connect.WithSchema(activityServiceMethods.ByName("UpdateActivity")),
 			connect.WithClientOptions(opts...),
 		),
 		uploadActivities: connect.NewClient[v1.UploadActivitiesRequest, v1.UploadActivitiesResponse](
 			httpClient,
 			baseURL+ActivityServiceUploadActivitiesProcedure,
-			connect.WithSchema(activityServiceUploadActivitiesMethodDescriptor),
+			connect.WithSchema(activityServiceMethods.ByName("UploadActivities")),
 			connect.WithClientOptions(opts...),
 		),
 		uploadActivitiesUnary: connect.NewClient[v1.UploadActivitiesUnaryRequest, v1.UploadActivitiesResponse](
 			httpClient,
 			baseURL+ActivityServiceUploadActivitiesUnaryProcedure,
-			connect.WithSchema(activityServiceUploadActivitiesUnaryMethodDescriptor),
+			connect.WithSchema(activityServiceMethods.ByName("UploadActivitiesUnary")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -109,6 +111,7 @@ func NewActivityServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 type activityServiceClient struct {
 	getActivities         *connect.Client[v1.GetActivitiesRequest, v1.GetActivitiesResponse]
 	getActivity           *connect.Client[v1.GetActivityRequest, v1.GetActivityResponse]
+	updateActivity        *connect.Client[v1.UpdateActivityRequest, v1.GetActivityResponse]
 	uploadActivities      *connect.Client[v1.UploadActivitiesRequest, v1.UploadActivitiesResponse]
 	uploadActivitiesUnary *connect.Client[v1.UploadActivitiesUnaryRequest, v1.UploadActivitiesResponse]
 }
@@ -121,6 +124,11 @@ func (c *activityServiceClient) GetActivities(ctx context.Context, req *connect.
 // GetActivity calls activity.v1.ActivityService.GetActivity.
 func (c *activityServiceClient) GetActivity(ctx context.Context, req *connect.Request[v1.GetActivityRequest]) (*connect.Response[v1.GetActivityResponse], error) {
 	return c.getActivity.CallUnary(ctx, req)
+}
+
+// UpdateActivity calls activity.v1.ActivityService.UpdateActivity.
+func (c *activityServiceClient) UpdateActivity(ctx context.Context, req *connect.Request[v1.UpdateActivityRequest]) (*connect.Response[v1.GetActivityResponse], error) {
+	return c.updateActivity.CallUnary(ctx, req)
 }
 
 // UploadActivities calls activity.v1.ActivityService.UploadActivities.
@@ -139,6 +147,7 @@ type ActivityServiceHandler interface {
 	GetActivities(context.Context, *connect.Request[v1.GetActivitiesRequest]) (*connect.Response[v1.GetActivitiesResponse], error)
 	// Fetch a single activity by ID with records.
 	GetActivity(context.Context, *connect.Request[v1.GetActivityRequest]) (*connect.Response[v1.GetActivityResponse], error)
+	UpdateActivity(context.Context, *connect.Request[v1.UpdateActivityRequest]) (*connect.Response[v1.GetActivityResponse], error)
 	// Upload multiple fit files
 	UploadActivities(context.Context, *connect.ClientStream[v1.UploadActivitiesRequest]) (*connect.Response[v1.UploadActivitiesResponse], error)
 	// Upload fit files using a unary request (for clients without streaming support)
@@ -151,28 +160,35 @@ type ActivityServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewActivityServiceHandler(svc ActivityServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	activityServiceMethods := v1.File_activity_v1_activity_proto.Services().ByName("ActivityService").Methods()
 	activityServiceGetActivitiesHandler := connect.NewUnaryHandler(
 		ActivityServiceGetActivitiesProcedure,
 		svc.GetActivities,
-		connect.WithSchema(activityServiceGetActivitiesMethodDescriptor),
+		connect.WithSchema(activityServiceMethods.ByName("GetActivities")),
 		connect.WithHandlerOptions(opts...),
 	)
 	activityServiceGetActivityHandler := connect.NewUnaryHandler(
 		ActivityServiceGetActivityProcedure,
 		svc.GetActivity,
-		connect.WithSchema(activityServiceGetActivityMethodDescriptor),
+		connect.WithSchema(activityServiceMethods.ByName("GetActivity")),
+		connect.WithHandlerOptions(opts...),
+	)
+	activityServiceUpdateActivityHandler := connect.NewUnaryHandler(
+		ActivityServiceUpdateActivityProcedure,
+		svc.UpdateActivity,
+		connect.WithSchema(activityServiceMethods.ByName("UpdateActivity")),
 		connect.WithHandlerOptions(opts...),
 	)
 	activityServiceUploadActivitiesHandler := connect.NewClientStreamHandler(
 		ActivityServiceUploadActivitiesProcedure,
 		svc.UploadActivities,
-		connect.WithSchema(activityServiceUploadActivitiesMethodDescriptor),
+		connect.WithSchema(activityServiceMethods.ByName("UploadActivities")),
 		connect.WithHandlerOptions(opts...),
 	)
 	activityServiceUploadActivitiesUnaryHandler := connect.NewUnaryHandler(
 		ActivityServiceUploadActivitiesUnaryProcedure,
 		svc.UploadActivitiesUnary,
-		connect.WithSchema(activityServiceUploadActivitiesUnaryMethodDescriptor),
+		connect.WithSchema(activityServiceMethods.ByName("UploadActivitiesUnary")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/activity.v1.ActivityService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -181,6 +197,8 @@ func NewActivityServiceHandler(svc ActivityServiceHandler, opts ...connect.Handl
 			activityServiceGetActivitiesHandler.ServeHTTP(w, r)
 		case ActivityServiceGetActivityProcedure:
 			activityServiceGetActivityHandler.ServeHTTP(w, r)
+		case ActivityServiceUpdateActivityProcedure:
+			activityServiceUpdateActivityHandler.ServeHTTP(w, r)
 		case ActivityServiceUploadActivitiesProcedure:
 			activityServiceUploadActivitiesHandler.ServeHTTP(w, r)
 		case ActivityServiceUploadActivitiesUnaryProcedure:
@@ -200,6 +218,10 @@ func (UnimplementedActivityServiceHandler) GetActivities(context.Context, *conne
 
 func (UnimplementedActivityServiceHandler) GetActivity(context.Context, *connect.Request[v1.GetActivityRequest]) (*connect.Response[v1.GetActivityResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("activity.v1.ActivityService.GetActivity is not implemented"))
+}
+
+func (UnimplementedActivityServiceHandler) UpdateActivity(context.Context, *connect.Request[v1.UpdateActivityRequest]) (*connect.Response[v1.GetActivityResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("activity.v1.ActivityService.UpdateActivity is not implemented"))
 }
 
 func (UnimplementedActivityServiceHandler) UploadActivities(context.Context, *connect.ClientStream[v1.UploadActivitiesRequest]) (*connect.Response[v1.UploadActivitiesResponse], error) {
