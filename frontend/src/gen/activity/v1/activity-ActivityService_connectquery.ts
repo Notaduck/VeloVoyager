@@ -29,3 +29,10 @@ export const updateActivity = ActivityService.method.updateActivity;
  * @generated from rpc activity.v1.ActivityService.UploadActivitiesUnary
  */
 export const uploadActivitiesUnary = ActivityService.method.uploadActivitiesUnary;
+
+/**
+ * Generate a signed URL for uploading an activity image
+ *
+ * @generated from rpc activity.v1.ActivityService.UploadActivityImage
+ */
+export const uploadActivityImage = ActivityService.method.uploadActivityImage;

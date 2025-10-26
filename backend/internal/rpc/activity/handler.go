@@ -25,6 +25,35 @@ func NewActivityHandler(service service.ActivityService) *ActivityHandler {
 	return &ActivityHandler{service: service}
 }
 
+func (h *ActivityHandler) UploadActivityImage(
+	ctx context.Context,
+	req *connect.Request[activityv1.UploadActivityImageRequest],
+) (*connect.Response[activityv1.UploadActivityImageResponse], error) {
+
+	user := middleware.RetrieveUserFromContext(ctx)
+
+	imageMetaData := service.ImageMetaData{
+		Longitude: req.Msg.Longitude,
+		Latitude:  req.Msg.Latitude,
+	}
+
+	preSignedUrl, err := h.service.UploadActivityImage(ctx, user.ID, imageMetaData, req.Msg.ActivityId)
+
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to generate presigned URL", "error", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to generate presigned URL"))
+	}
+
+	response := &activityv1.UploadActivityImageResponse{
+		SignedPutUrl: preSignedUrl,
+	}
+
+	connectResp := connect.NewResponse(response)
+	connectResp.Header().Set("Greet-Version", "v1")
+
+	return connectResp, nil
+}
+
 func (h *ActivityHandler) UploadActivities(
 	ctx context.Context,
 	stream *connect.ClientStream[activityv1.UploadActivitiesRequest],

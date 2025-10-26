@@ -848,6 +848,110 @@ func (x *UpdateActivityRequest) GetRideType() *wrapperspb.StringValue {
 	return nil
 }
 
+type UploadActivityImageRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ActivityId    int32                  `protobuf:"varint,1,opt,name=activity_id,json=activityId,proto3" json:"activity_id,omitempty"`
+	Longitude     float64                `protobuf:"fixed64,2,opt,name=longitude,proto3" json:"longitude,omitempty"`
+	Latitude      float64                `protobuf:"fixed64,3,opt,name=latitude,proto3" json:"latitude,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UploadActivityImageRequest) Reset() {
+	*x = UploadActivityImageRequest{}
+	mi := &file_activity_v1_activity_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadActivityImageRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadActivityImageRequest) ProtoMessage() {}
+
+func (x *UploadActivityImageRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_activity_v1_activity_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadActivityImageRequest.ProtoReflect.Descriptor instead.
+func (*UploadActivityImageRequest) Descriptor() ([]byte, []int) {
+	return file_activity_v1_activity_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *UploadActivityImageRequest) GetActivityId() int32 {
+	if x != nil {
+		return x.ActivityId
+	}
+	return 0
+}
+
+func (x *UploadActivityImageRequest) GetLongitude() float64 {
+	if x != nil {
+		return x.Longitude
+	}
+	return 0
+}
+
+func (x *UploadActivityImageRequest) GetLatitude() float64 {
+	if x != nil {
+		return x.Latitude
+	}
+	return 0
+}
+
+type UploadActivityImageResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SignedPutUrl  string                 `protobuf:"bytes,1,opt,name=signed_put_url,json=signedPutUrl,proto3" json:"signed_put_url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UploadActivityImageResponse) Reset() {
+	*x = UploadActivityImageResponse{}
+	mi := &file_activity_v1_activity_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadActivityImageResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadActivityImageResponse) ProtoMessage() {}
+
+func (x *UploadActivityImageResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_activity_v1_activity_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadActivityImageResponse.ProtoReflect.Descriptor instead.
+func (*UploadActivityImageResponse) Descriptor() ([]byte, []int) {
+	return file_activity_v1_activity_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *UploadActivityImageResponse) GetSignedPutUrl() string {
+	if x != nil {
+		return x.SignedPutUrl
+	}
+	return ""
+}
+
 var File_activity_v1_activity_proto protoreflect.FileDescriptor
 
 const file_activity_v1_activity_proto_rawDesc = "" +
@@ -923,13 +1027,21 @@ const file_activity_v1_activity_proto_rawDesc = "" +
 	"\vactivity_id\x18\x01 \x01(\x05R\n" +
 	"activityId\x12A\n" +
 	"\ractivity_name\x18\x02 \x01(\v2\x1c.google.protobuf.StringValueR\factivityName\x129\n" +
-	"\tride_type\x18\x03 \x01(\v2\x1c.google.protobuf.StringValueR\brideType2\xe7\x03\n" +
+	"\tride_type\x18\x03 \x01(\v2\x1c.google.protobuf.StringValueR\brideType\"w\n" +
+	"\x1aUploadActivityImageRequest\x12\x1f\n" +
+	"\vactivity_id\x18\x01 \x01(\x05R\n" +
+	"activityId\x12\x1c\n" +
+	"\tlongitude\x18\x02 \x01(\x01R\tlongitude\x12\x1a\n" +
+	"\blatitude\x18\x03 \x01(\x01R\blatitude\"C\n" +
+	"\x1bUploadActivityImageResponse\x12$\n" +
+	"\x0esigned_put_url\x18\x01 \x01(\tR\fsignedPutUrl2\xd1\x04\n" +
 	"\x0fActivityService\x12X\n" +
 	"\rGetActivities\x12!.activity.v1.GetActivitiesRequest\x1a\".activity.v1.GetActivitiesResponse\"\x00\x12R\n" +
 	"\vGetActivity\x12\x1f.activity.v1.GetActivityRequest\x1a .activity.v1.GetActivityResponse\"\x00\x12X\n" +
 	"\x0eUpdateActivity\x12\".activity.v1.UpdateActivityRequest\x1a .activity.v1.GetActivityResponse\"\x00\x12a\n" +
 	"\x10UploadActivities\x12$.activity.v1.UploadActivitiesRequest\x1a%.activity.v1.UploadActivitiesResponse(\x01\x12i\n" +
-	"\x15UploadActivitiesUnary\x12).activity.v1.UploadActivitiesUnaryRequest\x1a%.activity.v1.UploadActivitiesResponseB8Z6github.com/notaduck/backend/gen/activity/v1;activityv1b\x06proto3"
+	"\x15UploadActivitiesUnary\x12).activity.v1.UploadActivitiesUnaryRequest\x1a%.activity.v1.UploadActivitiesResponse\x12h\n" +
+	"\x13UploadActivityImage\x12'.activity.v1.UploadActivityImageRequest\x1a(.activity.v1.UploadActivityImageResponseB8Z6github.com/notaduck/backend/gen/activity/v1;activityv1b\x06proto3"
 
 var (
 	file_activity_v1_activity_proto_rawDescOnce sync.Once
@@ -943,7 +1055,7 @@ func file_activity_v1_activity_proto_rawDescGZIP() []byte {
 	return file_activity_v1_activity_proto_rawDescData
 }
 
-var file_activity_v1_activity_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_activity_v1_activity_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_activity_v1_activity_proto_goTypes = []any{
 	(*Point)(nil),                        // 0: activity.v1.Point
 	(*Record)(nil),                       // 1: activity.v1.Record
@@ -957,30 +1069,34 @@ var file_activity_v1_activity_proto_goTypes = []any{
 	(*GetActivitiesRequest)(nil),         // 9: activity.v1.GetActivitiesRequest
 	(*GetActivityRequest)(nil),           // 10: activity.v1.GetActivityRequest
 	(*UpdateActivityRequest)(nil),        // 11: activity.v1.UpdateActivityRequest
-	(*timestamppb.Timestamp)(nil),        // 12: google.protobuf.Timestamp
-	(*wrapperspb.StringValue)(nil),       // 13: google.protobuf.StringValue
+	(*UploadActivityImageRequest)(nil),   // 12: activity.v1.UploadActivityImageRequest
+	(*UploadActivityImageResponse)(nil),  // 13: activity.v1.UploadActivityImageResponse
+	(*timestamppb.Timestamp)(nil),        // 14: google.protobuf.Timestamp
+	(*wrapperspb.StringValue)(nil),       // 15: google.protobuf.StringValue
 }
 var file_activity_v1_activity_proto_depIdxs = []int32{
 	0,  // 0: activity.v1.Record.coordinates:type_name -> activity.v1.Point
-	12, // 1: activity.v1.Record.time_stamp:type_name -> google.protobuf.Timestamp
+	14, // 1: activity.v1.Record.time_stamp:type_name -> google.protobuf.Timestamp
 	1,  // 2: activity.v1.GetActivityResponse.records:type_name -> activity.v1.Record
-	12, // 3: activity.v1.ActivitySummary.created_at:type_name -> google.protobuf.Timestamp
+	14, // 3: activity.v1.ActivitySummary.created_at:type_name -> google.protobuf.Timestamp
 	6,  // 4: activity.v1.UploadActivitiesUnaryRequest.files:type_name -> activity.v1.UploadActivitiesUnaryFile
 	3,  // 5: activity.v1.GetActivitiesResponse.activities:type_name -> activity.v1.ActivitySummary
-	13, // 6: activity.v1.UpdateActivityRequest.activity_name:type_name -> google.protobuf.StringValue
-	13, // 7: activity.v1.UpdateActivityRequest.ride_type:type_name -> google.protobuf.StringValue
+	15, // 6: activity.v1.UpdateActivityRequest.activity_name:type_name -> google.protobuf.StringValue
+	15, // 7: activity.v1.UpdateActivityRequest.ride_type:type_name -> google.protobuf.StringValue
 	9,  // 8: activity.v1.ActivityService.GetActivities:input_type -> activity.v1.GetActivitiesRequest
 	10, // 9: activity.v1.ActivityService.GetActivity:input_type -> activity.v1.GetActivityRequest
 	11, // 10: activity.v1.ActivityService.UpdateActivity:input_type -> activity.v1.UpdateActivityRequest
 	4,  // 11: activity.v1.ActivityService.UploadActivities:input_type -> activity.v1.UploadActivitiesRequest
 	7,  // 12: activity.v1.ActivityService.UploadActivitiesUnary:input_type -> activity.v1.UploadActivitiesUnaryRequest
-	8,  // 13: activity.v1.ActivityService.GetActivities:output_type -> activity.v1.GetActivitiesResponse
-	2,  // 14: activity.v1.ActivityService.GetActivity:output_type -> activity.v1.GetActivityResponse
-	2,  // 15: activity.v1.ActivityService.UpdateActivity:output_type -> activity.v1.GetActivityResponse
-	5,  // 16: activity.v1.ActivityService.UploadActivities:output_type -> activity.v1.UploadActivitiesResponse
-	5,  // 17: activity.v1.ActivityService.UploadActivitiesUnary:output_type -> activity.v1.UploadActivitiesResponse
-	13, // [13:18] is the sub-list for method output_type
-	8,  // [8:13] is the sub-list for method input_type
+	12, // 13: activity.v1.ActivityService.UploadActivityImage:input_type -> activity.v1.UploadActivityImageRequest
+	8,  // 14: activity.v1.ActivityService.GetActivities:output_type -> activity.v1.GetActivitiesResponse
+	2,  // 15: activity.v1.ActivityService.GetActivity:output_type -> activity.v1.GetActivityResponse
+	2,  // 16: activity.v1.ActivityService.UpdateActivity:output_type -> activity.v1.GetActivityResponse
+	5,  // 17: activity.v1.ActivityService.UploadActivities:output_type -> activity.v1.UploadActivitiesResponse
+	5,  // 18: activity.v1.ActivityService.UploadActivitiesUnary:output_type -> activity.v1.UploadActivitiesResponse
+	13, // 19: activity.v1.ActivityService.UploadActivityImage:output_type -> activity.v1.UploadActivityImageResponse
+	14, // [14:20] is the sub-list for method output_type
+	8,  // [8:14] is the sub-list for method input_type
 	8,  // [8:8] is the sub-list for extension type_name
 	8,  // [8:8] is the sub-list for extension extendee
 	0,  // [0:8] is the sub-list for field type_name
@@ -1001,7 +1117,7 @@ func file_activity_v1_activity_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_activity_v1_activity_proto_rawDesc), len(file_activity_v1_activity_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -48,6 +48,9 @@ const (
 	// ActivityServiceUploadActivitiesUnaryProcedure is the fully-qualified name of the
 	// ActivityService's UploadActivitiesUnary RPC.
 	ActivityServiceUploadActivitiesUnaryProcedure = "/activity.v1.ActivityService/UploadActivitiesUnary"
+	// ActivityServiceUploadActivityImageProcedure is the fully-qualified name of the ActivityService's
+	// UploadActivityImage RPC.
+	ActivityServiceUploadActivityImageProcedure = "/activity.v1.ActivityService/UploadActivityImage"
 )
 
 // ActivityServiceClient is a client for the activity.v1.ActivityService service.
@@ -61,6 +64,8 @@ type ActivityServiceClient interface {
 	UploadActivities(context.Context) *connect.ClientStreamForClient[v1.UploadActivitiesRequest, v1.UploadActivitiesResponse]
 	// Upload fit files using a unary request (for clients without streaming support)
 	UploadActivitiesUnary(context.Context, *connect.Request[v1.UploadActivitiesUnaryRequest]) (*connect.Response[v1.UploadActivitiesResponse], error)
+	// Generate a signed URL for uploading an activity image
+	UploadActivityImage(context.Context, *connect.Request[v1.UploadActivityImageRequest]) (*connect.Response[v1.UploadActivityImageResponse], error)
 }
 
 // NewActivityServiceClient constructs a client for the activity.v1.ActivityService service. By
@@ -104,6 +109,12 @@ func NewActivityServiceClient(httpClient connect.HTTPClient, baseURL string, opt
 			connect.WithSchema(activityServiceMethods.ByName("UploadActivitiesUnary")),
 			connect.WithClientOptions(opts...),
 		),
+		uploadActivityImage: connect.NewClient[v1.UploadActivityImageRequest, v1.UploadActivityImageResponse](
+			httpClient,
+			baseURL+ActivityServiceUploadActivityImageProcedure,
+			connect.WithSchema(activityServiceMethods.ByName("UploadActivityImage")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -114,6 +125,7 @@ type activityServiceClient struct {
 	updateActivity        *connect.Client[v1.UpdateActivityRequest, v1.GetActivityResponse]
 	uploadActivities      *connect.Client[v1.UploadActivitiesRequest, v1.UploadActivitiesResponse]
 	uploadActivitiesUnary *connect.Client[v1.UploadActivitiesUnaryRequest, v1.UploadActivitiesResponse]
+	uploadActivityImage   *connect.Client[v1.UploadActivityImageRequest, v1.UploadActivityImageResponse]
 }
 
 // GetActivities calls activity.v1.ActivityService.GetActivities.
@@ -141,6 +153,11 @@ func (c *activityServiceClient) UploadActivitiesUnary(ctx context.Context, req *
 	return c.uploadActivitiesUnary.CallUnary(ctx, req)
 }
 
+// UploadActivityImage calls activity.v1.ActivityService.UploadActivityImage.
+func (c *activityServiceClient) UploadActivityImage(ctx context.Context, req *connect.Request[v1.UploadActivityImageRequest]) (*connect.Response[v1.UploadActivityImageResponse], error) {
+	return c.uploadActivityImage.CallUnary(ctx, req)
+}
+
 // ActivityServiceHandler is an implementation of the activity.v1.ActivityService service.
 type ActivityServiceHandler interface {
 	// Fetch all activities without records.
@@ -152,6 +169,8 @@ type ActivityServiceHandler interface {
 	UploadActivities(context.Context, *connect.ClientStream[v1.UploadActivitiesRequest]) (*connect.Response[v1.UploadActivitiesResponse], error)
 	// Upload fit files using a unary request (for clients without streaming support)
 	UploadActivitiesUnary(context.Context, *connect.Request[v1.UploadActivitiesUnaryRequest]) (*connect.Response[v1.UploadActivitiesResponse], error)
+	// Generate a signed URL for uploading an activity image
+	UploadActivityImage(context.Context, *connect.Request[v1.UploadActivityImageRequest]) (*connect.Response[v1.UploadActivityImageResponse], error)
 }
 
 // NewActivityServiceHandler builds an HTTP handler from the service implementation. It returns the
@@ -191,6 +210,12 @@ func NewActivityServiceHandler(svc ActivityServiceHandler, opts ...connect.Handl
 		connect.WithSchema(activityServiceMethods.ByName("UploadActivitiesUnary")),
 		connect.WithHandlerOptions(opts...),
 	)
+	activityServiceUploadActivityImageHandler := connect.NewUnaryHandler(
+		ActivityServiceUploadActivityImageProcedure,
+		svc.UploadActivityImage,
+		connect.WithSchema(activityServiceMethods.ByName("UploadActivityImage")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/activity.v1.ActivityService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case ActivityServiceGetActivitiesProcedure:
@@ -203,6 +228,8 @@ func NewActivityServiceHandler(svc ActivityServiceHandler, opts ...connect.Handl
 			activityServiceUploadActivitiesHandler.ServeHTTP(w, r)
 		case ActivityServiceUploadActivitiesUnaryProcedure:
 			activityServiceUploadActivitiesUnaryHandler.ServeHTTP(w, r)
+		case ActivityServiceUploadActivityImageProcedure:
+			activityServiceUploadActivityImageHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -230,4 +257,8 @@ func (UnimplementedActivityServiceHandler) UploadActivities(context.Context, *co
 
 func (UnimplementedActivityServiceHandler) UploadActivitiesUnary(context.Context, *connect.Request[v1.UploadActivitiesUnaryRequest]) (*connect.Response[v1.UploadActivitiesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("activity.v1.ActivityService.UploadActivitiesUnary is not implemented"))
+}
+
+func (UnimplementedActivityServiceHandler) UploadActivityImage(context.Context, *connect.Request[v1.UploadActivityImageRequest]) (*connect.Response[v1.UploadActivityImageResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("activity.v1.ActivityService.UploadActivityImage is not implemented"))
 }

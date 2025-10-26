@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/notaduck/backend/internal/clients"
 	"github.com/notaduck/backend/internal/config"
 	"github.com/notaduck/backend/internal/db"
 	"github.com/notaduck/backend/internal/repositories"
@@ -56,10 +57,12 @@ func NewAPIServer(options ...func(*APIServer)) *APIServer {
 
 		server.queries = db.New(pool)
 	}
+	ctx := context.Background()
 
+	sc := clients.NewStorageClient(ctx)
 	activityRepo := repositories.NewActivityRepository(server.queries)
 	recordRepo := repositories.NewRecordRepository(server.queries)
-	activityService := service.NewActivityService(activityRepo, recordRepo)
+	activityService := service.NewActivityService(activityRepo, recordRepo, sc)
 	server.activityService = activityService
 
 	return server

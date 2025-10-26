@@ -12,6 +12,7 @@ import (
 	"github.com/lmittmann/tint"
 	"github.com/newrelic/go-agent/v3/newrelic"
 
+	"github.com/notaduck/backend/internal/clients"
 	"github.com/notaduck/backend/internal/config"
 	"github.com/notaduck/backend/internal/db"
 	"github.com/notaduck/backend/internal/repositories"
@@ -81,9 +82,10 @@ func main() {
 
 	go apiServer.Run()
 
+	storageClient := clients.NewStorageClient(ctx)
 	activityRepo := repositories.NewActivityRepository(queries)
 	recordRepo := repositories.NewRecordRepository(queries)
-	activityService := service.NewActivityService(activityRepo, recordRepo)
+	activityService := service.NewActivityService(activityRepo, recordRepo, storageClient)
 
 	// Initialize RPC server
 	server := rpcserver.NewServer(config, activityService, newRelicApp)

@@ -16,6 +16,7 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/tormoder/fit"
 
+	"github.com/notaduck/backend/internal/clients"
 	"github.com/notaduck/backend/internal/db"
 	"github.com/notaduck/backend/internal/repositories"
 	"github.com/notaduck/backend/utils"
@@ -72,6 +73,11 @@ type ActivitySummary struct {
 	TotalDuration   time.Duration `json:"-"`
 }
 
+type ImageMetaData struct {
+	Longitude float64
+	Latitude  float64
+}
+
 type ActivityService interface {
 	UpdateActivity(ctx context.Context, activityData db.UpdateActivityParams) (*Activity, error)
 	GetSingleActivityById(ctx context.Context, activityId int32, userId string) (*Activity, error)
@@ -79,18 +85,35 @@ type ActivityService interface {
 	CreateActivities(ctx context.Context, files []*multipart.FileHeader, userID string) ([]*Activity, error)
 	CreateActivitiesFromBytes(ctx context.Context, files []ActivityFilePayload, userID string) ([]*Activity, error)
 	GetActivityStats(ctx context.Context, userID string) (*db.GetActivityStatsRow, error)
+	UploadActivityImage(ctx context.Context, userID string, metadata ImageMetaData, activityId int32) (string, error)
 }
 
 type activityService struct {
-	activityRepo repositories.ActivityRepository
-	recordRepo   repositories.RecordRepository
+	activityRepo  repositories.ActivityRepository
+	recordRepo    repositories.RecordRepository
+	storageClient clients.StorageClient
 }
 
-func NewActivityService(ar repositories.ActivityRepository, rr repositories.RecordRepository) ActivityService {
+func NewActivityService(ar repositories.ActivityRepository, rr repositories.RecordRepository, sc clients.StorageClient) ActivityService {
 	return &activityService{
-		activityRepo: ar,
-		recordRepo:   rr,
+		activityRepo:  ar,
+		recordRepo:    rr,
+		storageClient: sc,
 	}
+}
+
+func (s *activityService) UploadActivityImage(ctx context.Context, userID string, metadata ImageMetaData, activityId int32) (string, error) {
+
+	storageKey := fmt.Sprintf("%s/%d", userID, activityId)
+
+	preSignedUrl, err := s.storageClient.GeneratePresignedPutURL(ctx, "activityImages", storageKey, 15*time.Minute, metadata.Longitude, metadata.Latitude)
+
+	if err != nil {
+		slog.Error("failed to generate presigned url", "error", err)
+		return "", err
+	}
+
+	return preSignedUrl, nil
 }
 
 func (s *activityService) GetActivities(ctx context.Context, userId string) ([]ActivitySummary, error) {
@@ -468,27 +491,14 @@ func convertActivitySummaries(activityEntities []db.GetActivitiesRow) []Activity
 func convertRecords(recordEntities []db.Record) []Record {
 	records := make([]Record, len(recordEntities))
 	for i, record := range recordEntities {
-		var heartRate int16
-		if record.HeartRate.Valid {
-			heartRate = record.HeartRate.Int16
-		} else {
-			heartRate = 0 // or handle NULL case appropriately
-		}
-
-		var cadence int16
-		if record.Cadence.Valid {
-			cadence = record.Cadence.Int16
-		} else {
-			cadence = 0 // or handle NULL case appropriately
-		}
 
 		records[i] = Record{
 			ID:        record.ID,
 			Speed:     utils.ConvertSpeed(record.Speed.Int32),
 			TimeStamp: record.TimeStamp.Time,
-			HeartRate: heartRate,
+			HeartRate: record.HeartRate.Int16,
 			Distance:  record.Distance.Int32,
-			Cadence:   cadence,
+			Cadence:   record.Cadence.Int16,
 			Coordinates: Point{
 				X: record.Position.P.X,
 				Y: record.Position.P.Y,

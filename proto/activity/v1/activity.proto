@@ -58,7 +58,7 @@ message ActivitySummary {
 message UploadActivitiesRequest {
   oneof payload {
     bytes file_chunk = 1; // Chunk of file data
-    string metadata = 2;  // Optional metadata (e.g., user ID, filename)
+    string metadata = 2; // Optional metadata (e.g., user ID, filename)
   }
 }
 
@@ -79,7 +79,9 @@ message UploadActivitiesUnaryRequest {
 }
 
 // GetActivitiesResponse contains a list of activity summaries.
-message GetActivitiesResponse { repeated ActivitySummary activities = 1; }
+message GetActivitiesResponse {
+  repeated ActivitySummary activities = 1;
+}
 
 // GetActivitiesRequest is an empty request message for fetching all activities.
 // If you prefer to keep using the standard Empty message, you can alias it, but
@@ -87,12 +89,24 @@ message GetActivitiesResponse { repeated ActivitySummary activities = 1; }
 message GetActivitiesRequest {}
 
 // GetActivityRequest specifies the ID of the activity to retrieve.
-message GetActivityRequest { int32 activity_id = 1; }
+message GetActivityRequest {
+  int32 activity_id = 1;
+}
 
 message UpdateActivityRequest {
   int32 activity_id = 1;
   google.protobuf.StringValue activity_name = 2;
   google.protobuf.StringValue ride_type = 3;
+}
+
+message UploadActivityImageRequest {
+  int32 activity_id = 1;
+  double longitude = 2;
+  double latitude = 3;
+}
+
+message UploadActivityImageResponse {
+  string signed_put_url = 1;
 }
 
 service ActivityService {
@@ -103,9 +117,9 @@ service ActivityService {
   rpc GetActivity(GetActivityRequest) returns (GetActivityResponse) {}
   rpc UpdateActivity(UpdateActivityRequest) returns (GetActivityResponse) {}
   // Upload multiple fit files
-  rpc UploadActivities(stream UploadActivitiesRequest)
-      returns (UploadActivitiesResponse);
+  rpc UploadActivities(stream UploadActivitiesRequest) returns (UploadActivitiesResponse);
   // Upload fit files using a unary request (for clients without streaming support)
-  rpc UploadActivitiesUnary(UploadActivitiesUnaryRequest)
-      returns (UploadActivitiesResponse);
+  rpc UploadActivitiesUnary(UploadActivitiesUnaryRequest) returns (UploadActivitiesResponse);
+  // Generate a signed URL for uploading an activity image
+  rpc UploadActivityImage(UploadActivityImageRequest) returns (UploadActivityImageResponse);
 }

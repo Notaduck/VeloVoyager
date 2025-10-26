@@ -25,6 +25,7 @@ import {
 import {
   getActivity,
   updateActivity,
+  uploadActivityImage,
 } from "@/gen/activity/v1/activity-ActivityService_connectquery";
 import { useQuery, useMutation } from "@connectrpc/connect-query";
 import { useQueryClient } from "@tanstack/react-query";
@@ -116,6 +117,7 @@ function Activity() {
 
   // const { updateActivity } = useActivity();
   const updateActivityMutation = useMutation(updateActivity);
+  const uploadActivityMedia = useMutation(uploadActivityImage);
 
   const { data: activity } = useQuery(getActivity, {
     activityId: activityId,

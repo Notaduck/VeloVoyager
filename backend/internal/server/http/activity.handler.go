@@ -165,7 +165,7 @@ func (s *APIServer) handlePostActivity(w http.ResponseWriter, r *http.Request) e
 
 	// Check if files were included in the request.
 	files := r.MultipartForm.File["files"]
-	if files == nil || len(files) == 0 {
+	if len(files) == 0 {
 		return WriteJSON(w, http.StatusBadRequest, ApiError{"Please select one or more .fit files to upload and try again! 📁🚀"})
 	}
 
