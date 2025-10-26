@@ -4,7 +4,7 @@ import type {
   LineString as GeoJsonLineString,
   Point as GeoJsonPoint,
 } from "geojson";
-import mapboxgl from "mapbox-gl"; // eslint-disable-line import/no-webpack-loader-syntax
+import mapboxgl from "mapbox-gl";
 import type { LngLatBounds } from "mapbox-gl";
 
 import {

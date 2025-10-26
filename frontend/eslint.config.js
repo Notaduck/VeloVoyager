@@ -6,6 +6,9 @@ import unusedImportsPlugin from "eslint-plugin-unused-imports";
 
 export default [
   {
+    ignores: ["src/gen/**/*", "src/routeTree.gen.ts"],
+  },
+  {
     files: ["**/*.{js,jsx,ts,tsx}"],
     languageOptions: {
       parser: tsParser, // Use TypeScript parser

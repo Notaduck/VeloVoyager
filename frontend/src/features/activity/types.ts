@@ -3,10 +3,6 @@ import type { LucideIcon } from "lucide-react";
 
 export type ActivityRecords = GetActivityResponse["records"];
 
-export type RecordWithCoordinates = ActivityRecords[number] & {
-  coordinates: NonNullable<ActivityRecords[number]["coordinates"]>;
-};
-
 export type MetricPoint = {
   recordId: number;
   distanceKm: number;
