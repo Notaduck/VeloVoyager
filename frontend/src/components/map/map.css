@@ -1,7 +1,9 @@
 /* Add this to your CSS file, for example, `App.css` or create a new CSS file */
 
 .map-container {
-    height: 340px;
+    /* Allow the map to grow a bit taller while keeping a reasonable minimum */
+    min-height: 360px;
+    height: clamp(360px, 48vh, 520px);
 }
 
 .map-active-point {
@@ -16,4 +18,46 @@
 
 .map-active-point--hidden {
     display: none;
+}
+
+.map-shell {
+    position: relative;
+    width: 100%;
+    transition: width 0.35s ease, height 0.35s ease, transform 0.35s ease, bottom 0.35s ease, right 0.35s ease, box-shadow 0.35s ease;
+    will-change: transform, width, height;
+}
+
+.map-shell__fallback {
+    width: 100%;
+    height: clamp(360px, 48vh, 520px);
+}
+
+.map-shell__empty {
+    text-align: center;
+}
+
+.map-shell--pinned {
+    position: fixed;
+    bottom: 1.75rem;
+    right: 1.75rem;
+    width: min(28vw, 420px);
+    height: min(24vw, 260px);
+    z-index: 40;
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.45);
+    border-radius: 1rem;
+}
+
+.map-shell--pinned .map-shell__fallback {
+    height: 100%;
+}
+
+.map-shell--pinned .map-container {
+    min-height: 0;
+    height: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .map-shell {
+        transition: none;
+    }
 }

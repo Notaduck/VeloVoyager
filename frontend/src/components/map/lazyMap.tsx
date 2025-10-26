@@ -52,18 +52,24 @@ const createMarkerElement = () => {
   return element;
 };
 
-const buildRouteSource = (route: RouteGeometry): GeoJSONSourceSpecification => ({
+const buildRouteSource = (
+  route: RouteGeometry
+): GeoJSONSourceSpecification => ({
   type: "geojson",
   lineMetrics: true,
   data: createRouteFeature(route),
 });
 
-const buildPointsSource = (records: ActivityRecord[]): GeoJSONSourceSpecification => ({
+const buildPointsSource = (
+  records: ActivityRecord[]
+): GeoJSONSourceSpecification => ({
   type: "geojson",
   data: createPointsFeatureCollection(records),
 });
 
-const buildMarkersSource = (route: RouteGeometry): GeoJSONSourceSpecification => ({
+const buildMarkersSource = (
+  route: RouteGeometry
+): GeoJSONSourceSpecification => ({
   type: "geojson",
   data: {
     type: "FeatureCollection",
@@ -120,7 +126,7 @@ export default function LazyMap({
 
       fitRouteBounds(mapRef.current, route, animate);
     },
-    [route],
+    [route]
   );
 
   const resetHoverState = useCallback(() => {
@@ -130,8 +136,11 @@ export default function LazyMap({
 
     if (lastHoveredId.current != null) {
       mapRef.current.setFeatureState(
-        { source: POINTS_SOURCE_ID, id: lastHoveredId.current } as FeatureIdentifier,
-        { hover: false },
+        {
+          source: POINTS_SOURCE_ID,
+          id: lastHoveredId.current,
+        } as FeatureIdentifier,
+        { hover: false }
       );
       lastHoveredId.current = null;
     }
@@ -145,8 +154,11 @@ export default function LazyMap({
 
     if (lastFocusedId.current != null) {
       mapRef.current.setFeatureState(
-        { source: POINTS_SOURCE_ID, id: lastFocusedId.current } as FeatureIdentifier,
-        { focus: false },
+        {
+          source: POINTS_SOURCE_ID,
+          id: lastFocusedId.current,
+        } as FeatureIdentifier,
+        { focus: false }
       );
       lastFocusedId.current = null;
     }
@@ -157,7 +169,9 @@ export default function LazyMap({
       return;
     }
 
-    const initialCenter = route.length ? [route[0][0], route[0][1]] : [initialLng, initialLat];
+    const initialCenter = route.length
+      ? [route[0][0], route[0][1]]
+      : [initialLng, initialLat];
     const initialZoom = route.length ? 11 : zoom;
 
     mapRef.current = new mapboxgl.Map({
@@ -170,7 +184,7 @@ export default function LazyMap({
 
     mapRef.current.addControl(
       new mapboxgl.NavigationControl({ visualizePitch: true }),
-      NAV_CONTROL_POSITION,
+      NAV_CONTROL_POSITION
     );
 
     mapRef.current.on("move", () => {
@@ -329,33 +343,43 @@ export default function LazyMap({
         },
       });
 
-      mapInstance.on("mousemove", POINTS_LAYER_ID, (event: mapboxgl.MapMouseEvent) => {
-        if (!event.features?.length) {
-          return;
-        }
-        const feature = event.features[0];
-        const featureId =
-          (feature.id as number | undefined) ??
-          (feature.properties?.id as number | undefined);
-        if (featureId === undefined || featureId === lastHoveredId.current) {
-          return;
-        }
+      mapInstance.on(
+        "mousemove",
+        POINTS_LAYER_ID,
+        (event: mapboxgl.MapMouseEvent) => {
+          if (!event.features?.length) {
+            return;
+          }
+          const feature = event.features[0];
+          const featureId =
+            (feature.id as number | undefined) ??
+            (feature.properties?.id as number | undefined);
+          if (featureId === undefined || featureId === lastHoveredId.current) {
+            return;
+          }
 
-        if (lastHoveredId.current != null && lastHoveredId.current !== featureId) {
+          if (
+            lastHoveredId.current != null &&
+            lastHoveredId.current !== featureId
+          ) {
+            mapInstance.setFeatureState(
+              {
+                source: POINTS_SOURCE_ID,
+                id: lastHoveredId.current,
+              } as FeatureIdentifier,
+              { hover: false }
+            );
+          }
+
           mapInstance.setFeatureState(
-            { source: POINTS_SOURCE_ID, id: lastHoveredId.current } as FeatureIdentifier,
-            { hover: false },
+            { source: POINTS_SOURCE_ID, id: featureId } as FeatureIdentifier,
+            { hover: true }
           );
+          lastHoveredId.current = featureId;
+          setHoveredRecordId((prev) => (prev === featureId ? prev : featureId));
+          onRecordHover?.(featureId);
         }
-
-        mapInstance.setFeatureState(
-          { source: POINTS_SOURCE_ID, id: featureId } as FeatureIdentifier,
-          { hover: true },
-        );
-        lastHoveredId.current = featureId;
-        setHoveredRecordId((prev) => (prev === featureId ? prev : featureId));
-        onRecordHover?.(featureId);
-      });
+      );
 
       mapInstance.on("mouseenter", POINTS_LAYER_ID, () => {
         mapInstance.getCanvas().style.cursor = "pointer";
@@ -366,8 +390,11 @@ export default function LazyMap({
         const previousHoverId = lastHoveredId.current;
         if (previousHoverId != null) {
           mapInstance.setFeatureState(
-            { source: POINTS_SOURCE_ID, id: previousHoverId } as FeatureIdentifier,
-            { hover: false },
+            {
+              source: POINTS_SOURCE_ID,
+              id: previousHoverId,
+            } as FeatureIdentifier,
+            { hover: false }
           );
           lastHoveredId.current = null;
         }
@@ -415,7 +442,7 @@ export default function LazyMap({
     if (targetFocusId != null && coordinateLookup.has(targetFocusId)) {
       mapInstance.setFeatureState(
         { source: POINTS_SOURCE_ID, id: targetFocusId } as FeatureIdentifier,
-        { focus: true },
+        { focus: true }
       );
       lastFocusedId.current = targetFocusId;
     }
@@ -446,15 +473,18 @@ export default function LazyMap({
 
     if (previousFocusedId != null) {
       mapRef.current.setFeatureState(
-        { source: POINTS_SOURCE_ID, id: previousFocusedId } as FeatureIdentifier,
-        { focus: false },
+        {
+          source: POINTS_SOURCE_ID,
+          id: previousFocusedId,
+        } as FeatureIdentifier,
+        { focus: false }
       );
     }
 
     if (nextFocusedId != null && coordinateLookup.has(nextFocusedId)) {
       mapRef.current.setFeatureState(
         { source: POINTS_SOURCE_ID, id: nextFocusedId } as FeatureIdentifier,
-        { focus: true },
+        { focus: true }
       );
     }
 
@@ -530,20 +560,10 @@ export default function LazyMap({
 
   return (
     <div className="relative">
-      <div className="absolute left-3 top-3 z-10 flex flex-col gap-1 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-2 text-xs font-medium text-slate-600 shadow-md">
-        <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-slate-500">
-          <span>Map view</span>
-          <span className="h-1 w-1 rounded-full bg-slate-400" />
-          <span>Zoom {zoom.toFixed(1)}</span>
-        </div>
-        <div className="text-[11px] text-slate-500">
-          Lon {lng.toFixed(4)} &middot; Lat {lat.toFixed(4)}
-        </div>
-        <div className="text-xs font-semibold text-slate-700">
-          {displaySampleId != null ? `Sample #${displaySampleId}` : "Hover route to explore"}
-        </div>
-      </div>
-      <div className="map-container w-full rounded-lg bg-white shadow-md" ref={mapContainer} />
+      <div
+        className="map-container w-full rounded-lg bg-white shadow-md"
+        ref={mapContainer}
+      />
     </div>
   );
 }

@@ -11,6 +11,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { FormProvider, useForm } from "react-hook-form";
@@ -193,6 +194,13 @@ function Activity() {
     [detailItems, rideTypeLabel]
   );
 
+  const hasRouteData = routeInfo.route.length >= 2;
+  const mapCardRef = useRef<HTMLDivElement | null>(null);
+  const mapPlaceholderRef = useRef<HTMLDivElement | null>(null);
+  const [mapHeight, setMapHeight] = useState<number>(360);
+  const [isDesktopViewport, setIsDesktopViewport] = useState<boolean>(false);
+  const [isMapPinned, setIsMapPinned] = useState<boolean>(false);
+
   const formMethods = useForm<z.infer<typeof formSchema>>({
     mode: "onBlur",
     resolver: zodResolver(formSchema),
@@ -223,6 +231,93 @@ function Activity() {
     }
     return sampleByRecordId.get(activeRecordId) ?? null;
   }, [activeRecordId, sampleByRecordId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsDesktopViewport(event.matches);
+    };
+
+    setIsDesktopViewport(mediaQuery.matches);
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", handleChange);
+      return () => mediaQuery.removeEventListener("change", handleChange);
+    }
+
+    mediaQuery.addListener(handleChange);
+    return () => mediaQuery.removeListener(handleChange);
+  }, []);
+
+  useEffect(() => {
+    if (!hasRouteData) {
+      return;
+    }
+
+    const node = mapCardRef.current;
+    if (!node) {
+      return;
+    }
+
+    const updateHeight = (nextHeight: number) => {
+      setMapHeight((previous) => {
+        if (Math.abs(previous - nextHeight) < 1) {
+          return previous;
+        }
+        return nextHeight;
+      });
+    };
+
+    if (typeof ResizeObserver === "function") {
+      const resizeObserver = new ResizeObserver((entries) => {
+        const entry = entries[0];
+        if (!entry) {
+          return;
+        }
+        updateHeight(entry.contentRect.height);
+      });
+
+      resizeObserver.observe(node);
+      return () => resizeObserver.disconnect();
+    }
+
+    updateHeight(node.offsetHeight);
+    const handleResize = () => updateHeight(node.offsetHeight);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [hasRouteData]);
+
+  useEffect(() => {
+    if (!isDesktopViewport || !hasRouteData) {
+      setIsMapPinned(false);
+      return;
+    }
+
+    const handleScroll = () => {
+      const sentinel = mapPlaceholderRef.current;
+      if (!sentinel) {
+        return;
+      }
+
+      const { top } = sentinel.getBoundingClientRect();
+      const shouldPin = top <= 72;
+
+      setIsMapPinned((previous) => {
+        if (previous === shouldPin) {
+          return previous;
+        }
+        return shouldPin;
+      });
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [hasRouteData, isDesktopViewport]);
   type HeroMetric = StatItem;
   const heroStats: HeroMetric[] = useMemo(
     () => [
@@ -505,150 +600,53 @@ function Activity() {
         </section>
       </FormProvider>
 
-      <section className="grid gap-6 xl:grid-cols-[2fr,1fr]">
-        <Card className="overflow-hidden border border-border/60 shadow-lg">
-          <CardHeader className="space-y-1 border-b bg-muted/30 px-6 py-5">
-            <CardTitle className="text-lg">Route overview</CardTitle>
-            <CardDescription>
-              Hover the map to highlight samples and sync with charts.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6 px-6 pb-6">
-            {routeInfo.route.length >= 2 ? (
-              <Suspense
-                fallback={
-                  <div className="flex h-[360px] w-full items-center justify-center rounded-2xl border border-dashed border-muted-foreground/20 bg-muted/40">
-                    <p className="text-sm text-muted-foreground">
-                      Loading map…
-                    </p>
-                  </div>
-                }
-              >
-                <div className="overflow-hidden rounded-2xl border border-border/60 bg-muted/40">
-                  <LazyMap
-                    initialLat={routeInfo.centerLat}
-                    initialLng={routeInfo.centerLng}
-                    records={mapboxRecords}
-                    route={routeInfo.route}
-                    focusedRecordId={activeRecordId}
-                    onRecordHover={handleRecordHover}
-                  />
-                </div>
-              </Suspense>
-            ) : (
-              <div className="flex h-[360px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-muted-foreground/30 bg-muted/40 text-center">
-                <p className="text-sm font-medium text-foreground">
-                  No route coordinates available
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Upload an activity with GPS data to view the map.
-                </p>
-              </div>
-            )}
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2">
-                <p className="text-xs text-muted-foreground">Total distance</p>
-                <p className="text-sm font-semibold text-foreground">
-                  {distanceLabel}
-                </p>
-              </div>
-              <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2">
-                <p className="text-xs text-muted-foreground">Samples</p>
-                <p className="text-sm font-semibold text-foreground">
-                  {recordCountLabel}
-                </p>
-              </div>
-              <div className="rounded-xl border border-border/60 bg-background/80 px-3 py-2">
-                <p className="text-xs text-muted-foreground">
-                  Focused record ID
-                </p>
-                <p className="text-sm font-semibold text-foreground">
-                  {activeSample ? `#${activeSample.recordId}` : "—"}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <section className="grid gap-6 xl:grid-cols">
+        {hasRouteData && (
+          <div
+            ref={mapPlaceholderRef}
+            aria-hidden="true"
+            style={{ height: isMapPinned ? mapHeight : 0 }}
+          />
+        )}
 
-        <Card className="border border-border/60 shadow-lg">
-          <CardHeader className="space-y-1 border-b bg-muted/30 px-6 py-5">
-            <CardTitle className="text-lg">Ride details</CardTitle>
-            <CardDescription>
-              Key metadata pulled from the activity file.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-5 px-6 pb-6">
-            <div className="rounded-2xl border border-border/60 bg-background/70 px-4 py-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-foreground">
-                  Focused sample
-                </p>
-                {activeSample && (
-                  <Badge variant="outline" className="border-border/60">
-                    Record #{activeSample.recordId}
-                  </Badge>
-                )}
-              </div>
-              {activeSample ? (
-                <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-4">
-                  <div>
-                    <dt className="text-xs uppercase text-muted-foreground">
-                      Distance
-                    </dt>
-                    <dd className="font-medium text-foreground">
-                      {formatDistance(activeSample.distanceKm, totalDistanceKm)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs uppercase text-muted-foreground">
-                      Speed
-                    </dt>
-                    <dd className="font-medium text-foreground">
-                      {activeSample.speedKph.toFixed(1)} km/h
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs uppercase text-muted-foreground">
-                      Heart rate
-                    </dt>
-                    <dd className="font-medium text-foreground">
-                      {activeSample.heartRate != null
-                        ? `${activeSample.heartRate} bpm`
-                        : "—"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs uppercase text-muted-foreground">
-                      Cadence
-                    </dt>
-                    <dd className="font-medium text-foreground">
-                      {activeSample.cadence != null
-                        ? `${activeSample.cadence} rpm`
-                        : "—"}
-                    </dd>
-                  </div>
-                </dl>
-              ) : (
-                <p className="mt-3 text-xs text-muted-foreground">
-                  Hover the map or charts to inspect an individual sample.
-                </p>
-              )}
-            </div>
-            <div className="grid gap-3 text-sm">
-              {detailItemsWithRideType.map((item) => (
-                <div
-                  key={item.label}
-                  className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/40 px-3 py-2"
-                >
-                  <span className="text-muted-foreground">{item.label}</span>
-                  <span className="font-medium text-foreground">
-                    {item.value}
-                  </span>
+        <div
+          ref={hasRouteData ? mapCardRef : null}
+          className={clsx(
+            "map-shell overflow-hidden rounded-2xl bg-muted/40",
+            hasRouteData
+              ? "border border-border/60"
+              : "border border-dashed border-muted-foreground/30",
+            hasRouteData && isMapPinned && "map-shell--pinned"
+          )}
+        >
+          {hasRouteData ? (
+            <Suspense
+              fallback={
+                <div className="map-shell__fallback flex items-center justify-center">
+                  <p className="text-sm text-muted-foreground">Loading map…</p>
                 </div>
-              ))}
+              }
+            >
+              <LazyMap
+                initialLat={routeInfo.centerLat}
+                initialLng={routeInfo.centerLng}
+                records={mapboxRecords}
+                route={routeInfo.route}
+                focusedRecordId={activeRecordId}
+                onRecordHover={handleRecordHover}
+              />
+            </Suspense>
+          ) : (
+            <div className="map-shell__fallback map-shell__empty flex flex-col items-center justify-center gap-2">
+              <p className="text-sm font-medium text-foreground">
+                No route coordinates available
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Upload an activity with GPS data to view the map.
+              </p>
             </div>
-          </CardContent>
-        </Card>
+          )}
+        </div>
       </section>
 
       <section className="space-y-6">
