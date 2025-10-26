@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from "react";
-import mapboxgl from "mapbox-gl"; // eslint-disable-line import/no-webpack-loader-syntax
+import mapboxgl from "mapbox-gl";
 import type { FeatureIdentifier, GeoJSONSourceSpecification } from "mapbox-gl";
 import type {
   Feature as GeoJsonFeature,

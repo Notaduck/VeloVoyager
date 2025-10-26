@@ -1,4 +1,3 @@
-import { UNKNOWN_VALUE } from "./constants";
 import type { MetricPoint } from "./types";
 
 /**
@@ -35,6 +34,3 @@ export const createDistanceTicks = (points: MetricPoint[]): number[] => {
 
   return ticks;
 };
-
-export const formatNullableLabel = (value: string | null | undefined) =>
-  value ?? UNKNOWN_VALUE;
